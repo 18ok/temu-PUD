@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POD AI Studio - 产品演示文档</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @media print {
+      .no-print { display: none; }
+      .page-break { page-break-after: always; }
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif; }
+  </style>
+</head>
+<body class="bg-gray-50">
+  
+  <!-- 封面 -->
+  <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 via-purple-500 to-pink-500 page-break">
+    <div class="text-center text-white px-8">
+      <div class="w-24 h-24 bg-white bg-opacity-20 backdrop-blur rounded-3xl mx-auto mb-8 flex items-center justify-center text-6xl">
+        ✨
+      </div>
+      <h1 class="text-5xl font-bold mb-4">POD AI Studio</h1>
+      <p class="text-2xl text-purple-100 mb-8">AI驱动的POD产品设计内部工作平台</p>
+      <div class="inline-block bg-white bg-opacity-20 backdrop-blur rounded-full px-6 py-2 text-sm">
+        产品原型演示文档 v2.1
+      </div>
+      <div class="mt-16 text-purple-100 text-sm">
+        <p>演示日期：2026年5月</p>
+        <p class="mt-2">机密文档 · 仅供内部使用</p>
+        <p class="mt-4 text-purple-200 text-xs">基于实际成本验证 · MVP → 本地AI 三阶段路线</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 项目概述 -->
+  <div class="min-h-screen bg-white p-16 page-break">
+    <div class="max-w-5xl mx-auto">
+      <h2 class="text-3xl font-bold text-gray-800 mb-8 border-b-4 border-purple-500 pb-4">项目概述</h2>
+      
+      <div class="grid grid-cols-2 gap-8 mb-12">
+        <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-8">
+          <div class="text-purple-600 text-4xl mb-4">🎯</div>
+          <h3 class="text-xl font-bold text-gray-800 mb-3">项目目标</h3>
+          <p class="text-gray-600 leading-relaxed">
+            搭建内部AI工作平台，整合多个AI引擎（Gemini 3.1 Flash、DALL-E 3、SDXL、豆包、Hermes、Claude 3.5），让团队快速生成POD产品图案和标题，提升设计效率，降低人力成本。
+          </p>
+        </div>
+        
+        <div class="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-8">
+          <div class="text-blue-600 text-4xl mb-4">💡</div>
+          <h3 class="text-xl font-bold text-gray-800 mb-3">核心价值</h3>
+          <ul class="text-gray-600 space-y-2">
+            <li>✓ 设计效率提升 <strong>30-50倍</strong></li>
+            <li>✓ 单个设计成本降低 <strong>95%</strong></li>
+            <li>✓ 支持批量生成，日产能 <strong>500+</strong></li>
+            <li>✓ 统一管理，对接工厂无缝</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="bg-gray-50 rounded-2xl p-8 mb-12">
+        <h3 class="text-xl font-bold text-gray-800 mb-6">核心功能模块</h3>
+        <div class="grid grid-cols-4 gap-4">
+          <div class="bg-white rounded-xl p-6 text-center border-2 border-purple-200">
+            <div class="text-3xl mb-3">🎨</div>
+            <div class="font-bold text-gray-800 mb-2">图案生成</div>
+            <div class="text-sm text-gray-500">AI自动生成产品图案</div>
+          </div>
+          <div class="bg-white rounded-xl p-6 text-center border-2 border-blue-200">
+            <div class="text-3xl mb-3">📝</div>
+            <div class="font-bold text-gray-800 mb-2">标题生成</div>
+            <div class="text-sm text-gray-500">批量生成SEO标题</div>
+          </div>
+          <div class="bg-white rounded-xl p-6 text-center border-2 border-green-200">
+            <div class="text-3xl mb-3">📁</div>
+            <div class="font-bold text-gray-800 mb-2">素材库</div>
+            <div class="text-sm text-gray-500">统一管理所有素材</div>
+          </div>
+          <div class="bg-white rounded-xl p-6 text-center border-2 border-orange-200">
+            <div class="text-3xl mb-3">⚙️</div>
+            <div class="font-bold text-gray-800 mb-2">系统管理</div>
+            <div class="text-sm text-gray-500">API配置与权限</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-6">
+        <div class="bg-white rounded-xl p-6 border border-gray-200">
+          <div class="text-2xl font-bold text-purple-600 mb-2">4-6 周</div>
+          <div class="text-gray-600">开发周期</div>
+        </div>
+        <div class="bg-white rounded-xl p-6 border border-gray-200">
+          <div class="text-2xl font-bold text-blue-600 mb-2">3-5 万</div>
+          <div class="text-gray-600">开发成本（元）</div>
+        </div>
+        <div class="bg-white rounded-xl p-6 border border-gray-200">
+          <div class="text-2xl font-bold text-green-600 mb-2">1.5-2 千</div>
+          <div class="text-gray-600">月运营成本（元）</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 页面1：工作台 -->
+  <div class="min-h-screen bg-white p-16 page-break">
+    <div class="max-w-6xl mx-auto">
+      <div class="mb-8">
+        <span class="text-purple-600 font-medium">页面 01</span>
+        <h2 class="text-3xl font-bold text-gray-800 mt-2">工作台首页</h2>
+        <p class="text-gray-500 mt-2">数据看板 + 快速入口，管理者和员工的统一入口</p>
+      </div>
+
+      <div class="bg-gray-100 rounded-2xl p-8 mb-8">
+        <div class="bg-white rounded-xl shadow-2xl overflow-hidden">
+          <div class="bg-slate-900 text-white p-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg"></div>
+              <div>
+                <div class="font-bold text-sm">POD AI Studio</div>
+                <div class="text-xs text-gray-400">内部工作台 v1.0</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-6 h-6 bg-purple-600 rounded-full"></div>
+              <span class="text-sm">张三</span>
+            </div>
+          </div>
+
+          <div class="p-8">
+            <h3 class="text-xl font-bold text-gray-800 mb-6">工作台</h3>
+            
+            <div class="grid grid-cols-4 gap-4 mb-8">
+              <div class="bg-purple-50 rounded-lg p-4 border-2 border-purple-200">
+                <div class="text-xs text-purple-600 mb-1">今日生成图案</div>
+                <div class="text-2xl font-bold text-purple-700">156</div>
+                <div class="text-xs text-green-600 mt-1">↑ +23%</div>
+              </div>
+              <div class="bg-pink-50 rounded-lg p-4 border-2 border-pink-200">
+                <div class="text-xs text-pink-600 mb-1">今日生成标题</div>
+                <div class="text-2xl font-bold text-pink-700">420</div>
+                <div class="text-xs text-green-600 mt-1">↑ +18%</div>
+              </div>
+              <div class="bg-blue-50 rounded-lg p-4 border-2 border-blue-200">
+                <div class="text-xs text-blue-600 mb-1">素材库总数</div>
+                <div class="text-2xl font-bold text-blue-700">3,287</div>
+                <div class="text-xs text-green-600 mt-1">↑ +5%</div>
+              </div>
+              <div class="bg-green-50 rounded-lg p-4 border-2 border-green-200">
+                <div class="text-xs text-green-600 mb-1">已上架产品</div>
+                <div class="text-2xl font-bold text-green-700">892</div>
+                <div class="text-xs text-green-600 mt-1">↑ +12%</div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-6">
+              <div class="bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl p-6 text-white">
+                <div class="text-3xl mb-3">🎨</div>
+                <div class="text-lg font-bold mb-2">图案生成</div>
+                <div class="text-sm text-purple-100">Gemini 3.1 · DALL-E 3 · SDXL</div>
+              </div>
+              <div class="bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl p-6 text-white">
+                <div class="text-3xl mb-3">📝</div>
+                <div class="text-lg font-bold mb-2">标题生成</div>
+                <div class="text-sm text-blue-100">豆包 · Hermes · Claude 3.5</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-6">
+        <div class="bg-purple-50 rounded-xl p-6">
+          <h4 class="font-bold text-gray-800 mb-3">✨ 核心亮点</h4>
+          <ul class="space-y-2 text-sm text-gray-600">
+            <li>• 实时数据看板，团队产出一目了然</li>
+            <li>• API消耗可视化，成本透明可控</li>
+            <li>• 快速入口设计，降低使用门槛</li>
+            <li>• 最近操作记录，方便追溯</li>
+          </ul>
+        </div>
+        <div class="bg-blue-50 rounded-xl p-6">
+          <h4 class="font-bold text-gray-800 mb-3">👥 适用角色</h4>
+          <ul class="space-y-2 text-sm text-gray-600">
+            <li>• <strong>管理者：</strong>查看团队效率和成本</li>
+            <li>• <strong>设计师：</strong>快速进入工作模块</li>
+            <li>• <strong>运营：</strong>了解素材库存量</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 页面2：图案生成 -->
+  <div class="min-h-screen bg-white p-16 page-break">
+    <div class="max-w-6xl mx-auto">
+      <div class="mb-8">
+        <span class="text-purple-600 font-medium">页面 02</span>
+        <h2 class="text-3xl font-bold text-gray-800 mt-2">图案生成工作台</h2>
+        <p class="text-gray-500 mt-2">多AI引擎切换（Gemini 3.1 Flash / DALL-E 3 / SDXL），一键生成多张变体图案</p>
+      </div>
+
+      <div class="bg-gray-100 rounded-2xl p-8 mb-8">
+        <div class="bg-white rounded-xl shadow-2xl overflow-hidden">
+          <div class="grid grid-cols-3">
+            <div class="col-span-1 bg-gray-50 p-6 border-r">
+              <h4 class="font-bold text-gray-800 mb-4">生成参数</h4>
+              
+              <div class="mb-4">
+                <div class="text-xs text-gray-600 mb-2">产品类型</div>
+                <div class="grid grid-cols-3 gap-2">
+                  <div class="bg-purple-100 border-2 border-purple-500 rounded p-2 text-center text-xs">
+                    <div class="text-lg">👕</div>
+                    <div>T恤</div>
+                  </div>
+                  <div class="bg-white border rounded p-2 text-center text-xs">
+                    <div class="text-lg">☕</div>
+                    <div>马克杯</div>
+                  </div>
+                  <div class="bg-white border rounded p-2 text-center text-xs">
+                    <div class="text-lg">📱</div>
+                    <div>手机壳</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <div class="text-xs text-gray-600 mb-2">AI引擎</div>
+                <div class="space-y-2">
+                  <div class="bg-purple-100 border-2 border-purple-500 rounded p-2 text-xs flex justify-between items-center">
+                    <span class="font-medium">🚀 Gemini 3.1 Flash</span>
+                    <span class="bg-green-200 px-2 py-0.5 rounded text-xs text-green-800">推荐</span>
+                  </div>
+                  <div class="bg-white border rounded p-2 text-xs flex justify-between items-center">
+                    <span>⭐ DALL-E 3</span>
+                    <span class="bg-purple-100 px-2 py-0.5 rounded text-xs text-purple-700">高质量</span>
+                  </div>
+                  <div class="bg-white border rounded p-2 text-xs flex justify-between items-center">
+                    <span>💰 Stable Diffusion XL</span>
+                    <span class="bg-gray-100 px-2 py-0.5 rounded text-xs">经济</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <div class="text-xs text-gray-600 mb-2">风格</div>
+                <div class="flex flex-wrap gap-1">
+                  <span class="bg-purple-500 text-white px-2 py-1 rounded-full text-xs">卡通</span>
+                  <span class="bg-gray-200 px-2 py-1 rounded-full text-xs">写实</span>
+                  <span class="bg-gray-200 px-2 py-1 rounded-full text-xs">极简</span>
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <div class="text-xs text-gray-600 mb-2">描述词</div>
+                <div class="bg-white border rounded p-2 text-xs text-gray-500 h-16">
+                  一只戴墨镜的柴犬在海浪上冲浪...
+                </div>
+              </div>
+
+              <button class="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-medium py-2 rounded-lg text-sm">
+                ✨ 生成图案
+              </button>
+              <div class="text-xs text-gray-500 text-center mt-2">预估消耗：¥0.50/张 × 4张 ≈ ¥2.00（Gemini 3.1 Flash）</div>
+            </div>
+
+            <div class="col-span-2 p-6">
+              <h4 class="font-bold text-gray-800 mb-4">生成结果</h4>
+              <div class="grid grid-cols-2 gap-4">
+                <div class="aspect-square bg-gradient-to-br from-purple-100 via-pink-100 to-orange-100 rounded-lg flex items-center justify-center">
+                  <div class="text-5xl">🎨</div>
+                </div>
+                <div class="aspect-square bg-gradient-to-br from-blue-100 via-cyan-100 to-teal-100 rounded-lg flex items-center justify-center">
+                  <div class="text-5xl">🌊</div>
+                </div>
+                <div class="aspect-square bg-gradient-to-br from-green-100 via-emerald-100 to-lime-100 rounded-lg flex items-center justify-center">
+                  <div class="text-5xl">🐕</div>
+                </div>
+                <div class="aspect-square bg-gradient-to-br from-yellow-100 via-orange-100 to-red-100 rounded-lg flex items-center justify-center">
+                  <div class="text-5xl">☀️</div>
+                </div>
+              </div>
+              <div class="mt-4 flex gap-2">
+                <button class="flex-1 border border-gray-300 rounded py-2 text-xs">全部下载</button>
+                <button class="flex-1 bg-purple-500 text-white rounded py-2 text-xs">保存到素材库</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-6">
+        <div class="bg-purple-50 rounded-xl p-6">
+          <h4 class="font-bold text-gray-800 mb-3">🎯 功能特点</h4>
+          <ul class="space-y-2 text-sm text-gray-600">
+            <li>• 支持3种AI引擎切换（Gemini 3.1、DALL-E 3、SDXL）</li>
+            <li>• 按产品类型预设参数，降低使用门槛</li>
+            <li>• 一次生成1-8张变体，快速筛选</li>
+            <li>• 实时显示成本预估，控制预算</li>
+            <li>• AI优化提示词 + 中英翻译，提升出图质量</li>
+          </ul>
+        </div>
+        <div class="bg-orange-50 rounded-xl p-6">
+          <h4 class="font-bold text-gray-800 mb-3">💰 引擎成本对比</h4>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between border-b pb-2">
+              <span class="text-gray-600">🚀 Gemini 3.1 Flash：</span>
+              <span class="font-bold text-green-600">¥0.50/张</span>
+            </div>
+            <div class="flex justify-between border-b pb-2">
+              <span class="text-gray-600">⭐ DALL-E 3：</span>
+              <span class="font-bold text-gray-800">¥1.50/张</span>
+            </div>
+            <div class="flex justify-between border-b pb-2">
+              <span class="text-gray-600">💰 SDXL：</span>
+              <span class="font-bold text-gray-800">¥0.20/张</span>
+            </div>
+            <div class="border-t pt-2 flex justify-between">
+              <span class="text-gray-800 font-medium">vs 传统设计师：</span>
+              <span class="font-bold text-red-600">¥50-100/张</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-800 font-medium">成本降低：</span>
+              <span class="font-bold text-purple-600">95%+</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 页面3：标题生成 -->
+  <div class="min-h-screen bg-white p-16 page-break">
+    <div class="max-w-6xl mx-auto">
+      <div class="mb-8">
+        <span class="text-blue-600 font-medium">页面 03</span>
+        <h2 class="text-3xl font-bold text-gray-800 mt-2">标题生成工作台</h2>
+        <p class="text-gray-500 mt-2">多引擎切换（豆包 / Hermes / Claude 3.5）· 批量生成符合平台SEO规则的产品标题</p>
+      </div>
+
+      <div class="bg-gray-100 rounded-2xl p-8 mb-8">
+        <div class="bg-white rounded-xl shadow-2xl overflow-hidden">
+          <div class="grid grid-cols-3">
+            <div class="col-span-1 bg-gray-50 p-6 border-r">
+              <h4 class="font-bold text-gray-800 mb-4">生成参数</h4>
+              
+              <div class="mb-4">
+                <div class="text-xs text-gray-600 mb-2">产品类型</div>
+                <select class="w-full border rounded p-2 text-xs">
+                  <option>T恤 (T-Shirt)</option>
+                </select>
+              </div>
+
+              <div class="mb-4">
+                <div class="text-xs text-gray-600 mb-2">AI引擎</div>
+                <div class="space-y-2">
+                  <div class="bg-blue-100 border-2 border-blue-500 rounded p-2 text-xs flex justify-between items-center">
+                    <span class="font-medium">🇨🇳 豆包 (Doubao)</span>
+                    <span class="bg-green-200 px-2 py-0.5 rounded text-xs text-green-800">推荐</span>
+                  </div>
+                  <div class="bg-white border rounded p-2 text-xs flex justify-between items-center">
+                    <span>🌍 Hermes</span>
+                    <span class="bg-blue-100 px-2 py-0.5 rounded text-xs text-blue-700">经济</span>
+                  </div>
+                  <div class="bg-white border rounded p-2 text-xs flex justify-between items-center">
+                    <span>⭐ Claude 3.5 Sonnet</span>
+                    <span class="bg-purple-100 px-2 py-0.5 rounded text-xs text-purple-700">高质量</span>
+                  </div>
+                </div>
+                <div class="mt-2 p-1.5 bg-amber-50 border border-amber-200 rounded text-amber-800 text-xs flex items-start gap-1">
+                  <span>⚠️</span> OpenClaw (小龙虾) 暂不推荐 — 存在安全风险，建议使用官方 API
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <div class="text-xs text-gray-600 mb-2">目标市场</div>
+                <div class="grid grid-cols-2 gap-2">
+                  <div class="bg-blue-100 border-2 border-blue-500 rounded p-2 text-center text-xs">
+                    🇺🇸 美国
+                  </div>
+                  <div class="bg-white border rounded p-2 text-center text-xs">
+                    🇬🇧 英国
+                  </div>
+                  <div class="bg-white border rounded p-2 text-center text-xs">
+                    🇪🇺 欧洲
+                  </div>
+                  <div class="bg-white border rounded p-2 text-center text-xs">
+                    🇯🇵 日本
+                  </div>
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <div class="text-xs text-gray-600 mb-2">风格语气</div>
+                <div class="flex flex-wrap gap-1">
+                  <span class="bg-gray-200 px-2 py-1 rounded-full text-xs">专业</span>
+                  <span class="bg-gray-200 px-2 py-1 rounded-full text-xs">俏皮</span>
+                  <span class="bg-gray-200 px-2 py-1 rounded-full text-xs">简约</span>
+                  <span class="bg-gray-200 px-2 py-1 rounded-full text-xs">促销</span>
+                  <span class="bg-gray-200 px-2 py-1 rounded-full text-xs">节日</span>
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <div class="text-xs text-gray-600 mb-2">关键词</div>
+                <div class="bg-white border rounded p-2 text-xs text-gray-500 h-12">
+                  surfing dog, funny, summer beach
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <div class="text-xs text-gray-600 mb-2">字符长度限制</div>
+                <select class="w-full border rounded p-2 text-xs">
+                  <option>Temu标准 (≤150字符)</option>
+                </select>
+              </div>
+
+              <button class="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-medium py-2 rounded-lg text-sm">
+                ⚡ 生成标题
+              </button>
+            </div>
+
+            <div class="col-span-2 p-6">
+              <h4 class="font-bold text-gray-800 mb-4">生成结果（10条）</h4>
+              <div class="space-y-2">
+                <div class="flex items-center gap-2 p-2 border rounded hover:bg-blue-50 text-xs">
+                  <div class="w-5 h-5 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">1</div>
+                  <div class="flex-1">Funny Surfing Dog Graphic T-Shirt - Cool Beach Vibes Tee</div>
+                  <div class="text-gray-400">68字符</div>
+                  <button class="text-blue-600">📋</button>
+                </div>
+                <div class="flex items-center gap-2 p-2 border rounded hover:bg-blue-50 text-xs">
+                  <div class="w-5 h-5 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">2</div>
+                  <div class="flex-1">Cute Shiba Inu Sunglasses Tee - Summer Vacation Shirt</div>
+                  <div class="text-gray-400">62字符</div>
+                  <button class="text-blue-600">📋</button>
+                </div>
+                <div class="flex items-center gap-2 p-2 border rounded hover:bg-blue-50 text-xs">
+                  <div class="w-5 h-5 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">3</div>
+                  <div class="flex-1">Retro Style Surfing Puppy T-Shirt - Vintage Beach Apparel</div>
+                  <div class="text-gray-400">65字符</div>
+                  <button class="text-blue-600">📋</button>
+                </div>
+                <div class="flex items-center gap-2 p-2 border rounded hover:bg-blue-50 text-xs">
+                  <div class="w-5 h-5 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">4</div>
+                  <div class="flex-1">Hawaiian Dog Surfer Shirt - Tropical Paradise Tee</div>
+                  <div class="text-gray-400">56字符</div>
+                  <button class="text-blue-600">📋</button>
+                </div>
+                <div class="flex items-center gap-2 p-2 border rounded hover:bg-blue-50 text-xs">
+                  <div class="w-5 h-5 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">5</div>
+                  <div class="flex-1">Cool Dog with Shades T-Shirt - Funny Pet Lover Gift</div>
+                  <div class="text-gray-400">59字符</div>
+                  <button class="text-blue-600">📋</button>
+                </div>
+                <div class="text-center text-xs text-gray-400 py-2">... 还有5条</div>
+              </div>
+              <div class="mt-4 flex gap-2">
+                <button class="flex-1 border border-gray-300 rounded py-2 text-xs">📋 全部复制</button>
+                <button class="flex-1 border border-gray-300 rounded py-2 text-xs">📥 导出CSV</button>
+                <button class="flex-1 bg-blue-500 text-white rounded py-2 text-xs">保存到素材库</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-6">
+        <div class="bg-blue-50 rounded-xl p-6">
+          <h4 class="font-bold text-gray-800 mb-3">🎯 SEO优化</h4>
+          <ul class="space-y-2 text-sm text-gray-600">
+            <li>• 3种AI引擎切换（豆包/Hermes/Claude 3.5）</li>
+            <li>• 自动符合Temu/Amazon字符限制</li>
+            <li>• 关键词自然融入，提升搜索排名</li>
+            <li>• 按目标市场调整语言风格</li>
+            <li>• 批量生成5-30条，快速筛选</li>
+          </ul>
+        </div>
+        <div class="bg-green-50 rounded-xl p-6">
+          <h4 class="font-bold text-gray-800 mb-3">💰 引擎成本对比</h4>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between border-b pb-2">
+              <span class="text-gray-600">🇨🇳 豆包 (Doubao)：</span>
+              <span class="font-bold text-green-600">¥0.005/条</span>
+            </div>
+            <div class="flex justify-between border-b pb-2">
+              <span class="text-gray-600">🌍 Hermes：</span>
+              <span class="font-bold text-green-600">¥0.001/条</span>
+            </div>
+            <div class="flex justify-between border-b pb-2">
+              <span class="text-gray-600">⭐ Claude 3.5：</span>
+              <span class="font-bold text-gray-800">¥0.03/条</span>
+            </div>
+            <div class="border-t pt-2 flex justify-between">
+              <span class="text-gray-800 font-medium">月预估（500条/天）：</span>
+              <span class="font-bold text-blue-600">¥75/月</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 三阶段实施路线图 -->
+  <div class="min-h-screen bg-white p-16 page-break">
+    <div class="max-w-6xl mx-auto">
+      <h2 class="text-3xl font-bold text-gray-800 mb-4 border-b-4 border-purple-500 pb-4">实施路线图：三阶段渐进式部署</h2>
+      <p class="text-gray-500 mb-8">从 MVP 验证到本地 AI 部署，渐进式投入，每个阶段都有明确的决策点</p>
+
+      <!-- 阶段1：MVP -->
+      <div class="mb-8">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-white font-bold text-lg">1</div>
+          <div><h3 class="text-xl font-bold text-gray-800">第一阶段：MVP验证期（第1-2个月）</h3><p class="text-sm text-gray-500">快速验证商业模式，测试AI生成效果，收集内部反馈</p></div>
+        </div>
+        <div class="grid grid-cols-2 gap-6">
+          <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6">
+            <h4 class="font-bold text-gray-800 mb-3">🏗️ 技术架构（全部云服务，零基础设施成本）</h4>
+            <div class="bg-white rounded-lg p-4 text-sm space-y-2">
+              <div><span class="text-purple-600 font-medium">前端：</span>Vercel 免费托管</div>
+              <div><span class="text-blue-600 font-medium">后端：</span>Vercel Serverless（免费）</div>
+              <div><span class="text-green-600 font-medium">数据库：</span>Supabase 免费额度</div>
+              <div><span class="text-orange-600 font-medium">存储：</span>Cloudflare R2（便宜）</div>
+              <div><span class="text-pink-600 font-medium">AI引擎：</span>直接调用第三方 API</div>
+            </div>
+          </div>
+          <div class="bg-white rounded-xl border border-slate-200 p-6">
+            <h4 class="font-bold text-gray-800 mb-3">💰 MVP阶段成本</h4>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between"><span>开发成本：</span><span class="font-bold">¥15,000-25,000</span></div>
+              <div class="flex justify-between"><span>域名（年费）：</span><span class="font-bold">¥100</span></div>
+              <div class="flex justify-between"><span>云服务：</span><span class="font-bold text-green-600">¥0（免费额度）</span></div>
+              <div class="flex justify-between"><span>AI API：</span><span class="font-bold">¥1,000-2,000/月</span></div>
+              <div class="border-t pt-2 flex justify-between"><span class="font-medium">首月合计：</span><span class="font-bold text-purple-600">¥16,100-27,600</span></div>
+              <div class="flex justify-between"><span class="font-medium">后续月：</span><span class="font-bold text-green-600">¥1,000-2,500/月</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="mt-3 bg-purple-50 rounded-xl p-4 flex items-start gap-3"><span class="text-xl">🎯</span><div><div class="font-bold text-purple-800">MVP阶段目标</div><div class="text-sm text-purple-700">验证AI效果 → 收集10-20人反馈 → 日产能100-200 → 计算真实成本</div></div></div>
+        <div class="mt-2 bg-amber-50 rounded-xl p-4 flex items-start gap-3"><span class="text-xl">⚠️</span><div><div class="font-bold text-amber-800">决策点（第2月末）：</div><div class="text-sm text-amber-700">AI可用率>80%？反馈积极？→ <strong>进入第二阶段</strong></div></div></div>
+      </div>
+
+      <!-- 阶段2：商业化 -->
+      <div class="mb-8 page-break">
+        <div class="flex items-center gap-3 mb-4 mt-12">
+          <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center text-white font-bold text-lg">2</div>
+          <div><h3 class="text-xl font-bold text-gray-800">第二阶段：商业化部署（第3-6个月）</h3><p class="text-sm text-gray-500">扩大使用规模，数据自主可控，提升稳定性</p></div>
+        </div>
+        <div class="grid grid-cols-2 gap-6">
+          <div class="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-6">
+            <h4 class="font-bold text-gray-800 mb-3">🏗️ 技术架构升级</h4>
+            <div class="bg-white rounded-lg p-4 text-sm space-y-2">
+              <div><span class="text-purple-600 font-medium">前端：</span>自有服务器 Nginx</div>
+              <div><span class="text-blue-600 font-medium">后端：</span>Node.js/Python 自部署</div>
+              <div><span class="text-green-600 font-medium">数据库：</span>PostgreSQL 自部署</div>
+              <div><span class="text-orange-600 font-medium">存储：</span>MinIO 自部署</div>
+              <div><span class="text-pink-600 font-medium">AI引擎：</span>第三方API + 部分本地模型</div>
+            </div>
+          </div>
+          <div class="bg-white rounded-xl border border-slate-200 p-6">
+            <h4 class="font-bold text-gray-800 mb-3">💰 商业化阶段成本</h4>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between"><span>服务器（2台）：</span><span class="font-bold">¥15,000-30,000</span></div>
+              <div class="flex justify-between"><span>系统重构/迁移：</span><span class="font-bold">¥30,000-50,000</span></div>
+              <div class="flex justify-between"><span>运维工程师：</span><span class="font-bold">¥8,000-12,000/月</span></div>
+              <div class="flex justify-between"><span>机房+带宽：</span><span class="font-bold">¥1,500-3,000/月</span></div>
+              <div class="flex justify-between"><span>AI API（用量增加）：</span><span class="font-bold">¥3,000-8,000/月</span></div>
+              <div class="border-t pt-2 flex justify-between"><span class="font-medium">首月合计：</span><span class="font-bold text-blue-600">¥45,000-80,000</span></div>
+              <div class="flex justify-between"><span class="font-medium">后续月：</span><span class="font-bold">¥12,000-22,000/月</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="mt-3 bg-amber-50 rounded-xl p-4 flex items-start gap-3"><span class="text-xl">⚠️</span><div><div class="font-bold text-amber-800">决策点（第6月末）：</div><div class="text-sm text-amber-700">日产量>300？API月费>¥15,000？→ <strong>进入第三阶段</strong></div></div></div>
+      </div>
+
+      <!-- 阶段3：本地AI -->
+      <div class="mb-8 page-break">
+        <div class="flex items-center gap-3 mb-4 mt-12">
+          <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center text-white font-bold text-lg">3</div>
+          <div><h3 class="text-xl font-bold text-gray-800">第三阶段：本地AI部署（第7-12个月）</h3><p class="text-sm text-gray-500">降低AI成本90%，保护商业机密，完全自主可控</p></div>
+        </div>
+        <div class="grid grid-cols-2 gap-6">
+          <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6">
+            <h4 class="font-bold text-gray-800 mb-3">🏗️ 技术架构</h4>
+            <div class="bg-white rounded-lg p-4 text-sm space-y-2">
+              <div><span class="text-purple-600 font-medium">图片生成：</span>Stable Diffusion XL / Flux 本地部署</div>
+              <div><span class="text-blue-600 font-medium">标题生成：</span>Llama 3 / Mistral 本地部署</div>
+              <div><span class="text-green-600 font-medium">模型管理：</span>Ollama / vLLM / ComfyUI</div>
+              <div><span class="text-orange-600 font-medium">GPU服务器：</span>NVIDIA A100 / RTX 4090×2</div>
+            </div>
+          </div>
+          <div class="bg-white rounded-xl border border-slate-200 p-6">
+            <h4 class="font-bold text-gray-800 mb-3">💰 本地AI阶段成本</h4>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between"><span>GPU服务器：</span><span class="font-bold">¥80,000-200,000</span></div>
+              <div class="flex justify-between"><span>模型微调（适配POD）：</span><span class="font-bold">¥10,000-30,000</span></div>
+              <div class="flex justify-between"><span>AI工程师：</span><span class="font-bold">¥20,000-35,000/月</span></div>
+              <div class="flex justify-between"><span>电费+散热+UPS：</span><span class="font-bold">¥5,000-10,000/月</span></div>
+              <div class="border-t pt-2 flex justify-between"><span class="font-medium">首月合计：</span><span class="font-bold text-green-600">¥95,000-245,000</span></div>
+              <div class="flex justify-between"><span class="font-medium">后续月：</span><span class="font-bold">¥22,000-40,000/月</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="mt-3 bg-green-50 rounded-xl p-4">
+          <div class="font-bold text-green-800 mb-2">💰 为什么本地部署更省钱？（日产500张+1000条标题）</div>
+          <div class="grid grid-cols-3 gap-4 text-sm">
+            <div class="bg-white rounded-lg p-3"><div class="text-gray-600 mb-1">第三方API月费</div><div class="font-bold text-red-600">¥7,650-24,000</div></div>
+            <div class="bg-white rounded-lg p-3"><div class="text-gray-600 mb-1">本地部署月费</div><div class="font-bold text-green-600">¥780-1,650</div></div>
+            <div class="bg-white rounded-lg p-3"><div class="text-gray-600 mb-1">GPU投资回收期</div><div class="font-bold text-purple-600">7-22个月</div></div>
+          </div>
+        </div>
+      </div>
+
+  <!-- 三阶段总成本对比表 -->
+  <div class="mb-10 page-break">
+    <h3 class="text-xl font-bold text-gray-800 mb-6 mt-12">📊 三阶段成本总对比</h3>
+    <div class="overflow-x-auto"><table class="w-full text-sm">
+      <thead><tr class="border-b-2 border-slate-300 text-left">
+        <th class="pb-2 font-medium">阶段</th><th class="pb-2 font-medium">初期投入</th><th class="pb-2 font-medium">月运营成本</th><th class="pb-2 font-medium">第一年总计</th><th class="pb-2 font-medium">适用场景</th><th class="pb-2 font-medium">数据安全</th>
+      </tr></thead>
+      <tbody>
+        <tr class="border-b border-slate-200"><td class="py-3 font-medium text-purple-700">MVP验证</td><td class="py-3">¥16K-28K</td><td class="py-3">¥1K-2.5K</td><td class="py-3 font-bold">¥17.5K-28K</td><td class="py-3">测试验证</td><td class="py-3"><span class="text-red-600">❌ 低</span></td></tr>
+        <tr class="border-b border-slate-200"><td class="py-3 font-medium text-blue-700">商业化部署</td><td class="py-3">¥45K-80K</td><td class="py-3">¥12K-22K</td><td class="py-3 font-bold">¥57.5K-94K</td><td class="py-3">日产100-300</td><td class="py-3"><span class="text-yellow-600">⚠️ 中</span></td></tr>
+        <tr><td class="py-3 font-medium text-green-700">本地AI部署</td><td class="py-3">¥95K-245K</td><td class="py-3">¥22K-40K</td><td class="py-3 font-bold">¥284K-394K</td><td class="py-3">日产300+</td><td class="py-3"><span class="text-green-600">✅ 高</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <!-- ROI 分析：按产量梯度 -->
+  <div class="mb-10 page-break">
+    <h3 class="text-xl font-bold text-gray-800 mb-6 mt-12">📈 产量-ROI 分场景分析（3年总成本）</h3>
+    <div class="grid grid-cols-3 gap-6 mb-8">
+      <div class="bg-white rounded-xl border border-slate-200 p-6">
+        <h4 class="font-bold text-gray-800 mb-3">小规模（日产100）</h4>
+        <div class="text-xs text-gray-500 mb-3">1个设计师 vs AI平台</div>
+        <div class="space-y-1 text-sm">
+          <div class="flex justify-between"><span>传统方式：</span><span class="font-bold text-red-600">¥360K/3年</span></div>
+          <div class="flex justify-between"><span>MVP+商业化：</span><span class="font-bold">¥499K/3年</span></div>
+          <div class="flex justify-between"><span>MVP+本地AI：</span><span class="font-bold">¥694K/3年</span></div>
+          <div class="border-t pt-2 mt-2 text-xs text-amber-600">⚠️ 小规模时传统方式更经济</div>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl border-2 border-purple-300 p-6 bg-purple-50">
+        <h4 class="font-bold text-gray-800 mb-3">中规模（日产300）⭐</h4>
+        <div class="text-xs text-gray-500 mb-3">3个设计师 vs AI平台</div>
+        <div class="space-y-1 text-sm">
+          <div class="flex justify-between"><span>传统方式：</span><span class="font-bold text-red-600">¥1,080K/3年</span></div>
+          <div class="flex justify-between"><span>MVP+商业化：</span><span class="font-bold text-green-600">¥499K/3年</span></div>
+          <div class="flex justify-between"><span>MVP+本地AI：</span><span class="font-bold text-green-600">¥694K/3年</span></div>
+          <div class="border-t pt-2 mt-2 text-xs text-purple-700">✅ 3年节省 ¥386K-581K</div>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl border-2 border-green-300 p-6 bg-green-50">
+        <h4 class="font-bold text-gray-800 mb-3">大规模（日产500）🚀</h4>
+        <div class="text-xs text-gray-500 mb-3">5个设计师 vs AI平台</div>
+        <div class="space-y-1 text-sm">
+          <div class="flex justify-between"><span>传统方式：</span><span class="font-bold text-red-600">¥1,800K/3年</span></div>
+          <div class="flex justify-between"><span>MVP+商业化：</span><span class="font-bold">¥1,075K/3年</span></div>
+          <div class="flex justify-between"><span>MVP+本地AI：</span><span class="font-bold text-green-600">¥714K/3年</span></div>
+          <div class="border-t pt-2 mt-2 text-xs text-green-700">✅ 3年节省 ¥1,086K（60%）</div>
+        </div>
+      </div>
+    </div>
+    <div class="bg-green-100 rounded-xl p-5">
+      <div class="flex items-center justify-between">
+        <div><div class="font-bold text-green-800">🎯 推荐方案：分阶段渐进实施</div><div class="text-sm text-green-700 mt-1">第1-2月 MVP → 第3-6月 商业化 → 第7-12月 本地AI</div></div>
+        <div class="text-right"><div class="text-xs text-green-600">第一年总投资</div><div class="text-3xl font-bold text-green-700">¥394K</div><div class="text-xs text-green-600">14个月回本（日产500）</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 数据安全方案 -->
+  <div class="mb-10 page-break">
+    <h3 class="text-xl font-bold text-gray-800 mb-6 mt-12">🔐 数据安全方案</h3>
+    <div class="grid grid-cols-2 gap-6 mb-6">
+      <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-6">
+        <h4 class="font-bold text-gray-800 mb-3">🚨 风险场景</h4>
+        <div class="space-y-2 text-sm text-gray-600">
+          <div>1. 竞争对手通过API日志窃取设计思路</div>
+          <div>2. AI公司收集图案训练模型，泄露创意</div>
+          <div>3. 黑客攻击云服务器（损失¥500K+）</div>
+          <div>4. 员工离职带走商业数据</div>
+        </div>
+      </div>
+      <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6">
+        <h4 class="font-bold text-gray-800 mb-3">🛡️ 安全投入（一次性 ¥58K）</h4>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between"><span>本地服务器：</span><span class="font-bold">¥30K</span></div>
+          <div class="flex justify-between"><span>数据加密（PostgreSQL）：</span><span class="font-bold">¥10K</span></div>
+          <div class="flex justify-between"><span>访问控制+审计日志：</span><span class="font-bold">¥8K</span></div>
+          <div class="flex justify-between"><span>异地备份：</span><span class="font-bold">¥8K</span></div>
+          <div class="flex justify-between"><span>安全培训：</span><span class="font-bold">¥2K</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="bg-slate-50 rounded-xl p-5">
+      <h4 class="font-bold text-gray-800 mb-3">🔑 API密钥安全管理</h4>
+      <div class="grid grid-cols-3 gap-4 text-sm">
+        <div class="bg-white rounded-lg p-3 border"><div class="font-medium mb-1">加密存储</div><div class="text-xs text-gray-500">PostgreSQL pgcrypto 加密，不存明文</div></div>
+        <div class="bg-white rounded-lg p-3 border"><div class="font-medium mb-1">定期轮换</div><div class="text-xs text-gray-500">每季度更换密钥，离职立即吊销</div></div>
+        <div class="bg-white rounded-lg p-3 border"><div class="font-medium mb-1">审计追踪</div><div class="text-xs text-gray-500">记录操作人、IP、时间戳，异常告警</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 采购清单 -->
+  <div class="mb-10 page-break">
+    <h3 class="text-xl font-bold text-gray-800 mb-6 mt-12">📋 完整采购清单</h3>
+    <div class="grid grid-cols-2 gap-6">
+      <div>
+        <h4 class="font-bold text-gray-800 mb-3">MVP阶段（首批，可直接执行）</h4>
+        <div class="overflow-x-auto"><table class="w-full text-sm">
+          <thead><tr class="border-b border-slate-300 text-left"><th class="pb-1 font-medium">项目</th><th class="pb-1 font-medium">预算</th><th class="pb-1 font-medium text-xs">采购渠道</th></tr></thead>
+          <tbody>
+            <tr><td class="py-1.5">域名注册</td><td class="py-1.5">¥100</td><td class="py-1.5 text-xs text-gray-500">阿里云</td></tr>
+            <tr><td class="py-1.5">豆包API充值</td><td class="py-1.5">¥500</td><td class="py-1.5 text-xs text-gray-500">火山引擎</td></tr>
+            <tr><td class="py-1.5">Gemini API充值</td><td class="py-1.5">¥500</td><td class="py-1.5 text-xs text-gray-500">Google Cloud</td></tr>
+            <tr><td class="py-1.5">OpenAI API充值</td><td class="py-1.5">¥500</td><td class="py-1.5 text-xs text-gray-500">OpenAI</td></tr>
+            <tr><td class="py-1.5">MVP开发</td><td class="py-1.5 font-bold text-purple-600">¥20K</td><td class="py-1.5 text-xs text-gray-500">外包/内部</td></tr>
+            <tr class="border-t border-slate-300"><td class="py-1.5 font-bold">合计</td><td class="py-1.5 font-bold text-purple-600">¥21.6K</td><td></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+      <div>
+        <h4 class="font-bold text-gray-800 mb-3">商业化 + 本地AI阶段</h4>
+        <div class="overflow-x-auto"><table class="w-full text-sm">
+          <thead><tr class="border-b border-slate-300 text-left"><th class="pb-1 font-medium">项目</th><th class="pb-1 font-medium">预算</th></tr></thead>
+          <tbody>
+            <tr><td class="py-1.5">应用服务器 ×1</td><td class="py-1.5">¥18K</td></tr>
+            <tr><td class="py-1.5">数据库服务器 ×1</td><td class="py-1.5">¥12K</td></tr>
+            <tr><td class="py-1.5">GPU服务器 A100</td><td class="py-1.5 font-bold">¥180K</td></tr>
+            <tr><td class="py-1.5">机房托管+空调+UPS</td><td class="py-1.5">¥40K</td></tr>
+            <tr><td class="py-1.5">企业专线 100Mbps/年</td><td class="py-1.5">¥18K</td></tr>
+            <tr><td class="py-1.5">系统重构+模型微调</td><td class="py-1.5">¥60K</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 业务增长预测 -->
+  <div class="mb-10 page-break">
+    <h3 class="text-xl font-bold text-gray-800 mb-6 mt-12">📈 业务增长预测（保守）</h3>
+    <div class="overflow-x-auto"><table class="w-full text-sm">
+      <thead><tr class="border-b-2 border-slate-300 text-left"><th class="pb-2 font-medium">年份</th><th class="pb-2 font-medium">日产量</th><th class="pb-2 font-medium">年产量</th><th class="pb-2 font-medium">团队</th><th class="pb-2 font-medium">年收入预估</th></tr></thead>
+      <tbody>
+        <tr class="border-b border-slate-100"><td class="py-2">第1年</td><td class="py-2">100</td><td class="py-2">36K</td><td class="py-2">3人</td><td class="py-2">¥500K</td></tr>
+        <tr class="border-b border-slate-100"><td class="py-2">第2年</td><td class="py-2">300</td><td class="py-2">108K</td><td class="py-2">5人</td><td class="py-2">¥1,500K</td></tr>
+        <tr><td class="py-2">第3年</td><td class="py-2">500</td><td class="py-2">180K</td><td class="py-2">8人</td><td class="py-2">¥2,500K</td></tr>
+        <tr class="border-t-2 border-slate-300"><td class="py-2 font-bold" colspan="3">3年累计产出：324K个设计</td><td class="py-2 font-bold text-green-600" colspan="2">3年净利润：¥3,065K</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <!-- 风险矩阵 -->
+  <div class="mb-10 page-break">
+    <h3 class="text-xl font-bold text-gray-800 mb-6 mt-12">⚠️ 风险矩阵与应对</h3>
+    <div class="overflow-x-auto"><table class="w-full text-sm">
+      <thead><tr class="border-b-2 border-slate-300 text-left"><th class="pb-2 font-medium">风险</th><th class="pb-2 font-medium">概率</th><th class="pb-2 font-medium">影响</th><th class="pb-2 font-medium">应对方案</th></tr></thead>
+      <tbody>
+        <tr class="border-b"><td class="py-2">AI生成质量不达标</td><td class="py-2 text-yellow-600">中</td><td class="py-2 text-red-600">高</td><td class="py-2">MVP充分测试，多引擎备选</td></tr>
+        <tr class="border-b"><td class="py-2">GPU服务器故障</td><td class="py-2 text-green-600">低</td><td class="py-2 text-red-600">高</td><td class="py-2">备用GPU，签售后合同</td></tr>
+        <tr class="border-b"><td class="py-2">数据泄露</td><td class="py-2 text-green-600">低</td><td class="py-2 text-red-600">极高</td><td class="py-2">严格加密+本地存储</td></tr>
+        <tr class="border-b"><td class="py-2">AI工程师离职</td><td class="py-2 text-yellow-600">中</td><td class="py-2 text-red-600">高</td><td class="py-2">知识文档化，培养备份</td></tr>
+        <tr><td class="py-2">AI成本上涨</td><td class="py-2 text-yellow-600">中</td><td class="py-2 text-yellow-600">中</td><td class="py-2">尽早本地AI，锁定成本</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <!-- 预期成果 -->
+  <div class="bg-gray-50 rounded-2xl p-8 mt-8">
+    <h3 class="text-xl font-bold text-gray-800 mb-6">🎯 预期成果</h3>
+    <div class="grid grid-cols-4 gap-4">
+      <div class="bg-white rounded-xl p-6 text-center border-2 border-purple-200"><div class="text-3xl font-bold text-purple-600 mb-2">500+</div><div class="text-sm text-gray-600">日设计产能</div><div class="text-xs text-gray-500 mt-2">vs 传统10-20个</div></div>
+      <div class="bg-white rounded-xl p-6 text-center border-2 border-blue-200"><div class="text-3xl font-bold text-blue-600 mb-2">90%</div><div class="text-sm text-gray-600">API成本降低</div><div class="text-xs text-gray-500 mt-2">本地部署后</div></div>
+      <div class="bg-white rounded-xl p-6 text-center border-2 border-green-200"><div class="text-3xl font-bold text-green-600 mb-2">3,000+</div><div class="text-sm text-gray-600">月产出量</div><div class="text-xs text-gray-500 mt-2">图案+标题</div></div>
+      <div class="bg-white rounded-xl p-6 text-center border-2 border-orange-200"><div class="text-3xl font-bold text-orange-600 mb-2">14月</div><div class="text-sm text-gray-600">投资回收期</div><div class="text-xs text-gray-500 mt-2">日产500设计时</div></div>
+    </div>
+  </div>
+
+  <!-- 收尾 CTA 区块 -->
+  <div class="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-purple-600 via-purple-500 to-pink-500 text-white p-16 page-break">
+    <div class="max-w-5xl w-full text-center">
+
+      <!-- 一页纸总结 -->
+      <div class="bg-white bg-opacity-20 backdrop-blur rounded-2xl p-6 mb-8 text-left text-sm">
+        <div class="text-center mb-4"><div class="text-2xl font-bold">📋 投资决策一页纸</div></div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <div class="font-bold mb-2">📊 投资概览</div>
+            <div>├─ 第1年总投资：¥394K</div>
+            <div>├─ 第2年运营：¥520K/年</div>
+            <div>└─ 回本周期：14个月（日产500）</div>
+          </div>
+          <div>
+            <div class="font-bold mb-2">💰 成本对比（日产500，3年）</div>
+            <div>├─ 传统方式（5个设计师）：¥1,800K</div>
+            <div>├─ AI平台（本地部署）：¥714K</div>
+            <div>└─ 节省：<span class="text-green-300 font-bold">¥1,086K（60%）</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 关键数据 -->
+      <div class="grid grid-cols-3 gap-6 mb-8">
+        <div class="bg-white bg-opacity-20 backdrop-blur rounded-2xl p-6">
+          <div class="text-4xl font-bold mb-2">¥394K</div>
+          <div class="text-purple-100">第一年总投资</div>
+        </div>
+        <div class="bg-white bg-opacity-20 backdrop-blur rounded-2xl p-6">
+          <div class="text-4xl font-bold mb-2">¥1,086K</div>
+          <div class="text-purple-100">3年累计节省</div>
+        </div>
+        <div class="bg-white bg-opacity-20 backdrop-blur rounded-2xl p-6">
+          <div class="text-4xl font-bold mb-2">14月</div>
+          <div class="text-purple-100">投资回收期</div>
+        </div>
+      </div>
+
+      <!-- 核心价值 -->
+      <div class="bg-white bg-opacity-20 backdrop-blur rounded-2xl p-8 mb-8">
+        <h3 class="text-2xl font-bold mb-6">核心价值</h3>
+        <div class="grid grid-cols-2 gap-4 text-left">
+          <div class="flex items-start gap-3"><div class="text-2xl">✅</div><div><div class="font-bold mb-1">效率提升30-50倍</div><div class="text-sm text-purple-100">从2-4小时缩短到2-5分钟</div></div></div>
+          <div class="flex items-start gap-3"><div class="text-2xl">✅</div><div><div class="font-bold mb-1">成本降低90%</div><div class="text-sm text-purple-100">本地部署后从¥0.50降到¥0.05/张</div></div></div>
+          <div class="flex items-start gap-3"><div class="text-2xl">✅</div><div><div class="font-bold mb-1">日产500+设计</div><div class="text-sm text-purple-100">vs 传统方式10-20个</div></div></div>
+          <div class="flex items-start gap-3"><div class="text-2xl">✅</div><div><div class="font-bold mb-1">24/7全天运行</div><div class="text-sm text-purple-100">无需休息，随时生成</div></div></div>
+        </div>
+      </div>
+
+      <!-- 下一步行动 -->
+      <div class="bg-white bg-opacity-20 backdrop-blur rounded-2xl p-8">
+        <h3 class="text-2xl font-bold mb-6">下一步行动</h3>
+        <div class="space-y-3 text-left max-w-lg mx-auto">
+          <div class="flex items-center gap-3 bg-white bg-opacity-10 rounded-lg p-4">
+            <div class="w-8 h-8 bg-white text-purple-600 rounded-full flex items-center justify-center font-bold flex-shrink-0">1</div>
+            <div class="flex-1"><div class="font-bold">MVP验证（第1-2月）</div><div class="text-sm text-purple-100">预算¥17.5K，验证AI效果，收集反馈</div></div>
+          </div>
+          <div class="flex items-center gap-3 bg-white bg-opacity-10 rounded-lg p-4">
+            <div class="w-8 h-8 bg-white text-purple-600 rounded-full flex items-center justify-center font-bold flex-shrink-0">2</div>
+            <div class="flex-1"><div class="font-bold">商业化部署（第3-6月）</div><div class="text-sm text-purple-100">数据自主可控，预算¥45K-80K</div></div>
+          </div>
+          <div class="flex items-center gap-3 bg-white bg-opacity-10 rounded-lg p-4">
+            <div class="w-8 h-8 bg-white text-purple-600 rounded-full flex items-center justify-center font-bold flex-shrink-0">3</div>
+            <div class="flex-1"><div class="font-bold">本地AI部署（第7-12月）</div><div class="text-sm text-purple-100">成本降90%，预算¥95K-245K</div></div>
+          </div>
+          <div class="flex items-center gap-3 bg-white bg-opacity-10 rounded-lg p-4">
+            <div class="w-8 h-8 bg-white text-purple-600 rounded-full flex items-center justify-center font-bold flex-shrink-0">4</div>
+            <div class="flex-1"><div class="font-bold">长期稳定运行</div><div class="text-sm text-purple-100">3年净利润¥3,065K，团队8人</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-12 text-sm text-purple-100">
+        <p>如有疑问，欢迎随时沟通</p>
+        <p class="mt-2">POD AI Studio - 让AI为设计赋能 · 从MVP到本地AI的完整实施路线</p>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>

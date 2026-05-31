@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POD AI 平台 - 技术搭建演示文档</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @media print { .no-print { display: none; } .page-break { page-break-after: always; } }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif; }
+    pre { background: #1e293b; color: #e2e8f0; padding: 12px 16px; border-radius: 8px; font-size: 12px; overflow-x: auto; line-height: 1.6; }
+    code { font-family: "Fira Code", "Consolas", monospace; }
+    table { border-collapse: collapse; }
+  </style>
+</head>
+<body class="bg-gray-50">
+
+  <!-- 封面 -->
+  <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 page-break">
+    <div class="text-center text-white px-8">
+      <div class="w-24 h-24 bg-gradient-to-br from-emerald-400 to-cyan-400 rounded-3xl mx-auto mb-8 flex items-center justify-center text-5xl">⚙️</div>
+      <h1 class="text-5xl font-bold mb-4">POD AI 平台</h1>
+      <p class="text-2xl text-slate-300 mb-4">技术搭建方案</p>
+      <div class="inline-block bg-white bg-opacity-15 backdrop-blur rounded-full px-6 py-2 text-sm text-slate-300">一个人 · 一个月 · 本地部署</div>
+      <div class="mt-16 text-slate-400 text-sm">
+        <p>目标环境：两层办公楼 · 40人Temu跨境电商团队</p>
+        <p class="mt-2">技术栈：Next.js 14 + PostgreSQL + Docker</p>
+        <p class="mt-2 text-slate-500">机密文档 · 仅供内部使用</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 项目背景 -->
+  <div class="min-h-screen bg-white p-16 page-break">
+    <div class="max-w-6xl mx-auto">
+      <h2 class="text-3xl font-bold text-gray-800 mb-8 border-b-4 border-emerald-500 pb-4">项目背景与约束</h2>
+
+      <div class="grid grid-cols-2 gap-6 mb-10">
+        <div class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl p-6">
+          <h3 class="text-lg font-bold text-gray-800 mb-4">🏢 当前条件</h3>
+          <div class="space-y-3 text-sm">
+            <div class="flex items-start gap-3"><span class="text-2xl">🏢</span><div><div class="font-medium">两层办公楼</div><div class="text-gray-500">中小规模公司，本地网络环境</div></div></div>
+            <div class="flex items-start gap-3"><span class="text-2xl">👥</span><div><div class="font-medium">40人Temu跨境电商团队</div><div class="text-gray-500">高频生成POD产品标题和图片</div></div></div>
+            <div class="flex items-start gap-3"><span class="text-2xl">👨‍💻</span><div><div class="font-medium">一个人开发</div><div class="text-gray-500">需要高效的技术栈，前后端一体</div></div></div>
+            <div class="flex items-start gap-3"><span class="text-2xl">🇨🇳</span><div><div class="font-medium">本地部署，国内环境</div><div class="text-gray-500">关键决策点！影响技术选型</div></div></div>
+          </div>
+        </div>
+        <div class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6">
+          <h3 class="text-lg font-bold text-gray-800 mb-4">🎯 需求拆解</h3>
+          <div class="space-y-3 text-sm">
+            <div class="bg-white rounded-lg p-3 flex items-center justify-between">
+              <span>⏰ 上线时间</span><span class="font-bold text-emerald-600">1个月</span>
+            </div>
+            <div class="bg-white rounded-lg p-3 flex items-center justify-between">
+              <span>📝 标题生成</span><span class="font-bold">4个AI引擎</span>
+            </div>
+            <div class="bg-white rounded-lg p-3 flex items-center justify-between">
+              <span>🎨 图片生成</span><span class="font-bold">2个AI引擎</span>
+            </div>
+            <div class="bg-white rounded-lg p-3 flex items-center justify-between">
+              <span>🔐 后期需求</span><span class="font-bold">SSO / 权限 / 审计 / 成本控制</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-2xl p-8 text-white">
+        <h3 class="text-xl font-bold mb-4">🎯 实施策略：分两阶段</h3>
+        <div class="grid grid-cols-2 gap-6">
+          <div class="bg-white bg-opacity-15 backdrop-blur rounded-xl p-5">
+            <div class="text-3xl font-bold mb-2">阶段1</div>
+            <div class="text-lg font-bold mb-2">1个月 MVP</div>
+            <div class="text-sm text-emerald-100 space-y-1">
+              <div>✅ 核心功能：标题+图片生成</div>
+              <div>✅ 用户系统 + 历史记录</div>
+              <div>✅ 成本统计 + 批量处理</div>
+              <div>✅ 为后期扩展打好基础</div>
+            </div>
+          </div>
+          <div class="bg-white bg-opacity-15 backdrop-blur rounded-xl p-5">
+            <div class="text-3xl font-bold mb-2">阶段2</div>
+            <div class="text-lg font-bold mb-2">后续迭代</div>
+            <div class="text-sm text-emerald-100 space-y-1">
+              <div>🔜 SSO企业单点登录</div>
+              <div>🔜 RBAC精细权限管理</div>
+              <div>🔜 审计日志完整追溯</div>
+              <div>🔜 成本控制 + 智能路由</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 技术架构 -->
+  <div class="min-h-screen bg-white p-16 page-break">
+    <div class="max-w-6xl mx-auto">
+      <h2 class="text-3xl font-bold text-gray-800 mb-8 border-b-4 border-purple-500 pb-4">🏗️ 整体技术架构</h2>
+
+      <!-- 架构图 -->
+      <div class="bg-slate-900 rounded-2xl p-6 mb-8 text-sm font-mono">
+        <pre class="bg-transparent text-emerald-400 p-0 text-xs leading-relaxed">
+┌─────────────────────────────────────────────────────────────────┐
+│                      用户浏览器 (40人)                            │
+└────────────────────────────┬────────────────────────────────────┘
+                             │ HTTPS
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   Nginx (反向代理)                               │
+│              SSL证书 + 负载均衡 + 限流                           │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              Next.js 14 应用 (Docker容器)                        │
+│  ┌───────────────────────────────────────────────────────────┐ │
+│  │  前端 (React + shadcn/ui)                                 │ │
+│  ├───────────────────────────────────────────────────────────┤ │
+│  │  API Routes (后端逻辑)                                    │ │
+│  │  ├─ /api/auth/*        (认证)                             │ │
+│  │  ├─ /api/generate/*    (AI生成)                           │ │
+│  │  ├─ /api/history/*     (历史记录)                          │ │
+│  │  └─ /api/admin/*       (管理后台)                         │ │
+│  └───────────────────────────────────────────────────────────┘ │
+└────────────┬───────────────┬──────────────┬─────────────────────┘
+             │               │              │
+             ▼               ▼              ▼
+    ┌────────────┐  ┌────────────┐  ┌──────────────┐
+    │ PostgreSQL │  │   Redis    │  │ MinIO (S3)   │
+    │  (主数据库) │  │  (缓存)    │  │ (图片存储)   │
+    └────────────┘  └────────────┘  └──────────────┘
+             │
+             ▼
+    ┌─────────────────────────────────────────────────────────────┐
+    │         AI API (外部服务)                                    │
+    │  ├─ OpenAI (GPT-4o + DALL-E 3)       ├─ Anthropic (Claude) │
+    │  ├─ Google (Gemini + Gemini Image)   └─ Replicate (Hermes) │
+    └─────────────────────────────────────────────────────────────┘</pre>
+      </div>
+
+      <div class="grid grid-cols-3 gap-6">
+        <div class="bg-white rounded-xl border border-slate-200 p-6">
+          <h3 class="font-bold text-gray-800 mb-3">🎨 前端</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between"><span>框架：</span><span class="font-medium">Next.js 14 (App Router)</span></div>
+            <div class="flex justify-between"><span>UI库：</span><span class="font-medium">shadcn/ui + Tailwind</span></div>
+            <div class="flex justify-between"><span>状态：</span><span class="font-medium">Zustand</span></div>
+            <div class="flex justify-between"><span>数据：</span><span class="font-medium">React Query</span></div>
+            <div class="text-xs text-gray-500 mt-2">✅ 前后端一体，一个人开发效率高</div>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 p-6">
+          <h3 class="font-bold text-gray-800 mb-3">⚙️ 后端</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between"><span>API框架：</span><span class="font-medium">Next.js API Routes</span></div>
+            <div class="flex justify-between"><span>数据库：</span><span class="font-medium">PostgreSQL 14+</span></div>
+            <div class="flex justify-between"><span>缓存：</span><span class="font-medium">Redis 7+</span></div>
+            <div class="flex justify-between"><span>存储：</span><span class="font-medium">MinIO (自建S3)</span></div>
+            <div class="text-xs text-gray-500 mt-2">✅ 企业级稳定，全部开源免费</div>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 p-6">
+          <h3 class="font-bold text-gray-800 mb-3">🚀 部署</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between"><span>容器化：</span><span class="font-medium">Docker + Compose</span></div>
+            <div class="flex justify-between"><span>反向代理：</span><span class="font-medium">Nginx</span></div>
+            <div class="flex justify-between"><span>认证(阶段1)：</span><span class="font-medium">NextAuth.js</span></div>
+            <div class="flex justify-between"><span>认证(阶段2)：</span><span class="font-medium">Casdoor (SSO)</span></div>
+            <div class="text-xs text-gray-500 mt-2">✅ 一键部署，本地服务器</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 技术栈详解 -->
+  <div class="min-h-screen bg-white p-16 page-break">
+    <div class="max-w-6xl mx-auto">
+      <h2 class="text-3xl font-bold text-gray-800 mb-8 border-b-4 border-blue-500 pb-4">💻 技术栈选型详解</h2>
+
+      <div class="grid grid-cols-2 gap-6 mb-8">
+        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6">
+          <h3 class="font-bold text-gray-800 mb-3 text-lg">前端：Next.js 14</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex items-start gap-2"><span class="text-green-600">✅</span> 你会React，学习成本几乎为零</div>
+            <div class="flex items-start gap-2"><span class="text-green-600">✅</span> 前后端一体，不用单独写后端服务</div>
+            <div class="flex items-start gap-2"><span class="text-green-600">✅</span> 自带API Routes，一个人开发效率高</div>
+            <div class="flex items-start gap-2"><span class="text-green-600">✅</span> TypeScript 全栈类型安全</div>
+          </div>
+          <div class="mt-3 text-xs text-gray-500">
+            UI库用 <strong>shadcn/ui</strong> — 复制粘贴即用，开发快，组件漂亮，企业级质感
+          </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-purple-50 to-violet-50 rounded-2xl p-6">
+          <h3 class="font-bold text-gray-800 mb-3 text-lg">后端：所有基础设施自建</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex items-start gap-2"><span class="text-purple-600">🗄️</span> <strong>PostgreSQL</strong> — 企业级，支持JSON+全文搜索</div>
+            <div class="flex items-start gap-2"><span class="text-purple-600">⚡</span> <strong>Redis</strong> — 缓存AI结果（省钱）、限流、会话管理</div>
+            <div class="flex items-start gap-2"><span class="text-purple-600">📦</span> <strong>MinIO</strong> — 开源S3兼容，可迁阿里云OSS</div>
+            <div class="flex items-start gap-2"><span class="text-purple-600">🐳</span> <strong>Docker</strong> — 环境一致，一键部署</div>
+          </div>
+          <div class="mt-3 text-xs text-gray-500">
+            全部开源免费，零许可证成本
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl border border-slate-200 p-6 mb-8">
+        <h3 class="font-bold text-gray-800 mb-4">🔐 认证方案（两阶段演进）</h3>
+        <div class="grid grid-cols-2 gap-6">
+          <div class="bg-slate-50 rounded-lg p-4">
+            <div class="font-medium text-gray-800 mb-2">阶段1：NextAuth.js</div>
+            <div class="text-xs text-gray-500 space-y-1">
+              <div>✅ 免费开源</div><div>✅ 支持邮箱+密码</div><div>✅ 后期可无缝升级到SSO</div>
+            </div>
+          </div>
+          <div class="bg-slate-50 rounded-lg p-4">
+            <div class="font-medium text-gray-800 mb-2">阶段2：Casdoor（国产开源SSO）</div>
+            <div class="text-xs text-gray-500 space-y-1">
+              <div>✅ 国产开源，中文文档</div><div>✅ 支持企业微信/钉钉</div><div>✅ 支持RBAC权限</div><div>✅ 免费，可本地部署</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-gradient-to-r from-slate-800 to-slate-900 rounded-2xl p-6">
+        <h3 class="font-bold text-white mb-4">🤖 AI 引擎选型</h3>
+        <div class="grid grid-cols-4 gap-4 text-sm">
+          <div class="bg-slate-700 rounded-lg p-3 text-white">
+            <div class="font-bold mb-1">GPT-4o</div><div class="text-slate-300 text-xs">OpenAI</div><div class="text-emerald-400 text-xs mt-1">标题生成主力</div>
+          </div>
+          <div class="bg-slate-700 rounded-lg p-3 text-white">
+            <div class="font-bold mb-1">Claude 3.5</div><div class="text-slate-300 text-xs">Anthropic</div><div class="text-emerald-400 text-xs mt-1">高质量标题</div>
+          </div>
+          <div class="bg-slate-700 rounded-lg p-3 text-white">
+            <div class="font-bold mb-1">Gemini</div><div class="text-slate-300 text-xs">Google</div><div class="text-emerald-400 text-xs mt-1">免费额度 + 图片</div>
+          </div>
+          <div class="bg-slate-700 rounded-lg p-3 text-white">
+            <div class="font-bold mb-1">Hermes / DALL-E</div><div class="text-slate-300 text-xs">Replicate / OpenAI</div><div class="text-emerald-400 text-xs mt-1">英文批量 + 高清图</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4周开发计划 -->
+  <div class="min-h-screen bg-white p-16 page-break">
+    <div class="max-w-6xl mx-auto">
+      <h2 class="text-3xl font-bold text-gray-800 mb-8 border-b-4 border-orange-500 pb-4">📅 1个月开发计划</h2>
+      <p class="text-gray-500 mb-6">四周冲刺，每天有明确交付物</p>
+
+      <!-- 第1周 -->
+      <div class="mb-8">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-white font-bold">W1</div>
+          <div><h3 class="text-xl font-bold text-gray-800">第1周：基础架构 + AI接入</h3><p class="text-sm text-gray-500">打好地基，跑通AI生成流程</p></div>
+        </div>
+        <div class="grid grid-cols-3 gap-4">
+          <div class="bg-purple-50 rounded-xl p-4"><div class="text-purple-700 font-bold text-sm mb-2">Day 1-2：环境搭建</div><div class="text-xs text-gray-600 space-y-1"><div>□ 创建 Next.js 项目</div><div>□ 配置 TypeScript + ESLint</div><div>□ 配置 Git 仓库</div><div><strong>交付：</strong>项目骨架 + 环境文档</div></div></div>
+          <div class="bg-purple-50 rounded-xl p-4"><div class="text-purple-700 font-bold text-sm mb-2">Day 3-4：数据库 + AI SDK</div><div class="text-xs text-gray-600 space-y-1"><div>□ 设计数据库表结构</div><div>□ 封装 AI SDK（GPT/Claude/Gemini）</div><div>□ 封装图片生成 API</div><div><strong>交付：</strong>迁移脚本 + 工具库</div></div></div>
+          <div class="bg-purple-50 rounded-xl p-4"><div class="text-purple-700 font-bold text-sm mb-2">Day 5-7：核心功能</div><div class="text-xs text-gray-600 space-y-1"><div>□ 标题生成（前端+后端）</div><div>□ 图片生成（前端+后端）</div><div>□ 结果展示和下载</div><div><strong>交付：</strong>可用的生成器</div></div></div>
+        </div>
+      </div>
+
+      <!-- 第2周 -->
+      <div class="mb-8">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center text-white font-bold">W2</div>
+          <div><h3 class="text-xl font-bold text-gray-800">第2周：用户系统 + 历史记录</h3><p class="text-sm text-gray-500">让系统"有人用"，数据持久化</p></div>
+        </div>
+        <div class="grid grid-cols-3 gap-4">
+          <div class="bg-blue-50 rounded-xl p-4"><div class="text-blue-700 font-bold text-sm mb-2">Day 8-10：认证系统</div><div class="text-xs text-gray-600 space-y-1"><div>□ 集成 NextAuth.js</div><div>□ 邮箱+密码登录/注册</div><div>□ 密码重置</div><div><strong>交付：</strong>完整登录注册流程</div></div></div>
+          <div class="bg-blue-50 rounded-xl p-4"><div class="text-blue-700 font-bold text-sm mb-2">Day 11-12：历史记录</div><div class="text-xs text-gray-600 space-y-1"><div>□ 保存生成记录到数据库</div><div>□ 历史记录列表 + 搜索</div><div>□ 导出功能</div><div><strong>交付：</strong>历史记录功能</div></div></div>
+          <div class="bg-blue-50 rounded-xl p-4"><div class="text-blue-700 font-bold text-sm mb-2">Day 13-14：基础权限</div><div class="text-xs text-gray-600 space-y-1"><div>□ 管理员/普通用户角色</div><div>□ 用户管理页面</div><div>□ 基础权限控制</div><div><strong>交付：</strong>两级权限 + 管理后台</div></div></div>
+        </div>
+      </div>
+
+      <!-- 第3周 -->
+      <div class="mb-8">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center text-white font-bold">W3</div>
+          <div><h3 class="text-xl font-bold text-gray-800">第3周：优化 + 成本控制</h3><p class="text-sm text-gray-500">省钱、提速、能批量</p></div>
+        </div>
+        <div class="grid grid-cols-3 gap-4">
+          <div class="bg-green-50 rounded-xl p-4"><div class="text-green-700 font-bold text-sm mb-2">Day 15-17：性能优化</div><div class="text-xs text-gray-600 space-y-1"><div>□ Redis缓存（相同prompt复用）</div><div>□ 图片压缩</div><div>□ 数据库查询优化</div><div><strong>交付：</strong>速度提升50%，成本降30%</div></div></div>
+          <div class="bg-green-50 rounded-xl p-4"><div class="text-green-700 font-bold text-sm mb-2">Day 18-19：成本统计</div><div class="text-xs text-gray-600 space-y-1"><div>□ 记录每次AI调用成本</div><div>□ 用户维度成本报表</div><div>□ 超额预警机制</div><div><strong>交付：</strong>成本可视化看板</div></div></div>
+          <div class="bg-green-50 rounded-xl p-4"><div class="text-green-700 font-bold text-sm mb-2">Day 20-21：批量处理</div><div class="text-xs text-gray-600 space-y-1"><div>□ 批量生成标题（CSV上传）</div><div>□ 批量生成图片</div><div>□ 任务队列 + 进度显示</div><div><strong>交付：</strong>批量处理，效率10倍+</div></div></div>
+        </div>
+      </div>
+
+      <!-- 第4周 -->
+      <div class="mb-8">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center text-white font-bold">W4</div>
+          <div><h3 class="text-xl font-bold text-gray-800">第4周：测试 + 部署 + 上线</h3><p class="text-sm text-gray-500">稳如磐石，交付使用</p></div>
+        </div>
+        <div class="grid grid-cols-3 gap-4">
+          <div class="bg-orange-50 rounded-xl p-4"><div class="text-orange-700 font-bold text-sm mb-2">Day 22-24：全面测试</div><div class="text-xs text-gray-600 space-y-1"><div>□ 单元测试 + 集成测试</div><div>□ E2E测试（关键流程）</div><div>□ 压力测试（40人并发）</div><div><strong>交付：</strong>覆盖率>70%</div></div></div>
+          <div class="bg-orange-50 rounded-xl p-4"><div class="text-orange-700 font-bold text-sm mb-2">Day 25-26：Docker化部署</div><div class="text-xs text-gray-600 space-y-1"><div>□ Dockerfile + Compose</div><div>□ Nginx + SSL配置</div><div>□ 自动化部署脚本</div><div><strong>交付：</strong>一键部署方案</div></div></div>
+          <div class="bg-orange-50 rounded-xl p-4"><div class="text-orange-700 font-bold text-sm mb-2">Day 27-30：文档 + 上线</div><div class="text-xs text-gray-600 space-y-1"><div>□ 用户手册 + 管理员手册</div><div>□ 团队培训</div><div>□ 灰度发布 → 全量上线</div><div><strong>交付：</strong>稳定运行 + 监控</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 数据库设计 -->
+  <div class="min-h-screen bg-white p-16 page-break">
+    <div class="max-w-6xl mx-auto">
+      <h2 class="text-3xl font-bold text-gray-800 mb-8 border-b-4 border-emerald-500 pb-4">📊 数据库设计 (PostgreSQL)</h2>
+
+      <div class="grid grid-cols-2 gap-6 mb-8">
+        <div>
+          <h3 class="font-bold text-gray-800 mb-3">核心表结构</h3>
+          <div class="space-y-2 text-sm">
+            <div class="bg-slate-50 rounded-lg p-3"><span class="font-medium">users</span> — 用户表（邮箱、角色、部门、状态）</div>
+            <div class="bg-slate-50 rounded-lg p-3"><span class="font-medium">generations</span> — 生成记录（类型、模型、prompt、结果JSON、成本）</div>
+            <div class="bg-slate-50 rounded-lg p-3"><span class="font-medium">cost_stats</span> — 成本统计（按用户+日期+模型汇总）</div>
+            <div class="bg-slate-50 rounded-lg p-3"><span class="font-medium">system_config</span> — 系统配置（后期用）</div>
+            <div class="bg-slate-50 rounded-lg p-3"><span class="font-medium">audit_logs</span> — 审计日志（操作人、IP、时间、操作类型）</div>
+          </div>
+        </div>
+        <div>
+          <h3 class="font-bold text-gray-800 mb-3">索引策略</h3>
+          <div class="bg-slate-900 rounded-xl p-4 text-xs">
+            <pre class="bg-transparent text-emerald-400 p-0">
+CREATE INDEX idx_generations_user_id
+  ON generations(user_id);
+CREATE INDEX idx_generations_created_at
+  ON generations(created_at DESC);
+CREATE INDEX idx_generations_type
+  ON generations(type);
+CREATE INDEX idx_cost_stats_user_date
+  ON cost_stats(user_id, date DESC);
+CREATE INDEX idx_audit_logs_user_id
+  ON audit_logs(user_id);
+CREATE INDEX idx_audit_logs_created_at
+  ON audit_logs(created_at DESC);</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-gradient-to-r from-slate-100 to-slate-200 rounded-2xl p-6">
+        <h3 class="font-bold text-gray-800 mb-3">关键设计决策</h3>
+        <div class="grid grid-cols-3 gap-4 text-sm">
+          <div><span class="font-medium">JSONB 存AI结果</span><div class="text-gray-500 text-xs mt-1">标题数组/图片URL数组，灵活扩展</div></div>
+          <div><span class="font-medium">成本精确到小数点后6位</span><div class="text-gray-500 text-xs mt-1">DECIMAL(10,6)，美元计价</div></div>
+          <div><span class="font-medium">预留 audit_logs</span><div class="text-gray-500 text-xs mt-1">后期合规审计，表结构已就绪</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 项目结构 -->
+  <div class="min-h-screen bg-white p-16 page-break">
+    <div class="max-w-6xl mx-auto">
+      <h2 class="text-3xl font-bold text-gray-800 mb-8 border-b-4 border-indigo-500 pb-4">🗂️ 项目目录结构</h2>
+
+      <div class="bg-slate-900 rounded-2xl p-6 mb-8 text-xs">
+        <pre class="bg-transparent text-slate-300 p-0 leading-relaxed whitespace-pre-wrap">
+pod-ai-platform/
+├── .github/workflows/deploy.yml     <span class="text-slate-500"># CI/CD自动化部署</span>
+├── app/                             <span class="text-slate-500"># Next.js App Router</span>
+│   ├── (auth)/login/                <span class="text-slate-500"># 登录注册</span>
+│   ├── (dashboard)/                 <span class="text-slate-500"># 主应用（需登录）</span>
+│   │   ├── page.tsx                 <span class="text-slate-500"># 仪表盘首页</span>
+│   │   ├── generate/title/          <span class="text-slate-500"># 🎯 标题生成</span>
+│   │   ├── generate/image/          <span class="text-slate-500"># 🎯 图片生成</span>
+│   │   ├── history/                 <span class="text-slate-500"># 📋 历史记录</span>
+│   │   └── admin/users,costs/       <span class="text-slate-500"># ⚙️ 管理后台</span>
+│   └── api/                         <span class="text-slate-500"># API路由</span>
+├── components/
+│   ├── ui/                          <span class="text-slate-500"># shadcn/ui组件</span>
+│   ├── layout/Sidebar,Header.tsx    <span class="text-slate-500"># 布局</span>
+│   ├── generate/                    <span class="text-slate-500"># AI生成组件</span>
+│   │   ├── <span class="text-emerald-400">ModelSelector.tsx</span>       <span class="text-slate-500"># 模型选择器</span>
+│   │   ├── <span class="text-emerald-400">TitleGenerator.tsx</span>      <span class="text-slate-500"># 标题生成器</span>
+│   │   └── <span class="text-emerald-400">ImageGenerator.tsx</span>      <span class="text-slate-500"># 图片生成器</span>
+│   └── admin/                       <span class="text-slate-500"># 管理组件</span>
+├── lib/                             <span class="text-slate-500"># 💎 核心工具库</span>
+│   ├── ai/                          <span class="text-slate-500"># AI SDK封装</span>
+│   │   ├── <span class="text-amber-400">openai.ts</span>                <span class="text-slate-500"># GPT-4o + DALL-E 3</span>
+│   │   ├── <span class="text-amber-400">anthropic.ts</span>             <span class="text-slate-500"># Claude 3.5</span>
+│   │   ├── <span class="text-amber-400">google.ts</span>                <span class="text-slate-500"># Gemini</span>
+│   │   └── <span class="text-amber-400">replicate.ts</span>             <span class="text-slate-500"># Hermes</span>
+│   ├── db/                          <span class="text-slate-500"># 数据库客户端+迁移</span>
+│   ├── auth/next-auth.ts            <span class="text-slate-500"># 认证配置</span>
+│   ├── cache/redis.ts               <span class="text-slate-500"># Redis缓存</span>
+│   ├── storage/minio.ts             <span class="text-slate-500"># 文件存储</span>
+│   └── utils/cost.ts,logger.ts      <span class="text-slate-500"># 成本+日志</span>
+├── docker/Dockerfile, compose.yml   <span class="text-slate-500"># 🐳 容器化</span>
+├── docs/user-guide,admin-guide.md   <span class="text-slate-500"># 📖 文档</span>
+└── scripts/deploy.sh,backup.sh      <span class="text-slate-500"># 🔧 运维脚本</span></pre>
+      </div>
+
+      <div class="bg-indigo-50 rounded-xl p-5">
+        <div class="font-bold text-indigo-800 mb-2">📁 重要：lib/ai/ 目录 — AI SDK 统一封装</div>
+        <div class="text-sm text-indigo-700">所有AI调用集中在 lib/ai/ 目录下，对外暴露统一接口。<br>好处：后期切换AI引擎只需改这里，业务代码不受影响。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 成本估算 -->
+  <div class="min-h-screen bg-white p-16 page-break">
+    <div class="max-w-6xl mx-auto">
+      <h2 class="text-3xl font-bold text-gray-800 mb-8 border-b-4 border-green-500 pb-4">💰 成本估算（月度）</h2>
+
+      <div class="grid grid-cols-2 gap-6 mb-8">
+        <div>
+          <h3 class="font-bold text-gray-800 mb-4">🏗️ 基础设施成本</h3>
+          <div class="overflow-x-auto"><table class="w-full text-sm">
+            <thead><tr class="border-b-2 border-slate-300 text-left"><th class="pb-2 font-medium">项目</th><th class="pb-2 font-medium">配置</th><th class="pb-2 font-medium text-right">月成本</th></tr></thead>
+            <tbody>
+              <tr class="border-b"><td class="py-2">服务器</td><td class="py-2">4核8G（本地）</td><td class="py-2 text-right font-bold text-green-600">¥0</td></tr>
+              <tr class="border-b"><td class="py-2">域名</td><td class="py-2">.com</td><td class="py-2 text-right">¥5</td></tr>
+              <tr class="border-b"><td class="py-2">SSL证书</td><td class="py-2">Let's Encrypt</td><td class="py-2 text-right font-bold text-green-600">¥0</td></tr>
+              <tr class="border-b"><td class="py-2">PostgreSQL</td><td class="py-2">自建</td><td class="py-2 text-right font-bold text-green-600">¥0</td></tr>
+              <tr class="border-b"><td class="py-2">Redis</td><td class="py-2">自建</td><td class="py-2 text-right font-bold text-green-600">¥0</td></tr>
+              <tr class="border-b"><td class="py-2">MinIO</td><td class="py-2">自建</td><td class="py-2 text-right font-bold text-green-600">¥0</td></tr>
+              <tr class="border-t-2 border-slate-300"><td class="py-2 font-bold">合计</td><td></td><td class="py-2 text-right font-bold text-green-600">≈ ¥5/月</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+
+        <div>
+          <h3 class="font-bold text-gray-800 mb-4">🤖 AI API成本（40人使用）</h3>
+          <div class="text-xs text-gray-500 mb-2">假设每人每天：生成标题10次 + 生成图片5次</div>
+          <div class="overflow-x-auto"><table class="w-full text-sm">
+            <thead><tr class="border-b-2 border-slate-300 text-left"><th class="pb-2 font-medium">AI服务</th><th class="pb-2 font-medium">单价</th><th class="pb-2 font-medium text-right">月成本</th></tr></thead>
+            <tbody>
+              <tr class="border-b"><td class="py-2">GPT-4o</td><td class="py-2">$0.03/1K tokens</td><td class="py-2 text-right">¥500</td></tr>
+              <tr class="border-b"><td class="py-2">Claude 3.5</td><td class="py-2">$0.015/1K tokens</td><td class="py-2 text-right">¥250</td></tr>
+              <tr class="border-b"><td class="py-2">Gemini</td><td class="py-2">免费额度</td><td class="py-2 text-right font-bold text-green-600">¥0</td></tr>
+              <tr class="border-b"><td class="py-2">Hermes</td><td class="py-2">$0.001/次</td><td class="py-2 text-right">¥30</td></tr>
+              <tr class="border-b"><td class="py-2">DALL-E 3</td><td class="py-2">$0.04/张</td><td class="py-2 text-right">¥1,700</td></tr>
+              <tr class="border-b"><td class="py-2">Gemini Image</td><td class="py-2">$0.02/张</td><td class="py-2 text-right">¥850</td></tr>
+              <tr class="border-t-2 border-slate-300"><td class="py-2 font-bold" colspan="2">月合计</td><td class="py-2 text-right font-bold text-red-600">¥3,330</td></tr>
+              <tr><td class="py-2 font-bold text-green-700" colspan="2">优化后（缓存+智能路由）</td><td class="py-2 text-right font-bold text-green-600">¥2,000-2,500</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <div class="bg-gradient-to-r from-emerald-500 to-green-500 rounded-2xl p-6 text-white">
+        <h3 class="font-bold mb-3">💰 成本优化策略</h3>
+        <div class="grid grid-cols-3 gap-4 text-sm">
+          <div class="bg-white bg-opacity-15 rounded-lg p-3">
+            <div class="font-bold mb-1">Redis 缓存</div>
+            <div>相同 prompt 结果缓存24小时，直接复用，预计节省30%</div>
+          </div>
+          <div class="bg-white bg-opacity-15 rounded-lg p-3">
+            <div class="font-bold mb-1">智能路由</div>
+            <div>简单任务→廉价模型（Hermes/Gemini），复杂任务→GPT-4o</div>
+          </div>
+          <div class="bg-white bg-opacity-15 rounded-lg p-3">
+            <div class="font-bold mb-1">限额预警</div>
+            <div>每日/每人预算上限，超限自动告警，防止滥用</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 第1步：快速开始 -->
+  <div class="min-h-screen bg-white p-16 page-break">
+    <div class="max-w-6xl mx-auto">
+      <h2 class="text-3xl font-bold text-gray-800 mb-8 border-b-4 border-cyan-500 pb-4">🚀 今天就可以开始</h2>
+
+      <div class="bg-slate-900 rounded-2xl p-6 mb-8">
+        <div class="text-emerald-400 text-sm font-medium mb-3"># 第1步：创建项目（2小时搞定）</div>
+        <pre class="bg-transparent p-0 text-xs leading-relaxed">
+<span class="text-slate-500"># 1. 创建 Next.js 项目（10分钟）</span>
+<span class="text-emerald-400">npx create-next-app@latest pod-ai-platform --typescript --tailwind --app</span>
+<span class="text-emerald-400">cd pod-ai-platform</span>
+
+<span class="text-slate-500"># 2. 安装核心依赖（5分钟）</span>
+<span class="text-emerald-400">npm install \</span>
+<span class="text-emerald-400">  openai \</span>
+<span class="text-emerald-400">  @anthropic-ai/sdk \</span>
+<span class="text-emerald-400">  @google/generative-ai \</span>
+<span class="text-emerald-400">  replicate \</span>
+<span class="text-emerald-400">  next-auth @auth/prisma-adapter \</span>
+<span class="text-emerald-400">  prisma @prisma/client \</span>
+<span class="text-emerald-400">  ioredis minio \</span>
+<span class="text-emerald-400">  zod zustand @tanstack/react-query \</span>
+<span class="text-emerald-400">  date-fns recharts</span>
+
+<span class="text-slate-500"># 3. 初始化数据库 ORM（5分钟）</span>
+<span class="text-emerald-400">npx prisma init</span>
+
+<span class="text-slate-500"># 4. 配置环境变量（10分钟）</span>
+<span class="text-emerald-400">cp .env.example .env.local</span>
+<span class="text-slate-500"># 编辑 .env.local，填入 API 密钥</span>
+
+<span class="text-slate-500"># 5. 启动！（1分钟）</span>
+<span class="text-emerald-400">npm run dev</span></pre>
+      </div>
+
+      <div class="grid grid-cols-3 gap-6">
+        <div class="bg-white rounded-xl border border-slate-200 p-6">
+          <h3 class="font-bold text-gray-800 mb-3">📦 核心依赖说明</h3>
+          <div class="space-y-2 text-sm">
+            <div><code class="text-xs bg-slate-100 px-1 rounded">openai</code> — GPT-4o + DALL-E 3</div>
+            <div><code class="text-xs bg-slate-100 px-1 rounded">@anthropic-ai/sdk</code> — Claude 3.5</div>
+            <div><code class="text-xs bg-slate-100 px-1 rounded">@google/generative-ai</code> — Gemini</div>
+            <div><code class="text-xs bg-slate-100 px-1 rounded">replicate</code> — Hermes</div>
+            <div><code class="text-xs bg-slate-100 px-1 rounded">next-auth</code> — 认证</div>
+            <div><code class="text-xs bg-slate-100 px-1 rounded">prisma</code> — 数据库ORM</div>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 p-6">
+          <h3 class="font-bold text-gray-800 mb-3">⚙️ 环境变量清单</h3>
+          <div class="space-y-1 text-xs text-gray-600">
+            <div>OPENAI_API_KEY=sk-xxx</div>
+            <div>ANTHROPIC_API_KEY=sk-ant-xxx</div>
+            <div>GOOGLE_API_KEY=AIza-xxx</div>
+            <div>REPLICATE_API_KEY=r8_xxx</div>
+            <div>DATABASE_URL=postgresql://...</div>
+            <div>REDIS_URL=redis://localhost:6379</div>
+            <div>NEXTAUTH_SECRET=xxx</div>
+          </div>
+        </div>
+        <div class="bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl p-6 text-white">
+          <h3 class="font-bold mb-3">⚡ 接下来需要什么？</h3>
+          <div class="space-y-2 text-sm">
+            <div>A. 立即开始编码 — 完整代码实现</div>
+            <div>B. 先看架构设计 — 数据流图+安全方案</div>
+            <div>C. 先搞定部署 — Docker+Nginx配置</div>
+            <div>D. 技术选型调研 — 方案对比+风险评估</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 收尾 -->
+  <div class="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 text-white p-16 page-break">
+    <div class="max-w-5xl w-full text-center">
+      <div class="text-6xl mb-6">⚙️</div>
+      <h2 class="text-3xl font-bold mb-4">POD AI 平台 · 技术搭建方案</h2>
+      <p class="text-slate-300 mb-8">一个人 · 一个月 · 从零到上线</p>
+
+      <div class="grid grid-cols-4 gap-4 mb-12">
+        <div class="bg-white bg-opacity-10 rounded-xl p-4">
+          <div class="text-2xl font-bold text-emerald-400">Next.js 14</div><div class="text-sm text-slate-400">全栈框架</div>
+        </div>
+        <div class="bg-white bg-opacity-10 rounded-xl p-4">
+          <div class="text-2xl font-bold text-emerald-400">Docker</div><div class="text-sm text-slate-400">一键部署</div>
+        </div>
+        <div class="bg-white bg-opacity-10 rounded-xl p-4">
+          <div class="text-2xl font-bold text-emerald-400">6个AI引擎</div><div class="text-sm text-slate-400">标题+图片</div>
+        </div>
+        <div class="bg-white bg-opacity-10 rounded-xl p-4">
+          <div class="text-2xl font-bold text-emerald-400">¥5/月</div><div class="text-sm text-slate-400">基础设施近乎免费</div>
+        </div>
+      </div>
+
+      <div class="bg-white bg-opacity-10 rounded-2xl p-8 mb-8 text-left">
+        <h3 class="text-xl font-bold mb-4 text-center">🎯 关键成功因素</h3>
+        <div class="grid grid-cols-2 gap-4 text-sm">
+          <div class="flex items-start gap-2"><span class="text-emerald-400">✅</span> 前后端一体（Next.js），一个人全栈开发</div>
+          <div class="flex items-start gap-2"><span class="text-emerald-400">✅</span> 所有基础设施自建开源，零许可证成本</div>
+          <div class="flex items-start gap-2"><span class="text-emerald-400">✅</span> Docker容器化，部署只需一条命令</div>
+          <div class="flex items-start gap-2"><span class="text-emerald-400">✅</span> 预留扩展接口，后期无缝升级SSO</div>
+          <div class="flex items-start gap-2"><span class="text-emerald-400">✅</span> AI SDK统一封装，引擎切换零改动</div>
+          <div class="flex items-start gap-2"><span class="text-emerald-400">✅</span> Redis缓存+智能路由，成本可控</div>
+        </div>
+      </div>
+
+      <div class="text-slate-400 text-sm">
+        <p>从今天开始，30天后你的团队就能用上自己的AI工作平台</p>
+        <p class="mt-2">POD AI Platform — Build for Speed, Deploy with Confidence</p>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

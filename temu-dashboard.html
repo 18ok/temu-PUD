@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temu 运营数据分析面板 — 完整版</title>
+    <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+
+    <!-- ============================================================
+    来源: http://localhost:8501 全部6个页面 (2026-05-31)
+    包含: 数据导入 · 商品画像 · 选品规则 · 智能预测 · 避坑清单 · 个人诊断
+    当前状态: 空数据（未上传 Excel），但 UI 结构完整
+    ============================================================ -->
+
+    <style>
+        :root {
+            --bg: #16161f;
+            --card: #1f1f2e;
+            --card-hover: #252535;
+            --card-alt: #2a2a40;
+            --gold: #d4a373;
+            --gold-dark: #b8956a;
+            --gold-glow: rgba(212, 163, 115, 0.3);
+            --text: #e8e6e3;
+            --text-dim: #a8a5a0;
+            --text-faded: rgba(232, 230, 227, 0.45);
+            --border: rgba(212, 163, 115, 0.2);
+            --border-hover: rgba(212, 163, 115, 0.45);
+            --border-light: rgba(212, 163, 115, 0.12);
+            --success: rgba(45, 106, 79, 0.18);
+            --success-border: rgba(45, 106, 79, 0.5);
+            --success-text: #4ade80;
+            --warning-bg: rgba(139, 105, 20, 0.18);
+            --warning-border: rgba(139, 105, 20, 0.5);
+            --warning-text: #fbbf24;
+            --danger-bg: rgba(139, 0, 0, 0.18);
+            --danger-border: rgba(139, 0, 0, 0.5);
+            --danger-text: #f87171;
+            --info-bg: rgba(212, 163, 115, 0.08);
+            --info-border: rgba(212, 163, 115, 0.25);
+            --shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+            --radius-sm: 8px;
+            --radius: 10px;
+            --radius-lg: 12px;
+            --radius-xl: 14px;
+            --radius-2xl: 16px;
+            --sidebar-w: 260px;
+            --font: 'Source Sans Pro', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+
+        .app { display: flex; min-height: 100vh; }
+
+        .sidebar {
+            width: var(--sidebar-w); min-width: var(--sidebar-w); flex-shrink: 0;
+            background: linear-gradient(180deg, #12121a 0%, var(--card) 100%);
+            border-right: 1px solid var(--border-light);
+            display: flex; flex-direction: column;
+        }
+        .sidebar-brand {
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+            border-radius: var(--radius-xl); padding: 18px 14px; margin: 12px;
+            text-align: center;
+        }
+        .sidebar-brand .title { font-size: 1.3rem; font-weight: 800; color: var(--bg); }
+        .sidebar-brand .sub   { font-size: 0.7rem; color: var(--text-faded); margin-top: 2px; }
+
+        .sidebar-nav { list-style: none; padding: 4px 12px; flex: 1; }
+        .sidebar-nav li { margin-bottom: 2px; }
+        .sidebar-nav a {
+            display: flex; align-items: center; gap: 10px; padding: 9px 14px;
+            border-radius: var(--radius-sm); text-decoration: none;
+            color: var(--text-dim); font-size: 0.92rem; transition: all 0.15s; cursor: pointer;
+        }
+        .sidebar-nav a:hover,
+        .sidebar-nav a.active { background: var(--info-bg); color: var(--text); }
+        .nav-icon { font-size: 1.1rem; }
+
+        .sidebar-info {
+            padding: 12px; border-top: 1px solid var(--border-light);
+            font-size: 0.82rem; color: var(--text-dim);
+        }
+        .sidebar-info .stat-card {
+            background: var(--success); border: 1px solid var(--success-border);
+            border-radius: var(--radius); padding: 10px 12px; margin-bottom: 8px;
+        }
+        .sidebar-info .stat-card .time { font-size: 0.72rem; }
+        .sidebar-info .snapshot {
+            background: var(--info-bg); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 10px 12px; margin-bottom: 8px;
+        }
+        .sidebar-actions { display: flex; gap: 8px; margin-top: 8px; }
+        .sidebar-actions button {
+            flex: 1; padding: 8px; border-radius: var(--radius);
+            border: 1px solid rgba(212, 163, 115, 0.18);
+            background: var(--card); color: var(--text-dim); font-weight: 600;
+            cursor: pointer; font-size: 0.85rem; transition: all 0.2s;
+        }
+        .sidebar-actions button:hover {
+            background: var(--card-hover); border-color: var(--border-hover);
+            transform: translateY(-1px);
+        }
+
+        .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+        .topbar {
+            display: flex; align-items: center; justify-content: flex-end;
+            padding: 10px 20px; gap: 10px;
+        }
+        .topbar .btn-deploy {
+            padding: 6px 16px; border-radius: var(--radius-sm); border: none;
+            background: var(--gold); color: var(--bg); font-weight: 700;
+            cursor: pointer; font-size: 0.85rem;
+        }
+        .topbar .btn-menu {
+            background: none; border: none; cursor: pointer; padding: 4px 8px;
+            color: var(--text-dim);
+        }
+        .topbar .btn-menu svg { fill: currentColor; width: 20px; height: 20px; }
+
+        .content { padding: 24px 32px; max-width: 1100px; }
+
+        .page { display: none; }
+        .page.active { display: block; }
+
+        .hero {
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+            border-radius: var(--radius-2xl); padding: 28px 32px; margin-bottom: 24px;
+            box-shadow: 0 4px 16px var(--gold-glow);
+        }
+        .hero h1 { font-size: 2rem; font-weight: 700; color: var(--bg); margin-bottom: 6px; }
+        .hero p  { font-size: 0.95rem; color: rgba(22,22,31,0.8); line-height: 1.5; }
+
+        .btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 10px 20px; border-radius: var(--radius); font-weight: 600;
+            cursor: pointer; transition: all 0.2s; font-size: 0.9rem;
+            border: 1px solid var(--border); background: var(--card); color: var(--text);
+        }
+        .btn:hover {
+            transform: translateY(-1px); box-shadow: var(--shadow);
+            border-color: var(--border-hover); background: var(--card-alt);
+        }
+        .btn-row { display: flex; gap: 12px; margin: 16px 0; flex-wrap: wrap; }
+
+        .alert {
+            padding: 14px 18px; border-radius: var(--radius);
+            display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px;
+        }
+        .alert-info    { background: var(--info-bg);    border: 1px solid var(--info-border); }
+        .alert-success { background: var(--success);    border: 1px solid var(--success-border); color: var(--success-text); }
+        .alert-warning { background: var(--warning-bg); border: 1px solid var(--warning-border); color: var(--warning-text); }
+        .alert-icon { font-size: 1.2rem; flex-shrink: 0; }
+
+        .upload-zone {
+            background: var(--card); border: 1px dashed rgba(212,163,115,0.25);
+            border-radius: var(--radius-lg); padding: 48px 40px; text-align: center;
+            transition: border-color 0.2s; cursor: pointer; margin-bottom: 16px;
+        }
+        .upload-zone:hover { border-color: var(--border-hover); }
+        .upload-zone .icon { font-size: 2.5rem; margin-bottom: 8px; }
+        .upload-zone .hint { font-size: 0.85rem; color: var(--text-dim); margin-top: 8px; }
+
+        .expander {
+            border-radius: var(--radius-lg); box-shadow: var(--shadow);
+            border: 1px solid rgba(212,163,115,0.18); background: var(--card);
+            margin-bottom: 16px;
+        }
+        .expander summary {
+            padding: 14px 18px; cursor: pointer; font-weight: 600;
+            list-style: none; display: flex; align-items: center; gap: 8px;
+        }
+        .expander summary::-webkit-details-marker { display: none; }
+        .expander-content { padding: 0 18px 18px; }
+
+        .steps { display: flex; gap: 16px; flex-wrap: wrap; }
+        .step {
+            flex: 1; min-width: 150px;
+            background: var(--info-bg); border: 1px solid rgba(212,163,115,0.18);
+            border-radius: var(--radius-lg); padding: 16px; text-align: center;
+        }
+        .step .emoji { font-size: 2rem; }
+        .step .title { font-weight: 700; margin: 6px 0; }
+        .step .desc  { font-size: 0.82rem; color: var(--text-dim); }
+
+        .warn-card {
+            background: rgba(251,191,36,0.12); border: 2px solid var(--warning-text);
+            border-radius: var(--radius-2xl); padding: 24px 28px; margin: 16px 0; text-align: center;
+        }
+        .warn-card .title { font-size: 1.8rem; font-weight: 700; color: var(--warning-text); }
+        .warn-card .desc  { font-size: 0.95rem; color: var(--text); margin-top: 6px; }
+
+        hr {
+            border: none; border-top: 1px solid var(--border-light);
+            margin: 24px 0;
+        }
+
+        table { width: 100%; border-collapse: collapse; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border-light); }
+        thead th { background: var(--card); color: var(--gold); font-weight: 600; border-bottom: 2px solid rgba(212,163,115,0.25); padding: 10px 12px; text-align: left; }
+        tbody tr:nth-child(even) { background: var(--card); }
+        tbody tr:nth-child(odd)  { background: var(--card-hover); }
+        tbody tr:hover { background: rgba(212,163,115,0.08); }
+        tbody td { padding: 8px 12px; }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: #2d2d40; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3a3a50; }
+    </style>
+</head>
+<body>
+
+<div class="app">
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="title">🛒 Temu 数据看板</div>
+            <div class="sub">运营数据分析 v4</div>
+        </div>
+
+        <ul class="sidebar-nav">
+            <li><a class="active" onclick="switchPage('import')"><span class="nav-icon">📥</span> 数据导入</a></li>
+            <li><a onclick="switchPage('products')"><span class="nav-icon">📊</span> 商品画像</a></li>
+            <li><a onclick="switchPage('rules')"><span class="nav-icon">📋</span> 选品规则</a></li>
+            <li><a onclick="switchPage('predict')"><span class="nav-icon">🔮</span> 智能预测</a></li>
+            <li><a onclick="switchPage('blacklist')"><span class="nav-icon">🚨</span> 避坑清单</a></li>
+            <li><a onclick="switchPage('diagnosis')"><span class="nav-icon">📈</span> 个人诊断</a></li>
+        </ul>
+
+        <div class="sidebar-info">
+            <label style="display:block; margin-bottom:4px;">👤 当前用户</label>
+            <select style="width:100%; padding:8px 12px; border-radius:8px; background:var(--card); border:1px solid var(--border); color:var(--text); margin-bottom:12px;">
+                <option>李可伟</option>
+                <option>胡玉成</option>
+                <option>徐总</option>
+            </select>
+
+            <div class="stat-card">
+                💾 已保存 <b>0</b> 个文件<br>
+                <span class="time">2026-05-29 14:07</span>
+            </div>
+
+            <div class="snapshot">📸 <b>1</b> 份历史快照</div>
+
+            <div class="sidebar-actions">
+                <button>💾 保存</button>
+                <button>🗑️ 清除</button>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main">
+        <header class="topbar">
+            <button class="btn-deploy">Deploy</button>
+            <button class="btn-menu" title="菜单">
+                <svg viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+            </button>
+        </header>
+
+        <div class="content">
+
+            <!-- ═══ 页面 1: 数据导入 ═══ -->
+            <div class="page active" id="page-import">
+                <div class="hero">
+                    <h1>📥 数据导入</h1>
+                    <p>批量上传利润统计 Excel 文件（.xls / .xlsx），系统自动识别文件类型和归属人并解析数据。导入后自动保存，下次打开无需重新上传。</p>
+                </div>
+
+                <div class="alert alert-info">
+                    <span class="alert-icon">💾</span>
+                    <span>检测到历史数据：<strong>0</strong> 个文件，上次导入于 <strong>2026-05-29 14:07</strong>。点击下方「📂 加载历史数据」恢复。</span>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn">📂 加载历史数据</button>
+                    <button class="btn">🔄 刷新页面</button>
+                </div>
+
+                <details class="expander" open>
+                    <summary>🚀 第一次使用？看这里</summary>
+                    <div class="expander-content">
+                        <div class="steps">
+                            <div class="step">
+                                <div class="emoji">📤</div>
+                                <div class="title">1. 上传文件</div>
+                                <div class="desc">拖拽利润统计 Excel 文件</div>
+                            </div>
+                            <div class="step">
+                                <div class="emoji">🔍</div>
+                                <div class="title">2. 开始解析</div>
+                                <div class="desc">自动识别类型和归属人</div>
+                            </div>
+                            <div class="step">
+                                <div class="emoji">📊</div>
+                                <div class="title">3. 查看分析</div>
+                                <div class="desc">切换到其他页面查看聚类和选品建议</div>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+
+                <hr>
+
+                <div class="upload-zone">
+                    <div class="icon">📁</div>
+                    <div style="font-size:1.1rem; margin-bottom:8px;">拖拽文件到此处或点击选择</div>
+                    <div class="hint">200MB per file · XLS, XLSX</div>
+                    <button class="btn" style="margin-top:14px;">⬆ Upload</button>
+                </div>
+
+                <div class="alert alert-info">
+                    <span class="alert-icon">📂</span>
+                    <span>请上传 Excel 文件开始分析</span>
+                </div>
+            </div>
+
+            <!-- ═══ 页面 2: 商品画像 ═══ -->
+            <div class="page" id="page-products">
+                <div class="hero">
+                    <h1>📊 商品画像 — 聚类分析</h1>
+                    <p>基于 K-Means 聚类算法，按克重、成本、毛利率、日销量对商品自动分组，快速识别好品与差品的特征分布。</p>
+                </div>
+
+                <div class="alert alert-info">
+                    <span class="alert-icon">ℹ</span>
+                    <span>📂 暂无数据，请先前往「数据导入」页面上传 Excel 文件。</span>
+                </div>
+            </div>
+
+            <!-- ═══ 页面 3: 选品规则 ═══ -->
+            <div class="page" id="page-rules">
+                <div class="hero">
+                    <h1>📋 选品规则 — 从数据中提取铁律</h1>
+                    <p>基于聚类分组结果，用纯统计方法自动提取可操作的选品规则。每条规则包含条件、验证指标和置信度，选品时优先匹配 🟢 铁律，遇到 🔴 避坑特征直接 pass。</p>
+                </div>
+
+                <div class="alert alert-info">
+                    <span class="alert-icon">ℹ</span>
+                    <span>📂 暂无数据，请先前往「数据导入」页面上传 Excel 文件。</span>
+                </div>
+            </div>
+
+            <!-- ═══ 页面 4: 智能预测 ═══ -->
+            <div class="page" id="page-predict">
+                <div class="hero">
+                    <h1>🔮 智能预测 — 利润推算</h1>
+                    <p>输入新品的成本、克重和预计卖价，系统自动匹对历史相似品数据，给出毛利率与日销预估、风险评级和选品建议。</p>
+                </div>
+
+                <div class="alert alert-info">
+                    <span class="alert-icon">ℹ</span>
+                    <span>📂 暂无数据，请先前往「数据导入」页面上传 Excel 文件。</span>
+                </div>
+            </div>
+
+            <!-- ═══ 页面 5: 避坑清单 ═══ -->
+            <div class="page" id="page-blacklist">
+                <div class="hero">
+                    <h1>🚫 避坑清单 — 亏损品异常检测</h1>
+                    <p>自动筛选历史亏损品，按特征分组分析亏损原因，提炼可操作的避坑规则，避免重复踩坑。</p>
+                </div>
+
+                <div class="alert alert-info">
+                    <span class="alert-icon">ℹ</span>
+                    <span>📂 暂无数据，请先前往「数据导入」页面上传 Excel 文件。</span>
+                </div>
+            </div>
+
+            <!-- ═══ 页面 6: 个人诊断 ═══ -->
+            <div class="page" id="page-diagnosis">
+                <div class="hero">
+                    <h1>📈 个人诊断</h1>
+                    <p>基于历史快照对比，追踪你的选品质量变化，给出个性化优化建议。</p>
+                </div>
+
+                <div class="warn-card">
+                    <div class="title">📂 需要至少 2 次数据上传</div>
+                    <div class="desc">请回到「数据导入」页上传本周的利润统计 Excel，再回来看趋势分析。</div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+</div>
+
+<script>
+function switchPage(name) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + name).classList.add('active');
+    document.querySelectorAll('.sidebar-nav a').forEach(a => a.classList.remove('active'));
+    document.querySelectorAll('.sidebar-nav a').forEach(a => {
+        if (a.getAttribute('onclick').includes("'" + name + "'")) a.classList.add('active');
+    });
+}
+</script>
+
+</body>
+</html>

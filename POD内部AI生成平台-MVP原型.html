@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POD内部AI生成平台 - MVP原型</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif; }
+    .animate-spin { animation: spin 1s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .svg-icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.125em; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script>
+    // ============================================================
+    //  POD AI Studio — MVP 原型
+    //  引擎方案：豆包 / Hermes / Claude 3.5 (标题)
+    //            Gemini 3.1 Flash / DALL-E 3 / SDXL (图片)
+    // ============================================================
+
+    // ===== 内联 SVG 图标 =====
+    const Icons = {
+      Sparkles:    (s) => `<svg class="svg-icon" style="width:${s||16}px;height:${s||16}px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>`,
+      ImageIcon:   (s) => `<svg class="svg-icon" style="width:${s||16}px;height:${s||16}px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>`,
+      TypeIcon:    (s) => `<svg class="svg-icon" style="width:${s||16}px;height:${s||16}px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" x2="15" y1="20" y2="20"/><line x1="12" x2="12" y1="4" y2="20"/></svg>`,
+      FolderOpen:  (s) => `<svg class="svg-icon" style="width:${s||16}px;height:${s||16}px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></svg>`,
+      SettingsIcon:(s) => `<svg class="svg-icon" style="width:${s||16}px;height:${s||16}px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>`,
+      Home:        (s) => `<svg class="svg-icon" style="width:${s||16}px;height:${s||16}px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+      Download:    (s) => `<svg class="svg-icon" style="width:${s||16}px;height:${s||16}px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>`,
+      Copy:        (s) => `<svg class="svg-icon" style="width:${s||16}px;height:${s||16}px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`,
+      RefreshCw:   (s) => `<svg class="svg-icon" style="width:${s||16}px;height:${s||16}px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>`,
+      Heart:       (s) => `<svg class="svg-icon" style="width:${s||16}px;height:${s||16}px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`,
+      Trash2:      (s) => `<svg class="svg-icon" style="width:${s||16}px;height:${s||16}px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>`,
+      Search:      (s) => `<svg class="svg-icon" style="width:${s||16}px;height:${s||16}px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>`,
+      Filter:      (s) => `<svg class="svg-icon" style="width:${s||16}px;height:${s||16}px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>`,
+      Plus:        (s) => `<svg class="svg-icon" style="width:${s||16}px;height:${s||16}px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>`,
+      Check:       (s) => `<svg class="svg-icon" style="width:${s||16}px;height:${s||16}px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+      ChevronRight:(s) => `<svg class="svg-icon" style="width:${s||16}px;height:${s||16}px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>`,
+      ChevronDown: (s) => `<svg class="svg-icon" style="width:${s||16}px;height:${s||16}px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>`,
+      Zap:         (s) => `<svg class="svg-icon" style="width:${s||16}px;height:${s||16}px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+      Package:     (s) => `<svg class="svg-icon" style="width:${s||16}px;height:${s||16}px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16.5 9.4-9-5.19"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" x2="12" y1="22" y2="12"/></svg>`,
+      Bell:        (s) => `<svg class="svg-icon" style="width:${s||16}px;height:${s||16}px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>`,
+      Shield:      (s) => `<svg class="svg-icon" style="width:${s||16}px;height:${s||16}px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+      AlertTriangle:(s) => `<svg class="svg-icon" style="width:${s||16}px;height:${s||16}px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12" y1="17" y2="17.01"/></svg>`,
+    };
+    function icon(name, size) { return Icons[name] ? Icons[name](size) : ''; }
+
+    // ===== 产品 & 风格 =====
+    const products = [
+      { id: 'tshirt', name: 'T恤', icon: '👕' },
+      { id: 'mug', name: '马克杯', icon: '☕' },
+      { id: 'phonecase', name: '手机壳', icon: '📱' },
+      { id: 'bag', name: '帆布包', icon: '👜' },
+      { id: 'pillow', name: '抱枕', icon: '🛏️' },
+      { id: 'hoodie', name: '卫衣', icon: '🧥' }
+    ];
+    const styles = [
+      { id: 'cartoon', name: '卡通' }, { id: 'realistic', name: '写实' },
+      { id: 'minimal', name: '极简' }, { id: 'vintage', name: '复古' },
+      { id: 'cyberpunk', name: '赛博朋克' }, { id: 'watercolor', name: '水彩' }
+    ];
+
+    // ===== 🎨 图片生成引擎 (已更新) =====
+    const imageEngines = [
+      { id: 'gemini-flash', name: 'Gemini 3.1 Flash Image', emoji: '🚀', tag: '推荐', tagColor: 'green',
+        detail: 'Google 最新 | 速度快 | 性价比高', costPer: 0.50, provider: 'Google' },
+      { id: 'dalle3', name: 'DALL-E 3', emoji: '⭐', tag: '高质量', tagColor: 'purple',
+        detail: 'OpenAI | 最稳定 | 细节出色', costPer: 1.50, provider: 'OpenAI' },
+      { id: 'sdxl', name: 'Stable Diffusion XL', emoji: '💰', tag: '经济', tagColor: 'gray',
+        detail: '开源模型 | 批量降本 | 灵活部署', costPer: 0.20, provider: 'Stability AI' }
+    ];
+
+    // ===== 📝 标题生成引擎 (已更新) =====
+    const titleEngines = [
+      { id: 'doubao', name: '豆包 (Doubao)', emoji: '🇨🇳', tag: '推荐', tagColor: 'green',
+        detail: '字节跳动 | 中文最强 | 性价比高', costPer: 0.005, provider: 'ByteDance',
+        region: '中文市场' },
+      { id: 'hermes', name: 'Hermes (Nous Hermes 2)', emoji: '🌍', tag: '经济', tagColor: 'blue',
+        detail: '开源模型 | 英文流畅 | 几乎免费', costPer: 0.001, provider: 'Nous Research',
+        region: '英文批量' },
+      { id: 'claude35', name: 'Claude 3.5 Sonnet', emoji: '⭐', tag: '高质量', tagColor: 'purple',
+        detail: 'Anthropic | 创意最强 | 英文最佳', costPer: 0.03, provider: 'Anthropic',
+        region: '高质量英文' }
+    ];
+
+    const marketOptions = [
+      { id: 'us', name: '🇺🇸 美国' }, { id: 'uk', name: '🇬🇧 英国' },
+      { id: 'eu', name: '🇪🇺 欧洲' }, { id: 'jp', name: '🇯🇵 日本' }
+    ];
+    const demoImages = ['🎨', '🌊', '🐕', '☕', '🌸', '🎸', '🚀', '🌈'];
+    const libraryEmojis = ['🎨', '🌊', '🐕', '☕', '🌸', '🎸', '🚀', '🌈', '⚡', '🔥', '💎', '🎯'];
+
+    // ===== 状态 =====
+    let currentPage = 'dashboard';
+    let selectedImageEngine = 'gemini-flash';
+    let selectedTitleEngine = 'doubao';
+    let selectedProduct = 'tshirt';
+    let selectedStyle = 'cartoon';
+    let prompt = '';
+    let isGenerating = false;
+    let generatedImages = [];
+    let titlePrompt = '';
+    let generatedTitles = [];
+    let isGeneratingTitles = false;
+    let selectedMarket = 'us';
+    let imageCount = 4;
+    let titleCount = 10;
+    let savedItems = [1, 3, 5];
+
+    function getImageEngine() { return imageEngines.find(e => e.id === selectedImageEngine); }
+    function getTitleEngine() { return titleEngines.find(e => e.id === selectedTitleEngine); }
+
+    // ===== 渲染入口 =====
+    function render() {
+      document.getElementById('root').innerHTML = `
+        <div class="flex bg-slate-50 min-h-screen">
+          ${renderSidebar()}
+          <div class="flex-1 overflow-auto">
+            ${renderTopbar()}
+            <div id="page-content">
+              ${currentPage === 'dashboard' ? renderDashboard() : ''}
+              ${currentPage === 'image' ? renderImageGeneration() : ''}
+              ${currentPage === 'title' ? renderTitleGeneration() : ''}
+              ${currentPage === 'library' ? renderLibrary() : ''}
+              ${currentPage === 'settings' ? renderSettings() : ''}
+            </div>
+          </div>
+        </div>`;
+      bindEvents();
+    }
+
+    // ===== 侧边栏 =====
+    function renderSidebar() {
+      const items = [
+        { id: 'dashboard', icon: 'Home', label: '工作台' },
+        { id: 'image', icon: 'ImageIcon', label: '图案生成' },
+        { id: 'title', icon: 'TypeIcon', label: '标题生成' },
+        { id: 'library', icon: 'FolderOpen', label: '素材库' },
+        { id: 'settings', icon: 'SettingsIcon', label: '系统设置' }
+      ];
+      return `
+        <div class="w-60 bg-slate-900 text-white h-screen flex flex-col flex-shrink-0">
+          <div class="p-6 border-b border-slate-800">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">${icon('Sparkles',20)}</div>
+              <div><div class="font-bold text-sm">POD AI Studio</div><div class="text-xs text-slate-400">内部工作台 v2.0</div></div>
+            </div>
+          </div>
+          <nav class="flex-1 p-4 space-y-1">
+            ${items.map(item => `
+              <button data-page="${item.id}" class="nav-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${currentPage===item.id?'bg-purple-600 text-white':'text-slate-300 hover:bg-slate-800'}">
+                <span class="w-4 h-4 flex items-center justify-center">${icon(item.icon,16)}</span>${item.label}
+              </button>`).join('')}
+          </nav>
+          <div class="p-4 border-t border-slate-800">
+            <div class="bg-slate-800 rounded-lg p-3">
+              <div class="text-xs text-slate-400 mb-1">本月API消耗</div>
+              <div class="text-lg font-bold">¥1,247</div>
+              <div class="w-full bg-slate-700 rounded-full h-1.5 mt-2"><div class="bg-purple-500 h-1.5 rounded-full" style="width:60%"></div></div>
+              <div class="text-xs text-slate-400 mt-1">预算 ¥2,000</div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // ===== 顶栏 =====
+    function renderTopbar() {
+      const titles = { dashboard:'工作台', image:'图案生成', title:'标题生成', library:'素材库', settings:'系统设置' };
+      return `
+        <div class="bg-white border-b border-slate-200 px-8 py-3 flex items-center justify-between">
+          <div class="flex items-center gap-2 text-sm text-slate-500">
+            <span>POD AI Studio</span><span class="w-3 h-3 flex items-center justify-center">${icon('ChevronRight',12)}</span><span class="text-slate-800 font-medium">${titles[currentPage]}</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <button class="p-2 hover:bg-slate-100 rounded-lg relative"><span class="w-4 h-4 flex items-center justify-center text-slate-600">${icon('Bell',16)}</span><span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span></button>
+            <div class="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-100 rounded-lg cursor-pointer">
+              <div class="w-7 h-7 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white text-xs font-medium">我</div>
+              <span class="text-sm text-slate-700">张三</span><span class="w-3 h-3 flex items-center justify-center text-slate-500">${icon('ChevronDown',12)}</span>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // ===== 工作台 =====
+    function renderDashboard() {
+      const stats = [
+        { label:'今日生成图案', value:'156', change:'+23%', icon:'ImageIcon', color:'purple' },
+        { label:'今日生成标题', value:'420', change:'+18%', icon:'TypeIcon', color:'pink' },
+        { label:'素材库总数', value:'3,287', change:'+5%', icon:'FolderOpen', color:'blue' },
+        { label:'已上架产品', value:'892', change:'+12%', icon:'Package', color:'green' }
+      ];
+      const recent = [
+        { type:'image', text:'Surfing dog with sunglasses (Gemini 3.1 Flash)', time:'5分钟前', user:'张三' },
+        { type:'title', text:'为T恤生成了10条标题 (豆包)', time:'12分钟前', user:'李四' },
+        { type:'image', text:'Vintage retro coffee mug design (DALL-E 3)', time:'28分钟前', user:'张三' },
+        { type:'title', text:'为马克杯生成了5条标题 (Claude 3.5)', time:'1小时前', user:'王五' }
+      ];
+      return `
+        <div class="p-8">
+          <div class="mb-8"><h1 class="text-2xl font-bold text-slate-800">工作台</h1><p class="text-slate-500 mt-1">早上好，今天准备生成什么爆款？</p></div>
+          <div class="grid grid-cols-4 gap-4 mb-8">
+            ${stats.map(s => `
+              <div class="bg-white rounded-xl p-5 border border-slate-200">
+                <div class="flex items-center justify-between mb-3">
+                  <div class="w-10 h-10 rounded-lg bg-${s.color}-100 flex items-center justify-center text-${s.color}-600"><span class="w-5 h-5 flex items-center justify-center">${icon(s.icon,20)}</span></div>
+                  <span class="text-xs text-green-600 font-medium">${s.change}</span>
+                </div>
+                <div class="text-2xl font-bold text-slate-800">${s.value}</div>
+                <div class="text-sm text-slate-500 mt-1">${s.label}</div>
+              </div>`).join('')}
+          </div>
+          <div class="grid grid-cols-2 gap-6 mb-8">
+            <div data-page="image" class="nav-btn bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl p-6 text-white cursor-pointer hover:shadow-xl transition-shadow">
+              <span class="w-10 h-10 flex items-center justify-center mb-4">${icon('ImageIcon',40)}</span>
+              <h3 class="text-xl font-bold mb-2">图案生成</h3>
+              <p class="text-purple-100 text-sm mb-4">Gemini 3.1 Flash · DALL-E 3 · SDXL 多引擎切换</p>
+              <div class="flex items-center gap-2 text-sm font-medium">立即开始 <span class="w-4 h-4 flex items-center justify-center">${icon('ChevronRight',16)}</span></div>
+            </div>
+            <div data-page="title" class="nav-btn bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl p-6 text-white cursor-pointer hover:shadow-xl transition-shadow">
+              <span class="w-10 h-10 flex items-center justify-center mb-4">${icon('TypeIcon',40)}</span>
+              <h3 class="text-xl font-bold mb-2">标题生成</h3>
+              <p class="text-blue-100 text-sm mb-4">豆包 · Hermes · Claude 3.5 批量生成SEO标题</p>
+              <div class="flex items-center gap-2 text-sm font-medium">立即开始 <span class="w-4 h-4 flex items-center justify-center">${icon('ChevronRight',16)}</span></div>
+            </div>
+          </div>
+          <div class="bg-white rounded-xl border border-slate-200 p-6">
+            <div class="flex items-center justify-between mb-4"><h3 class="font-bold text-slate-800">最近生成记录</h3><button class="text-sm text-purple-600 hover:underline">查看全部</button></div>
+            <div class="space-y-3">${recent.map(item => `
+              <div class="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg transition-colors">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center ${item.type==='image'?'bg-purple-100 text-purple-600':'bg-blue-100 text-blue-600'}"><span class="w-4 h-4 flex items-center justify-center">${icon(item.type==='image'?'ImageIcon':'TypeIcon',16)}</span></div>
+                <div class="flex-1"><div class="text-sm font-medium text-slate-800">${item.text}</div><div class="text-xs text-slate-500">${item.user} · ${item.time}</div></div>
+              </div>`).join('')}</div>
+          </div>
+        </div>`;
+    }
+
+    // ===== 🎨 图案生成页 (引擎已更新) =====
+    function renderImageGeneration() {
+      const eng = getImageEngine();
+      const estCost = (imageCount * eng.costPer).toFixed(2);
+      return `
+        <div class="p-8">
+          <div class="mb-6"><h1 class="text-2xl font-bold text-slate-800">图案生成</h1><p class="text-slate-500 mt-1">多AI引擎切换，一键生成产品定制图案</p></div>
+          <div class="grid grid-cols-3 gap-6">
+            <div class="col-span-1 bg-white rounded-xl border border-slate-200 p-6 h-fit">
+              <h3 class="font-bold text-slate-800 mb-4">生成参数</h3>
+              <!-- 产品类型 -->
+              <div class="mb-5">
+                <label class="text-sm font-medium text-slate-700 mb-2 block">产品类型</label>
+                <div class="grid grid-cols-3 gap-2">${products.map(p => `
+                  <button data-action="selectProduct" data-value="${p.id}" class="p-3 rounded-lg border text-sm transition-all ${selectedProduct===p.id?'border-purple-500 bg-purple-50 text-purple-700':'border-slate-200 hover:border-slate-300'}"><div class="text-xl mb-1">${p.icon}</div>${p.name}</button>`).join('')}</div>
+              </div>
+              <!-- AI引擎 -->
+              <div class="mb-5">
+                <label class="text-sm font-medium text-slate-700 mb-2 block">AI引擎</label>
+                <div class="space-y-2">${imageEngines.map(e => `
+                  <button data-action="selectImageEngine" data-value="${e.id}" class="engine-card w-full text-left p-3 rounded-lg border transition-all ${selectedImageEngine===e.id?'border-purple-500 bg-purple-50 ring-1 ring-purple-200':'border-slate-200 hover:border-slate-300'}">
+                    <div class="flex items-center justify-between">
+                      <span class="font-medium text-slate-800 text-sm">${e.emoji} ${e.name}</span>
+                      <span class="text-xs px-2 py-0.5 rounded ${e.tagColor==='green'?'bg-green-100 text-green-700':e.tagColor==='purple'?'bg-purple-100 text-purple-700':'bg-slate-100 text-slate-600'}">${e.tag}</span>
+                    </div>
+                    <div class="text-xs text-slate-500 mt-1">${e.detail} · ¥${e.costPer.toFixed(e.costPer<0.01?3:2)}/张</div>
+                  </button>`).join('')}</div>
+              </div>
+              <!-- 风格 -->
+              <div class="mb-5">
+                <label class="text-sm font-medium text-slate-700 mb-2 block">风格</label>
+                <div class="flex flex-wrap gap-2">${styles.map(s => `
+                  <button data-action="selectStyle" data-value="${s.id}" class="px-3 py-1.5 rounded-full border text-sm transition-all ${selectedStyle===s.id?'border-purple-500 bg-purple-500 text-white':'border-slate-200 hover:border-slate-300'}">${s.name}</button>`).join('')}</div>
+              </div>
+              <!-- 数量 -->
+              <div class="mb-5">
+                <label class="text-sm font-medium text-slate-700 mb-2 block">生成数量：<span id="imageCountLabel">${imageCount}</span> 张</label>
+                <input type="range" min="1" max="8" value="${imageCount}" data-action="setImageCount" class="w-full accent-purple-500" />
+              </div>
+              <!-- Prompt -->
+              <div class="mb-5">
+                <label class="text-sm font-medium text-slate-700 mb-2 block">描述词（Prompt）</label>
+                <textarea id="promptInput" placeholder="例如：一只戴墨镜的柴犬在海浪上冲浪，卡通风格，明亮的色彩" class="w-full p-3 border border-slate-200 rounded-lg text-sm h-24 resize-none focus:outline-none focus:border-purple-500">${prompt}</textarea>
+                <div class="flex gap-2 mt-2">
+                  <button class="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded hover:bg-slate-200">✨ AI优化提示词</button>
+                  <button class="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded hover:bg-slate-200">🌐 翻译为英文</button>
+                </div>
+              </div>
+              <!-- 生成按钮 -->
+              <button data-action="generateImages" class="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-medium py-3 rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-50" ${isGenerating?'disabled':''}>
+                ${isGenerating?`<span class="w-4 h-4 flex items-center justify-center animate-spin">${icon('RefreshCw',16)}</span> 生成中...`:`<span class="w-4 h-4 flex items-center justify-center">${icon('Sparkles',16)}</span> 生成 ${imageCount} 张图案`}
+              </button>
+              <div class="text-xs text-slate-500 text-center mt-2">预估消耗：约 ¥${estCost}（${eng.emoji} ${eng.name} · ¥${eng.costPer.toFixed(eng.costPer<0.01?3:2)}/张 × ${imageCount}张）</div>
+            </div>
+            <!-- 结果区 -->
+            <div class="col-span-2"><div class="bg-white rounded-xl border border-slate-200 p-6 min-h-full">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold text-slate-800">生成结果</h3>
+                ${generatedImages.length>0?`<div class="flex gap-2"><button class="text-sm px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 flex items-center gap-1"><span class="w-3.5 h-3.5 flex items-center justify-center">${icon('Download',14)}</span> 全部下载</button><button class="text-sm px-3 py-1.5 bg-purple-500 text-white rounded-lg hover:bg-purple-600">保存到素材库</button></div>`:''}
+              </div>
+              ${generatedImages.length===0&&!isGenerating?`<div class="flex flex-col items-center justify-center py-20 text-slate-400"><span class="w-16 h-16 flex items-center justify-center mb-3">${icon('ImageIcon',64)}</span><p>左侧设置参数后，点击生成图案</p></div>`:''}
+              ${isGenerating?`<div class="grid grid-cols-2 gap-4">${Array.from({length:imageCount}).map(()=>`<div class="aspect-square bg-slate-100 rounded-lg animate-pulse flex items-center justify-center"><span class="w-8 h-8 flex items-center justify-center text-slate-300">${icon('Sparkles',32)}</span></div>`).join('')}</div>`:''}
+              ${generatedImages.length>0&&!isGenerating?`<div class="grid grid-cols-2 gap-4">${generatedImages.map((img,i)=>`
+                <div class="group relative">
+                  <div class="aspect-square bg-gradient-to-br from-purple-100 via-pink-100 to-orange-100 rounded-lg overflow-hidden flex items-center justify-center"><div class="text-6xl">${demoImages[i]||'🎨'}</div></div>
+                  <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
+                    <button class="p-2 bg-white rounded-lg hover:bg-slate-100">${icon('Download',16)}</button>
+                    <button class="p-2 bg-white rounded-lg hover:bg-slate-100">${icon('Heart',16)}</button>
+                    <button class="p-2 bg-white rounded-lg hover:bg-slate-100">${icon('RefreshCw',16)}</button>
+                  </div>
+                  <div class="mt-2 text-xs text-slate-500">变体 #${i+1}</div>
+                </div>`).join('')}</div>`:''}
+            </div></div>
+          </div>
+
+          <!-- 成本对比表 -->
+          <div class="mt-6 bg-white rounded-xl border border-slate-200 p-6">
+            <h3 class="font-bold text-slate-800 mb-4">📊 引擎对比</h3>
+            <div class="overflow-x-auto"><table class="w-full text-sm">
+              <thead><tr class="border-b border-slate-200 text-left text-slate-500"><th class="pb-2 font-medium">引擎</th><th class="pb-2 font-medium">质量</th><th class="pb-2 font-medium">速度</th><th class="pb-2 font-medium">成本</th><th class="pb-2 font-medium">推荐场景</th></tr></thead>
+              <tbody>
+                <tr class="border-b border-slate-100"><td class="py-2">🚀 Gemini 3.1 Flash</td><td class="py-2">⭐⭐⭐⭐</td><td class="py-2 text-green-600">快</td><td class="py-2 font-medium">¥0.50/张</td><td class="py-2">主力生成</td></tr>
+                <tr class="border-b border-slate-100"><td class="py-2">⭐ DALL-E 3</td><td class="py-2">⭐⭐⭐⭐⭐</td><td class="py-2 text-yellow-600">中</td><td class="py-2 font-medium">¥1.50/张</td><td class="py-2">高端产品</td></tr>
+                <tr><td class="py-2">💰 SDXL</td><td class="py-2">⭐⭐⭐</td><td class="py-2 text-green-600">快</td><td class="py-2 font-medium">¥0.20/张</td><td class="py-2">批量降本</td></tr>
+              </tbody>
+            </table></div>
+          </div>
+        </div>`;
+    }
+
+    // ===== 📝 标题生成页 (新增引擎选择) =====
+    function renderTitleGeneration() {
+      const eng = getTitleEngine();
+      const estCost = (titleCount * eng.costPer).toFixed(3);
+      const toneOptions = ['专业', '俏皮', '简约', '促销', '节日'];
+      return `
+        <div class="p-8">
+          <div class="mb-6"><h1 class="text-2xl font-bold text-slate-800">标题生成</h1><p class="text-slate-500 mt-1">多引擎切换 · 批量生成符合电商平台SEO规则的产品标题</p></div>
+          <div class="grid grid-cols-3 gap-6">
+            <div class="col-span-1 bg-white rounded-xl border border-slate-200 p-6 h-fit">
+              <h3 class="font-bold text-slate-800 mb-4">生成参数</h3>
+              <!-- 产品类型 -->
+              <div class="mb-5">
+                <label class="text-sm font-medium text-slate-700 mb-2 block">产品类型</label>
+                <select class="w-full p-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500">
+                  <option>T恤 (T-Shirt)</option><option>马克杯 (Mug)</option><option>手机壳 (Phone Case)</option><option>帆布包 (Tote Bag)</option><option>抱枕 (Pillow)</option><option>卫衣 (Hoodie)</option>
+                </select>
+              </div>
+              <!-- AI引擎 ★ 新增 ★ -->
+              <div class="mb-5">
+                <label class="text-sm font-medium text-slate-700 mb-2 block">AI引擎</label>
+                <div class="space-y-2">${titleEngines.map(e => `
+                  <button data-action="selectTitleEngine" data-value="${e.id}" class="engine-card w-full text-left p-3 rounded-lg border transition-all ${selectedTitleEngine===e.id?'border-blue-500 bg-blue-50 ring-1 ring-blue-200':'border-slate-200 hover:border-slate-300'}">
+                    <div class="flex items-center justify-between">
+                      <span class="font-medium text-slate-800 text-sm">${e.emoji} ${e.name}</span>
+                      <span class="text-xs px-2 py-0.5 rounded ${e.tagColor==='green'?'bg-green-100 text-green-700':e.tagColor==='purple'?'bg-purple-100 text-purple-700':'bg-blue-100 text-blue-700'}">${e.tag}</span>
+                    </div>
+                    <div class="text-xs text-slate-500 mt-1">${e.detail} · ¥${e.costPer<0.01?e.costPer.toFixed(3):e.costPer.toFixed(2)}/条 · ${e.region}</div>
+                  </button>`).join('')}</div>
+                <!-- 安全提示 -->
+                <div class="mt-2 flex items-start gap-1.5 p-2 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-xs">
+                  <span class="w-3.5 h-3.5 flex items-center justify-center flex-shrink-0 mt-0.5">${icon('Shield',14)}</span>
+                  <span><strong>⚠️ OpenClaw (小龙虾) 暂不推荐</strong> — 存在安全风险，建议使用官方 API。所有密钥加密存储。</span>
+                </div>
+              </div>
+              <!-- 目标市场 -->
+              <div class="mb-5">
+                <label class="text-sm font-medium text-slate-700 mb-2 block">目标市场</label>
+                <div class="grid grid-cols-2 gap-2">${marketOptions.map(m => `
+                  <button data-action="selectMarket" data-value="${m.id}" class="p-2.5 rounded-lg border text-sm transition-all ${selectedMarket===m.id?'border-blue-500 bg-blue-50 text-blue-700':'border-slate-200 hover:border-slate-300'}">${m.name}</button>`).join('')}</div>
+              </div>
+              <!-- 风格语气 -->
+              <div class="mb-5">
+                <label class="text-sm font-medium text-slate-700 mb-2 block">风格语气</label>
+                <div class="flex flex-wrap gap-2">${toneOptions.map(t => `<button class="px-3 py-1.5 rounded-full border border-slate-200 text-sm hover:border-blue-500 hover:bg-blue-50 transition-colors">${t}</button>`).join('')}</div>
+              </div>
+              <!-- 数量 -->
+              <div class="mb-5">
+                <label class="text-sm font-medium text-slate-700 mb-2 block">生成数量：<span id="titleCountLabel">${titleCount}</span> 条</label>
+                <input type="range" min="5" max="30" value="${titleCount}" data-action="setTitleCount" class="w-full accent-blue-500" />
+              </div>
+              <!-- 关键词 -->
+              <div class="mb-5">
+                <label class="text-sm font-medium text-slate-700 mb-2 block">关键词</label>
+                <textarea id="titlePromptInput" placeholder="例如：surfing dog, funny, summer beach" class="w-full p-3 border border-slate-200 rounded-lg text-sm h-20 resize-none focus:outline-none focus:border-blue-500">${titlePrompt}</textarea>
+              </div>
+              <!-- 字符限制 -->
+              <div class="mb-5">
+                <label class="text-sm font-medium text-slate-700 mb-2 block">字符长度限制</label>
+                <select class="w-full p-2.5 border border-slate-200 rounded-lg text-sm"><option>Temu标准 (≤150字符)</option><option>Amazon标准 (≤200字符)</option><option>自定义长度</option></select>
+              </div>
+              <!-- 生成按钮 -->
+              <button data-action="generateTitles" class="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-medium py-3 rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2" ${isGeneratingTitles?'disabled':''}>
+                ${isGeneratingTitles?`<span class="w-4 h-4 flex items-center justify-center animate-spin">${icon('RefreshCw',16)}</span> 生成中...`:`<span class="w-4 h-4 flex items-center justify-center">${icon('Zap',16)}</span> 生成 ${titleCount} 条标题`}
+              </button>
+              <div class="text-xs text-slate-500 text-center mt-2">预估消耗：约 ¥${estCost}（${eng.emoji} ${eng.name} · ¥${eng.costPer<0.01?eng.costPer.toFixed(3):eng.costPer.toFixed(2)}/条 × ${titleCount}条）</div>
+            </div>
+            <!-- 结果区 -->
+            <div class="col-span-2"><div class="bg-white rounded-xl border border-slate-200 p-6">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold text-slate-800">生成结果</h3>
+                ${generatedTitles.length>0?`<div class="flex gap-2"><button class="text-sm px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 flex items-center gap-1"><span class="w-3.5 h-3.5 flex items-center justify-center">${icon('Copy',14)}</span> 全部复制</button><button class="text-sm px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 flex items-center gap-1"><span class="w-3.5 h-3.5 flex items-center justify-center">${icon('Download',14)}</span> 导出CSV</button><button class="text-sm px-3 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600">保存到素材库</button></div>`:''}
+              </div>
+              ${generatedTitles.length===0&&!isGeneratingTitles?`<div class="flex flex-col items-center justify-center py-20 text-slate-400"><span class="w-16 h-16 flex items-center justify-center mb-3">${icon('TypeIcon',64)}</span><p>设置参数后，点击生成标题</p></div>`:''}
+              ${isGeneratingTitles?`<div class="space-y-2">${Array.from({length:5}).map(()=>'<div class="h-12 bg-slate-100 rounded-lg animate-pulse"></div>').join('')}</div>`:''}
+              ${generatedTitles.length>0&&!isGeneratingTitles?`<div class="space-y-2">${generatedTitles.map((t,i)=>`
+                <div class="flex items-center gap-3 p-3 border border-slate-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-all group">
+                  <div class="w-7 h-7 rounded-full bg-slate-100 text-slate-600 text-xs flex items-center justify-center font-medium flex-shrink-0">${i+1}</div>
+                  <div class="flex-1 text-sm text-slate-800">${t.text}</div>
+                  <div class="text-xs text-slate-400">${t.text.length}字符</div>
+                  <button class="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-blue-100 rounded transition-all"><span class="w-4 h-4 flex items-center justify-center text-blue-600">${icon('Copy',16)}</span></button>
+                  <button class="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-100 rounded transition-all"><span class="w-4 h-4 flex items-center justify-center text-red-500">${icon('Trash2',16)}</span></button>
+                </div>`).join('')}</div>`:''}
+            </div></div>
+          </div>
+          <!-- 成本对比表 -->
+          <div class="mt-6 bg-white rounded-xl border border-slate-200 p-6">
+            <h3 class="font-bold text-slate-800 mb-4">📊 标题引擎对比</h3>
+            <div class="overflow-x-auto"><table class="w-full text-sm">
+              <thead><tr class="border-b border-slate-200 text-left text-slate-500"><th class="pb-2 font-medium">引擎</th><th class="pb-2 font-medium">质量</th><th class="pb-2 font-medium">中文</th><th class="pb-2 font-medium">英文</th><th class="pb-2 font-medium">成本</th><th class="pb-2 font-medium">推荐场景</th></tr></thead>
+              <tbody>
+                <tr class="border-b border-slate-100"><td class="py-2">🇨🇳 豆包 (Doubao)</td><td class="py-2">⭐⭐⭐⭐</td><td class="py-2 text-green-600">最强</td><td class="py-2">一般</td><td class="py-2 font-medium">¥0.005/条</td><td class="py-2">中文市场</td></tr>
+                <tr class="border-b border-slate-100"><td class="py-2">🌍 Hermes</td><td class="py-2">⭐⭐⭐</td><td class="py-2">-</td><td class="py-2 text-green-600">流畅</td><td class="py-2 font-medium">¥0.001/条</td><td class="py-2">英文批量</td></tr>
+                <tr><td class="py-2">⭐ Claude 3.5</td><td class="py-2">⭐⭐⭐⭐⭐</td><td class="py-2">良好</td><td class="py-2 text-green-600">最佳</td><td class="py-2 font-medium">¥0.03/条</td><td class="py-2">高质量英文</td></tr>
+              </tbody>
+            </table></div>
+            <div class="mt-4 p-3 bg-slate-50 rounded-lg text-xs text-slate-600">
+              <span class="w-3.5 h-3.5 inline-flex items-center justify-center mr-1">${icon('Shield',14)}</span>
+              <strong>推荐方案：</strong>日常用 <strong>豆包</strong>（中文）+ <strong>Hermes</strong>（英文），重要产品用 <strong>Claude 3.5 官方API</strong>。
+              月成本预估：500条/天 × ¥0.005 × 30 = <strong class="text-green-600">¥75/月</strong>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // ===== 素材库 =====
+    function renderLibrary() {
+      const tabs = ['全部 (3287)', '我的收藏 (124)', '本周新增 (89)', '已上架 (892)', '待审核 (45)'];
+      return `
+        <div class="p-8">
+          <div class="mb-6 flex items-center justify-between">
+            <div><h1 class="text-2xl font-bold text-slate-800">素材库</h1><p class="text-slate-500 mt-1">管理已生成的图案和标题，导出对接工厂</p></div>
+            <div class="flex gap-2">
+              <button class="px-4 py-2 border border-slate-200 rounded-lg text-sm hover:bg-slate-50 flex items-center gap-2"><span class="w-4 h-4 flex items-center justify-center">${icon('Download',16)}</span> 批量导出</button>
+              <button class="px-4 py-2 bg-purple-500 text-white rounded-lg text-sm hover:bg-purple-600 flex items-center gap-2"><span class="w-4 h-4 flex items-center justify-center">${icon('Plus',16)}</span> 新建分组</button>
+            </div>
+          </div>
+          <div class="bg-white rounded-xl border border-slate-200 p-4 mb-6">
+            <div class="flex items-center gap-3">
+              <div class="flex-1 relative"><span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 flex items-center justify-center">${icon('Search',16)}</span><input type="text" placeholder="搜索图案、标题、关键词..." class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-purple-500" /></div>
+              <select class="px-3 py-2 border border-slate-200 rounded-lg text-sm"><option>全部产品</option><option>T恤</option><option>马克杯</option><option>手机壳</option></select>
+              <select class="px-3 py-2 border border-slate-200 rounded-lg text-sm"><option>全部状态</option><option>已上架</option><option>待审核</option><option>草稿</option></select>
+              <button class="px-3 py-2 border border-slate-200 rounded-lg text-sm hover:bg-slate-50 flex items-center gap-1"><span class="w-4 h-4 flex items-center justify-center">${icon('Filter',16)}</span> 高级筛选</button>
+            </div>
+          </div>
+          <div class="flex gap-2 mb-4">${tabs.map((t,i)=>`<button class="px-4 py-2 rounded-lg text-sm ${i===0?'bg-purple-500 text-white':'bg-white border border-slate-200 hover:bg-slate-50'}">${t}</button>`).join('')}</div>
+          <div class="grid grid-cols-4 gap-4">${Array.from({length:12}).map((_,i)=>`
+            <div class="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-lg transition-shadow group">
+              <div class="aspect-square bg-gradient-to-br from-purple-100 via-pink-100 to-orange-100 flex items-center justify-center relative">
+                <div class="text-6xl">${libraryEmojis[i]}</div>
+                <div class="absolute top-2 right-2 flex gap-1"><button data-action="toggleSave" data-index="${i}" class="w-7 h-7 bg-white bg-opacity-90 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-opacity"><span class="w-3.5 h-3.5 flex items-center justify-center ${savedItems.includes(i)?'text-red-500':'text-slate-600'}">${icon('Heart',14)}</span></button></div>
+                <div class="absolute top-2 left-2"><span class="text-xs px-2 py-0.5 rounded-full ${i%3===0?'bg-green-500 text-white':i%3===1?'bg-yellow-500 text-white':'bg-slate-500 text-white'}">${i%3===0?'已上架':i%3===1?'待审核':'草稿'}</span></div>
+              </div>
+              <div class="p-3"><div class="text-sm font-medium text-slate-800 truncate">设计 #${1000+i}</div><div class="text-xs text-slate-500 truncate mt-1">Funny Surfing Dog T-Shirt Design</div><div class="flex items-center justify-between mt-2 text-xs text-slate-400"><span>👕 T恤</span><span>2小时前</span></div></div>
+            </div>`).join('')}</div>
+        </div>`;
+    }
+
+    // ===== 系统设置 (API配置已更新) =====
+    function renderSettings() {
+      const members = [
+        { name:'张三', role:'管理员', email:'zhangsan@company.com' },
+        { name:'李四', role:'设计师', email:'lisi@company.com' },
+        { name:'王五', role:'运营', email:'wangwu@company.com' }
+      ];
+      const allAPIs = [
+        ...imageEngines.map(e => ({ ...e, type: '🎨 图片' })),
+        ...titleEngines.map(e => ({ ...e, type: '📝 标题' }))
+      ];
+      return `
+        <div class="p-8">
+          <div class="mb-6"><h1 class="text-2xl font-bold text-slate-800">系统设置</h1><p class="text-slate-500 mt-1">管理API密钥、团队成员和系统配置</p></div>
+          <div class="grid grid-cols-3 gap-6">
+            <div class="col-span-2 space-y-6">
+              <div class="bg-white rounded-xl border border-slate-200 p-6">
+                <div class="flex items-center justify-between mb-4"><h3 class="font-bold text-slate-800">API配置</h3><button class="text-sm px-3 py-1.5 bg-purple-500 text-white rounded-lg flex items-center gap-1"><span class="w-4 h-4 flex items-center justify-center">${icon('Plus',16)}</span> 添加API</button></div>
+                <div class="space-y-3">${allAPIs.map(e => `
+                  <div class="flex items-center justify-between p-3 border border-slate-200 rounded-lg">
+                    <div>
+                      <div class="flex items-center gap-2"><span class="text-xs px-1.5 py-0.5 bg-slate-100 rounded">${e.type}</span><span class="font-medium text-slate-800">${e.emoji} ${e.name}</span></div>
+                      <div class="text-xs text-slate-500 mt-0.5">${e.provider} · sk-...****${e.id.slice(-4)}</div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <span class="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full flex items-center gap-1"><span class="w-3 h-3 flex items-center justify-center">${icon('Check',12)}</span> 已连接</span>
+                      <button class="text-sm text-purple-600 hover:underline">编辑</button>
+                    </div>
+                  </div>`).join('')}</div>
+              </div>
+              <div class="bg-white rounded-xl border border-slate-200 p-6">
+                <div class="flex items-center justify-between mb-4"><h3 class="font-bold text-slate-800">团队成员</h3><button class="text-sm px-3 py-1.5 bg-purple-500 text-white rounded-lg flex items-center gap-1"><span class="w-4 h-4 flex items-center justify-center">${icon('Plus',16)}</span> 邀请成员</button></div>
+                <div class="space-y-2">${members.map(u => `
+                  <div class="flex items-center gap-3 p-3 border border-slate-200 rounded-lg">
+                    <div class="w-9 h-9 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white font-medium">${u.name[0]}</div>
+                    <div class="flex-1"><div class="font-medium text-slate-800">${u.name}</div><div class="text-xs text-slate-500">${u.email}</div></div>
+                    <span class="text-xs px-2 py-1 bg-slate-100 text-slate-700 rounded">${u.role}</span>
+                  </div>`).join('')}</div>
+              </div>
+            </div>
+            <div class="space-y-6">
+              <div class="bg-white rounded-xl border border-slate-200 p-6">
+                <h3 class="font-bold text-slate-800 mb-4">本月用量</h3>
+                <div class="space-y-4">
+                  <div><div class="flex justify-between text-sm mb-1"><span class="text-slate-600">🎨 图片生成</span><span class="font-medium">2,156 / 5,000</span></div><div class="w-full bg-slate-100 rounded-full h-2"><div class="bg-purple-500 h-2 rounded-full" style="width:43%"></div></div></div>
+                  <div><div class="flex justify-between text-sm mb-1"><span class="text-slate-600">📝 文本生成</span><span class="font-medium">8,420 / 20,000</span></div><div class="w-full bg-slate-100 rounded-full h-2"><div class="bg-blue-500 h-2 rounded-full" style="width:42%"></div></div></div>
+                  <div><div class="flex justify-between text-sm mb-1"><span class="text-slate-600">💾 存储空间</span><span class="font-medium">12.4GB / 50GB</span></div><div class="w-full bg-slate-100 rounded-full h-2"><div class="bg-green-500 h-2 rounded-full" style="width:25%"></div></div></div>
+                </div>
+              </div>
+              <div class="bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl p-6 text-white">
+                <h3 class="font-bold mb-2">📊 本月预估</h3>
+                <div class="space-y-2 text-sm">
+                  <div class="flex justify-between"><span class="text-purple-100">标题成本</span><span>¥75</span></div>
+                  <div class="flex justify-between"><span class="text-purple-100">图片成本</span><span>¥1,500</span></div>
+                  <div class="border-t border-purple-400 pt-2 flex justify-between font-bold"><span>合计</span><span>≈ ¥1,575</span></div>
+                </div>
+              </div>
+              <div class="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <div class="flex items-start gap-2">
+                  <span class="w-4 h-4 flex items-center justify-center text-amber-600 flex-shrink-0 mt-0.5">${icon('Shield',16)}</span>
+                  <div class="text-xs text-amber-800"><strong>安全提醒</strong><br>所有API密钥加密存储，定期审计调用记录。不使用 OpenClaw（小龙虾）等有安全风险的第三方框架。</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // ===== 事件绑定 =====
+    function bindEvents() {
+      document.querySelectorAll('.nav-btn[data-page]').forEach(btn => {
+        btn.addEventListener('click', () => { currentPage = btn.dataset.page; render(); });
+      });
+      document.querySelectorAll('[data-action="selectProduct"]').forEach(btn => {
+        btn.addEventListener('click', () => { selectedProduct = btn.dataset.value; render(); });
+      });
+      document.querySelectorAll('[data-action="selectImageEngine"]').forEach(btn => {
+        btn.addEventListener('click', () => { selectedImageEngine = btn.dataset.value; render(); });
+      });
+      document.querySelectorAll('[data-action="selectTitleEngine"]').forEach(btn => {
+        btn.addEventListener('click', () => { selectedTitleEngine = btn.dataset.value; render(); });
+      });
+      document.querySelectorAll('[data-action="selectStyle"]').forEach(btn => {
+        btn.addEventListener('click', () => { selectedStyle = btn.dataset.value; render(); });
+      });
+      document.querySelectorAll('[data-action="selectMarket"]').forEach(btn => {
+        btn.addEventListener('click', () => { selectedMarket = btn.dataset.value; render(); });
+      });
+      const imgRange = document.querySelector('[data-action="setImageCount"]');
+      if (imgRange) imgRange.addEventListener('input', e => { imageCount = parseInt(e.target.value); document.getElementById('imageCountLabel').textContent = imageCount; });
+      const titleRange = document.querySelector('[data-action="setTitleCount"]');
+      if (titleRange) titleRange.addEventListener('input', e => { titleCount = parseInt(e.target.value); document.getElementById('titleCountLabel').textContent = titleCount; });
+      const promptInput = document.getElementById('promptInput');
+      if (promptInput) promptInput.addEventListener('input', e => { prompt = e.target.value; });
+      const titlePromptInput = document.getElementById('titlePromptInput');
+      if (titlePromptInput) titlePromptInput.addEventListener('input', e => { titlePrompt = e.target.value; });
+
+      // 生成图片
+      const genImgBtn = document.querySelector('[data-action="generateImages"]');
+      if (genImgBtn) {
+        genImgBtn.addEventListener('click', () => {
+          isGenerating = true; render();
+          setTimeout(() => {
+            generatedImages = Array.from({length: imageCount}, (_, i) => ({
+              id: Date.now() + i,
+              prompt: prompt || '示例图案',
+              engine: selectedImageEngine,
+              timestamp: new Date().toLocaleString('zh-CN')
+            }));
+            isGenerating = false; render();
+          }, 1500);
+        });
+      }
+
+      // 生成标题
+      const genTitleBtn = document.querySelector('[data-action="generateTitles"]');
+      if (genTitleBtn) {
+        genTitleBtn.addEventListener('click', () => {
+          isGeneratingTitles = true; render();
+          setTimeout(() => {
+            const sampleTitles = [
+              'Funny Surfing Dog Graphic T-Shirt - Cool Beach Vibes Tee',
+              'Cute Shiba Inu Sunglasses Tee - Summer Vacation Shirt',
+              'Retro Style Surfing Puppy T-Shirt - Vintage Beach Apparel',
+              'Hawaiian Dog Surfer Shirt - Tropical Paradise Tee',
+              'Cool Dog with Shades T-Shirt - Funny Pet Lover Gift',
+              'Beach Dog Graphic Tee - Ocean Waves Surfing Shirt',
+              'Vintage Surfer Dog T-Shirt - California Beach Style',
+              'Funny Pet Surfing T-Shirt - Cute Animal Lover Gift',
+              'Tropical Dog Tee - Summer Beach Party Shirt',
+              'Retro Dog Surfer Graphic Tee - 80s Style Beach Shirt'
+            ];
+            generatedTitles = sampleTitles.slice(0, titleCount).map((t, i) => ({ id: i, text: t, engine: selectedTitleEngine }));
+            isGeneratingTitles = false; render();
+          }, 1200);
+        });
+      }
+
+      // 收藏切换
+      document.querySelectorAll('[data-action="toggleSave"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.dataset.index);
+          savedItems = savedItems.includes(idx) ? savedItems.filter(x => x !== idx) : [...savedItems, idx];
+          render();
+        });
+      });
+    }
+
+    // ===== 初始化 =====
+    render();
+
+    // ===== 真实 API 接入代码（供后续开发参考） =====
+    console.log(`
+    ╔══════════════════════════════════════════════════════╗
+    ║  POD AI Studio MVP 原型已就绪 ✅                      ║
+    ║                                                      ║
+    ║  引擎方案:                                            ║
+    ║  🎨 Gemini 3.1 Flash | DALL-E 3 | SDXL              ║
+    ║  📝 豆包 | Hermes | Claude 3.5                       ║
+    ║                                                      ║
+    ║  真实 API 接入示例见下方 dev 注释                      ║
+    ╚══════════════════════════════════════════════════════╝
+    `);
+
+    /*
+    // ======================================================
+    //  真实 API 接入代码（取消注释 + 填入 API Key 即可用）
+    // ======================================================
+
+    // ---- 📝 豆包 (Doubao / 字节跳动) ----
+    async function generateTitleWithDoubao(prompt) {
+      const res = await fetch('https://ark.cn-beijing.volces.com/api/v3/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + DOUBAO_API_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'doubao-pro-32k',
+          messages: [
+            { role: 'system', content: '你是POD产品标题生成专家，生成符合Temu SEO规则的英文标题' },
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.7,
+          max_tokens: 1024
+        })
+      });
+      const data = await res.json();
+      return data.choices[0].message.content;
+    }
+
+    // ---- 📝 Hermes (通过 Replicate) ----
+    async function generateTitleWithHermes(prompt) {
+      const res = await fetch('https://api.replicate.com/v1/predictions', {
+        method: 'POST',
+        headers: { 'Authorization': 'Token ' + REPLICATE_API_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          version: 'nous-hermes-2-mixtral-8x7b-dpo',
+          input: { prompt, max_tokens: 1024, temperature: 0.7 }
+        })
+      });
+      return await res.json();
+    }
+
+    // ---- 📝 Claude 3.5 (Anthropic 官方) ----
+    async function generateTitleWithClaude(prompt) {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': CLAUDE_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'claude-3-5-sonnet-20241022',
+          max_tokens: 1024,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+      return await res.json();
+    }
+
+    // ---- 🎨 Gemini 3.1 Flash Image (Google) ----
+    async function generateImageWithGemini(prompt) {
+      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image:generateContent', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + GOOGLE_API_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { responseModalities: ['IMAGE', 'TEXT'] }
+        })
+      });
+      return await res.json();
+    }
+
+    // ---- 🎨 DALL-E 3 (OpenAI) ----
+    async function generateImageWithDALLE(prompt) {
+      const res = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + OPENAI_API_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'dall-e-3',
+          prompt: prompt,
+          n: 1,
+          size: '1024x1024',
+          quality: 'hd'
+        })
+      });
+      return await res.json();
+    }
+
+    // ---- 🎨 Stable Diffusion XL (Replicate) ----
+    async function generateImageWithSDXL(prompt) {
+      const res = await fetch('https://api.replicate.com/v1/predictions', {
+        method: 'POST',
+        headers: { 'Authorization': 'Token ' + REPLICATE_API_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          version: 'stability-ai/sdxl',
+          input: { prompt, negative_prompt: 'blurry, low quality', num_outputs: 4 }
+        })
+      });
+      return await res.json();
+    }
+    */
+  </script>
+</body>
+</html>
