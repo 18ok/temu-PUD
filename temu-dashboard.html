@@ -627,46 +627,46 @@ function renderProducts() {
     var div=document.createElement('div'); div.className='pc';
     var cnt={}; ST.clusters.forEach(function(p){cnt[p.cluster_label]=(cnt[p.cluster_label]||0)+1;});
     div.innerHTML='<div class="btn-row"><div class="step"><div class="emoji">🟡</div><div class="title">黄金品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--gold);">'+(cnt['黄金品']||0)+'</div></div><div class="step"><div class="emoji">⚪</div><div class="title">白银品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:#a0a0a0;">'+(cnt['白银品']||0)+'</div></div><div class="step"><div class="emoji">🔵</div><div class="title">观察品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:#5b9bd5;">'+(cnt['观察品']||0)+'</div></div><div class="step"><div class="title">📦 总计</div><div class="desc" style="font-size:1.5rem;font-weight:700;">'+ST.clusters.length+'</div></div></div>';
-    [{l:'黄金品',c:'var(--gold)'},{l:'白银品',c:'#a0a0a0'},{l:'观察品',c:'#5b9bd5'}].forEach(function(g){var s=ST.clusters.filter(function(p){return p.cluster_label===g.l;});if(s.length>0){div.innerHTML+='<div class="alert alert-info" style="border-left:3px solid '+g.c+'"><div><strong style="color:'+g.c+'">'+g.l+' ('+s.length+')</strong><br>毛利率: '+avg(s.map(function(p){return p.gross_margin;})).toFixed(1)+'% | 日销: '+avg(s.map(function(p){return p.daily_sales;})).toFixed(1)+' | 克重: '+Math.round(avg(s.map(function(p){return p.weight_g;})))+'g | 成本: $'+avg(s.map(function(p){return p.cost;})).toFixed(2)+'</div></div>';}});
-    div.innerHTML+='<hr><h3 style="color:var(--gold);margin:16px 0;">散点图</h3><div id="scatterPlot" style="height:400px;"></div><hr><h3 style="color:var(--gold);margin:16px 0;">全部商品</h3><div id="productsTable"></div>';
     pg.appendChild(div);
+    [{l:'黄金品',c:'var(--gold)'},{l:'白银品',c:'#a0a0a0'},{l:'观察品',c:'#5b9bd5'}].forEach(function(g){var s=ST.clusters.filter(function(p){return p.cluster_label===g.l;});if(s.length>0){var exp=document.createElement('details');exp.className='expander';exp.open=true;exp.innerHTML='<summary>'+g.l+' 概况（'+s.length+' 个SPU）</summary><div class="expander-content"><div class="alert alert-info" style="border-left:3px solid '+g.c+'"><div><strong style="color:'+g.c+'">'+g.l+'</strong><br>毛利率: '+avg(s.map(function(p){return p.gross_margin;})).toFixed(1)+'% | 日销: '+avg(s.map(function(p){return p.daily_sales;})).toFixed(1)+' | 克重: '+Math.round(avg(s.map(function(p){return p.weight_g;})))+'g | 成本: $'+avg(s.map(function(p){return p.cost;})).toFixed(2)+'</div></div></div>';div.appendChild(exp);}});
+    var expPlot=document.createElement('details');expPlot.className='expander';expPlot.open=true;
+    expPlot.innerHTML='<summary>📈 毛利率 vs 日销量 散点图</summary><div class="expander-content"><div id="scatterPlot" style="height:400px;"></div></div>';
+    div.appendChild(expPlot);
+    var expTbl=document.createElement('details');expTbl.className='expander';
+    expTbl.innerHTML='<summary>📋 全部商品数据表（'+ST.clusters.length+' 条）</summary><div class="expander-content"><div class="scroll-box"><div id="productsTable"></div></div></div>';
+    div.appendChild(expTbl);
     var traces=['黄金品','白银品','观察品'].map(function(l){var s=ST.clusters.filter(function(p){return p.cluster_label===l;});return{x:s.map(function(p){return p.gross_margin;}),y:s.map(function(p){return p.daily_sales;}),mode:'markers',type:'scatter',name:l,text:s.map(function(p){return p.spu_id;}),marker:{size:10,color:l==='黄金品'?'#e2b87a':l==='白银品'?'#a0a0a0':'#5b9bd5'}};}).filter(function(t){return t.x.length>0;});
     Plotly.newPlot('scatterPlot',traces,{plot_bgcolor:'#0f0f17',paper_bgcolor:'#0f0f17',font:{color:'#f1f0ee'},xaxis:{title:'毛利率 %',gridcolor:'#2a2a3a'},yaxis:{title:'日均销量',gridcolor:'#2a2a3a'},legend:{font:{color:'#f1f0ee'}},margin:{l:50,r:30,t:20,b:50}});
     setTimeout(function(){var t=document.getElementById('productsTable');if(!t)return;var h='<table><thead><tr><th>SPU ID</th><th>名称</th><th>分类</th><th>毛利率</th><th>日销</th><th>克重</th><th>成本</th><th>售价</th></tr></thead><tbody>';ST.clusters.sort(function(a,b){return a.cluster_label.localeCompare(b.cluster_label)||b.gross_margin-a.gross_margin;}).forEach(function(p){h+='<tr><td>'+p.spu_id+'</td><td>'+p.name+'</td><td>'+p.cluster_label+'</td><td>'+p.gross_margin.toFixed(1)+'%</td><td>'+p.daily_sales.toFixed(1)+'</td><td>'+Math.round(p.weight_g)+'g</td><td>$'+p.cost.toFixed(2)+'</td><td>$'+(p.price||0).toFixed(2)+'</td></tr>';});h+='</tbody></table>';t.innerHTML=h;},200);
 }
-
-// ═══════════════════════════════════════════════
-// 页面 ③ 选品规则
-// ═══════════════════════════════════════════════
 function renderRules() {
     var pg=document.getElementById('page-rules'); if(!pg) return;
     var alertEl=pg.querySelector('.alert.alert-info'); if(alertEl) alertEl.style.display='none';
     var old=pg.querySelector('.rc'); if(old) old.remove();
     var div=document.createElement('div'); div.className='rc';
     var iron=ST.rules.filter(function(r){return r.type==='铁律';}), avoid=ST.rules.filter(function(r){return r.type==='避坑';});
-    div.innerHTML='<div class="btn-row"><div class="step"><div class="title">🔨 铁律</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--gold);">'+iron.length+'</div></div><div class="step"><div class="title">🛡️ 避坑</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--danger-text);">'+avoid.length+'</div></div></div><hr><h3 style="color:var(--gold);margin:16px 0;">铁律</h3>';
-    iron.forEach(function(r){div.innerHTML+='<div class="alert alert-info" style="margin-bottom:8px;"><div><strong style="color:var(--gold);">✨ '+r.rule+'</strong><br><span style="color:var(--text-dim);font-size:0.85rem;">'+r.detail+'</span></div></div>';});
-    div.innerHTML+='<h3 style="color:var(--danger-text);margin:16px 0;">避坑</h3>';
-    if(avoid.length===0) div.innerHTML+='<div class="alert alert-success">🎉 未检测到避坑信号</div>';
-    else avoid.forEach(function(r){div.innerHTML+='<div class="alert alert-warning" style="margin-bottom:8px;"><div><strong>⚠️ '+r.rule+'</strong><br><span style="color:var(--text-dim);font-size:0.85rem;">'+r.detail+'</span></div></div>';});
-    var golds=ST.clusters.filter(function(p){return p.cluster_label==='黄金品';});
-    if(golds.length>0){div.innerHTML+='<hr><h3 style="color:var(--gold);margin:16px 0;">黄金品基准区间</h3><div class="btn-row">';[{k:'gross_margin',n:'毛利率'},{k:'daily_sales',n:'日均销量'},{k:'cost',n:'成本($)'},{k:'weight_g',n:'克重(g)'}].forEach(function(fd){var v=golds.map(function(p){return p[fd.k];}).sort(function(a,b){return a-b;});div.innerHTML+='<div class="step" style="border-left:3px solid var(--gold);"><div class="title" style="font-size:0.8rem;color:var(--text-dim);">'+fd.n+'</div><div class="desc" style="font-size:1.1rem;font-weight:700;color:var(--gold);">'+(Math.round(q25(v)*10)/10)+' — '+(Math.round(q75(v)*10)/10)+'</div><div style="font-size:0.7rem;color:var(--text-dim);">中位: '+(Math.round(med(v)*10)/10)+'</div></div>';});div.innerHTML+='</div>';}
+    div.innerHTML='<div class="btn-row"><div class="step"><div class="title">🔨 铁律</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--gold);">'+iron.length+'</div></div><div class="step"><div class="title">🛡️ 避坑</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--danger-text);">'+avoid.length+'</div></div></div>';
     pg.appendChild(div);
+    var expIron=document.createElement('details');expIron.className='expander';expIron.open=true;
+    if(iron.length>0){var ih='<summary>🔨 铁律（'+iron.length+' 条）</summary><div class="expander-content"><div class="scroll-box">';iron.forEach(function(r){ih+='<div class="alert alert-info" style="margin-bottom:8px;"><div><strong style="color:var(--gold);">✨ '+r.rule+'</strong><br><span style="color:var(--text-dim);font-size:0.85rem;">'+r.detail+'</span></div></div>';});ih+='</div></div>';expIron.innerHTML=ih;}else{expIron.innerHTML='<summary>🔨 铁律（0 条）</summary><div class="expander-content"><div class="alert alert-info">暂无铁律，需要更多黄金品数据</div></div>';}
+    div.appendChild(expIron);
+    var expAvoid=document.createElement('details');expAvoid.className='expander';
+    if(avoid.length>0){var ah='<summary>🛡️ 避坑规则（'+avoid.length+' 条）</summary><div class="expander-content"><div class="scroll-box">';avoid.forEach(function(r){ah+='<div class="alert alert-warning" style="margin-bottom:8px;"><div><strong>⚠️ '+r.rule+'</strong><br><span style="color:var(--text-dim);font-size:0.85rem;">'+r.detail+'</span></div></div>';});ah+='</div></div>';expAvoid.innerHTML=ah;}else{expAvoid.innerHTML='<summary>🛡️ 避坑规则（0 条）</summary><div class="expander-content"><div class="alert alert-success">🎉 未检测到避坑信号</div></div>';}
+    div.appendChild(expAvoid);
+    var expRange=document.createElement('details');expRange.className='expander';
+    var golds=ST.clusters.filter(function(p){return p.cluster_label==='黄金品';});
+    if(golds.length>0){var rh='<summary>📐 黄金品基准区间（基于'+golds.length+'个黄金品）</summary><div class="expander-content"><div class="btn-row">';[{k:'gross_margin',n:'毛利率'},{k:'daily_sales',n:'日均销量'},{k:'cost',n:'成本($)'},{k:'weight_g',n:'克重(g)'}].forEach(function(fd){var v=golds.map(function(p){return p[fd.k];}).sort(function(a,b){return a-b;});rh+='<div class="step" style="border-left:3px solid var(--gold);"><div class="title" style="font-size:0.8rem;color:var(--text-dim);">'+fd.n+'</div><div class="desc" style="font-size:1.1rem;font-weight:700;color:var(--gold);">'+(Math.round(q25(v)*10)/10)+' — '+(Math.round(q75(v)*10)/10)+'</div><div style="font-size:0.7rem;color:var(--text-dim);">中位: '+(Math.round(med(v)*10)/10)+'</div></div>';});rh+='</div></div>';expRange.innerHTML=rh;}else{expRange.innerHTML='<summary>📐 黄金品基准区间</summary><div class="expander-content"><div class="alert alert-info">需要至少1个黄金品</div></div>';}
+    div.appendChild(expRange);
 }
-
-// ═══════════════════════════════════════════════
-// 页面 ④ 智能预测
-// ═══════════════════════════════════════════════
 function renderPredict() {
     var pg=document.getElementById('page-predict'); if(!pg) return;
     var alertEl=pg.querySelector('.alert.alert-info');
     var old=pg.querySelector('.prc'); if(old) old.remove();
     var div=document.createElement('div'); div.className='prc';
-    div.innerHTML='<hr><h3 style="color:var(--gold);margin:16px 0;">输入新品参数</h3><div class="btn-row"><div><label>采购价($)</label><br><input type="number" id="pred_purchase" value="3" min="0" step="0.5" style="width:120px;"></div><div><label>克重(g)</label><br><input type="number" id="pred_weight" value="200" min="0" step="10" style="width:120px;"></div><div><label>售价($)</label><br><input type="number" id="pred_price" value="15" min="0" step="0.5" style="width:120px;"></div><div><label>日销</label><br><input type="number" id="pred_sales" value="5" min="0" step="0.5" style="width:120px;"></div></div><div class="alert alert-info" style="margin:16px 0;"><span>📐 成本 = 克重 x 0.06 + 采购价（运输+商品成本）</span></div><button class="btn" style="background:var(--gold);color:var(--bg);font-weight:700;margin-bottom:16px;" onclick="doPrediction()">🔍 匹配相似品</button><div id="predResult"></div>';
+    div.innerHTML='<hr><h3 style="color:var(--gold);margin:16px 0;">🎯 输入新品参数</h3><div class="btn-row"><div><label>采购价($)</label><br><input type="number" id="pred_purchase" value="3" min="0" step="0.5" style="width:120px;"></div><div><label>克重(g)</label><br><input type="number" id="pred_weight" value="200" min="0" step="10" style="width:120px;"></div><div><label>售价($)</label><br><input type="number" id="pred_price" value="15" min="0" step="0.5" style="width:120px;"></div><div><label>日销</label><br><input type="number" id="pred_sales" value="5" min="0" step="0.5" style="width:120px;"></div></div><div class="alert alert-info" style="margin:16px 0;"><span>📐 成本 = 克重 x 0.06 + 采购价（运输+商品成本）</span></div><button class="btn" style="background:var(--gold);color:var(--bg);font-weight:700;margin-bottom:16px;" onclick="doPrediction()">🔍 匹配相似品</button><div id="predResult"></div>';
     pg.appendChild(div);
     if(alertEl){if(ST.products.length===0){alertEl.style.display='block';}else{alertEl.style.display='none';}}
 }
-
 function doPrediction(){
     var purchase=parseFloat(document.getElementById('pred_purchase').value)||0, w=parseFloat(document.getElementById('pred_weight').value)||0, price=parseFloat(document.getElementById('pred_price').value)||0, sales=parseFloat(document.getElementById('pred_sales').value)||0;
     var cost=w*0.06+purchase, margin=price>0?((price-cost)/price*100):0;
@@ -675,14 +675,15 @@ function doPrediction(){
     var scored=ST.products.map(function(p,i){return{idx:i,diff:Math.abs(p.gross_margin-margin)/100+Math.abs(p.weight_g-w)/1000+Math.abs(p.cost-cost)/50+Math.abs(p.daily_sales-sales)/50};}).sort(function(a,b){return a.diff-b.diff;});
     var top15=scored.slice(0,Math.min(15,scored.length)).map(function(s){return ST.products[s.idx];}), avgM=avg(top15.map(function(p){return p.gross_margin;}));
     var ri=margin>=30?'低':margin>=15?'中':'高', rc=ri==='低'?'var(--success-text)':ri==='中'?'var(--warning-text)':'var(--danger-text)', re=ri==='低'?'🟢':ri==='中'?'🟡':'🔴';
-    var html='<hr><div class="btn-row"><div class="step"><div class="title">计算成本</div><div class="desc" style="font-size:1.3rem;font-weight:700;">$'+cost.toFixed(2)+'</div><div style="font-size:0.7rem;color:var(--text-dim);">='+w+'gx0.06+$'+purchase+'</div></div><div class="step"><div class="title">毛利率</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:'+rc+';">'+margin.toFixed(1)+'%</div></div><div class="step"><div class="title">匹配</div><div class="desc" style="font-size:1.3rem;font-weight:700;">'+top15.length+'</div><div style="font-size:0.7rem;color:var(--text-dim);">均毛利率 '+avgM.toFixed(1)+'%</div></div></div><div class="alert" style="border:2px solid '+rc+';background:rgba(226,184,122,0.04);margin:16px 0;"><div><strong style="font-size:1.2rem;">'+re+' '+ri+'风险</strong><br>相似品均值毛利率 '+avgM.toFixed(1)+'%</div></div><table><thead><tr><th>SPU ID</th><th>名称</th><th>毛利率</th><th>日销</th><th>克重</th><th>成本</th></tr></thead><tbody>';
+    var html='<details class="expander" open><summary>📊 预测摘要 — '+re+' '+ri+'风险</summary><div class="expander-content">';
+    html+='<div class="btn-row"><div class="step"><div class="title">计算成本</div><div class="desc" style="font-size:1.3rem;font-weight:700;">$'+cost.toFixed(2)+'</div><div style="font-size:0.7rem;color:var(--text-dim);">='+w+'gx0.06+$'+purchase+'</div></div><div class="step"><div class="title">毛利率</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:'+rc+';">'+margin.toFixed(1)+'%</div></div><div class="step"><div class="title">匹配</div><div class="desc" style="font-size:1.3rem;font-weight:700;">'+top15.length+'</div><div style="font-size:0.7rem;color:var(--text-dim);">均毛利率 '+avgM.toFixed(1)+'%</div></div></div>';
+    html+='<div class="alert" style="border:2px solid '+rc+';background:rgba(226,184,122,0.04);margin:16px 0;"><div><strong style="font-size:1.2rem;">'+re+' '+ri+'风险</strong><br>相似品均值毛利率 '+avgM.toFixed(1)+'%</div></div>';
+    html+='</div></details>';
+    html+='<details class="expander"><summary>📋 最相似 '+top15.length+' 个历史品</summary><div class="expander-content"><div class="scroll-box"><table><thead><tr><th>SPU ID</th><th>名称</th><th>毛利率</th><th>日销</th><th>克重</th><th>成本</th></tr></thead><tbody>';
     top15.forEach(function(p){html+='<tr><td>'+p.spu_id+'</td><td>'+p.name+'</td><td>'+p.gross_margin.toFixed(1)+'%</td><td>'+p.daily_sales.toFixed(1)+'</td><td>'+Math.round(p.weight_g)+'g</td><td>$'+(p.cost||0).toFixed(2)+'</td></tr>';});
-    html+='</tbody></table>'; res.innerHTML=html;
+    html+='</tbody></table></div></div></details>';
+    res.innerHTML=html;
 }
-
-// ═══════════════════════════════════════════════
-// 页面 ⑤ 避坑清单（expander + scroll-box）
-// ═══════════════════════════════════════════════
 function renderBlacklist() {
     var pg=document.getElementById('page-blacklist'); if(!pg) return;
     var alertEl=pg.querySelector('.alert.alert-info'); if(alertEl) alertEl.style.display='none';
