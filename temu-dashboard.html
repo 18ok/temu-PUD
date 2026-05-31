@@ -72,7 +72,18 @@
             background: linear-gradient(180deg, #12121a 0%, var(--card) 100%);
             border-right: 1px solid var(--border-light);
             display: flex; flex-direction: column;
+            transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
         }
+        .sidebar.collapsed { width: 64px; min-width: 64px; }
+        .sidebar.collapsed .sidebar-brand { padding: 12px 6px; margin: 6px; border-radius: var(--radius); }
+        .sidebar.collapsed .sidebar-brand .title { font-size: 0.9rem; }
+        .sidebar.collapsed .sidebar-brand .sub,
+        .sidebar.collapsed .nav-text,
+        .sidebar.collapsed .sidebar-info { display: none; }
+        .sidebar.collapsed .sidebar-nav { padding: 4px 6px; }
+        .sidebar.collapsed .sidebar-nav a { justify-content: center; padding: 10px 6px; }
+        .sidebar.collapsed .nav-icon { font-size: 1.3rem; }
         .sidebar-brand {
             background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
             border-radius: var(--radius-xl); padding: 18px 14px; margin: 12px;
@@ -217,20 +228,6 @@
         .warn-card .title { font-size: 1.8rem; font-weight: 700; color: var(--warning-text); }
         .warn-card .desc  { font-size: 0.95rem; color: var(--text); margin-top: 6px; }
 
-        /* ── Table ── */
-        table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
-        thead { position: sticky; top: 0; z-index: 1; }
-        th {
-            background: var(--card-alt); color: var(--text-dim);
-            font-weight: 600; text-align: left; padding: 10px 14px;
-            border-bottom: 1px solid var(--border);
-        }
-        td {
-            padding: 9px 14px; border-bottom: 1px solid var(--border-light);
-            color: var(--text);
-        }
-        tr:hover td { background: var(--card-hover); }
-
         hr { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
 
         /* ── Form ── */
@@ -249,7 +246,48 @@
             background-repeat: no-repeat; background-position: right 12px center;
         }
 
-        /* ── Toast ── */
+        /* ── Badge 标签（shadcn 风格）── */
+        .badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 2px 10px; border-radius: 9999px;
+            font-size: 0.75rem; font-weight: 600; white-space: nowrap;
+        }
+        .badge-gold { background: rgba(226,184,122,0.13); color: #e2b87a; border: 1px solid rgba(226,184,122,0.28); }
+        .badge-silver { background: rgba(160,160,160,0.10); color: #a0a0a0; border: 1px solid rgba(160,160,160,0.22); }
+        .badge-watch { background: rgba(91,155,213,0.10); color: #5b9bd5; border: 1px solid rgba(91,155,213,0.22); }
+        .badge-danger { background: rgba(239,68,68,0.10); color: #fca5a5; border: 1px solid rgba(239,68,68,0.22); }
+
+        /* ── 趋势指示器 ── */
+        .trend-up { color: var(--success-text); }
+        .trend-down { color: var(--danger-text); }
+        .trend-flat { color: var(--text-dim); }
+
+        /* ── 表格优化（shadcn 风格）── */
+        table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+        thead { position: sticky; top: 0; z-index: 2; }
+        th {
+            background: var(--card-alt); color: var(--text-dim);
+            font-weight: 600; text-align: left; padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        td {
+            padding: 9px 14px; border-bottom: 1px solid var(--border-light);
+            color: var(--text);
+        }
+        tbody tr { transition: background 0.12s; }
+        tbody tr:hover td { background: var(--card-hover); }
+        tbody tr:nth-child(even) td { background: rgba(226,184,122,0.02); }
+        tbody tr:nth-child(even):hover td { background: var(--card-hover); }
+
+        /* ── 侧边栏折叠按钮 ── */
+        .sidebar-toggle-btn {
+            background: none; border: 1px solid var(--border);
+            border-radius: var(--radius-sm); color: var(--text-dim);
+            cursor: pointer; padding: 6px 10px; font-size: 1rem;
+            transition: all 0.15s; margin-right: auto;
+        }
+        .sidebar-toggle-btn:hover { color: var(--text); border-color: var(--border-hover); background: var(--card-hover); }
         #toast { position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 420px; }
         .toast-msg { padding: 12px 20px; border-radius: var(--radius); margin-bottom: 8px; font-size: 0.9rem; animation: slideIn 0.3s ease; }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
@@ -270,12 +308,12 @@
             <div class="sub">运营数据分析 v6</div>
         </div>
         <ul class="sidebar-nav">
-            <li><a class="active" onclick="switchPage('import')"><span class="nav-icon">📥</span> 数据导入</a></li>
-            <li><a onclick="switchPage('products')"><span class="nav-icon">📊</span> 商品画像</a></li>
-            <li><a onclick="switchPage('rules')"><span class="nav-icon">📋</span> 选品规则</a></li>
-            <li><a onclick="switchPage('predict')"><span class="nav-icon">🔮</span> 智能预测</a></li>
-            <li><a onclick="switchPage('blacklist')"><span class="nav-icon">🚨</span> 避坑清单</a></li>
-            <li><a onclick="switchPage('diagnosis')"><span class="nav-icon">📈</span> 个人诊断</a></li>
+            <li><a class="active" onclick="switchPage('import')"><span class="nav-icon">📥</span> <span class="nav-text">数据导入</span></a></li>
+            <li><a onclick="switchPage('products')"><span class="nav-icon">📊</span> <span class="nav-text">商品画像</span></a></li>
+            <li><a onclick="switchPage('rules')"><span class="nav-icon">📋</span> <span class="nav-text">选品规则</span></a></li>
+            <li><a onclick="switchPage('predict')"><span class="nav-icon">🔮</span> <span class="nav-text">智能预测</span></a></li>
+            <li><a onclick="switchPage('blacklist')"><span class="nav-icon">🚨</span> <span class="nav-text">避坑清单</span></a></li>
+            <li><a onclick="switchPage('diagnosis')"><span class="nav-icon">📈</span> <span class="nav-text">个人诊断</span></a></li>
         </ul>
         <div class="sidebar-info">
             <div class="stat-card">
@@ -292,6 +330,7 @@
 
     <main class="main">
         <header class="topbar">
+            <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="折叠侧边栏">☰</button>
             <button class="btn-deploy" onclick="location.reload()">🔄 刷新</button>
         </header>
         <div class="content">
@@ -407,6 +446,10 @@ function avg(a){return a.reduce(function(x,y){return x+y;},0)/a.length;}
     if (idx) { try { ST.snapshots = JSON.parse(idx); } catch(e) {} }
     updateSidebar();
     if (ST.files.length > 0) { reprocessAll(); renderImportPage(); }
+    // 侧边栏折叠状态恢复
+    if (localStorage.getItem('temu_v6_sidebar') === 'collapsed') {
+        document.querySelector('.sidebar').classList.add('collapsed');
+    }
 })();
 
 function reprocessAll() { ST.products = extractProducts(ST.files); ST.clusters = doClustering(ST.products); ST.rules = extractRules(ST.clusters); }
@@ -418,6 +461,17 @@ function updateSidebar() {
     card.innerHTML = '💾 已保存 <b>'+ST.files.length+'</b> 个文件'+(meta.saved_at?'<br><span class="time">'+meta.saved_at+'</span>':'');
     var sd = document.querySelector('.snapshot');
     if (sd) sd.innerHTML = '📸 <b>'+ST.snapshots.length+'</b> 份历史快照';
+}
+
+function toggleSidebar() {
+    var sb = document.querySelector('.sidebar');
+    sb.classList.toggle('collapsed');
+    localStorage.setItem('temu_v6_sidebar', sb.classList.contains('collapsed') ? 'collapsed' : 'expanded');
+    // 折叠后重绘 Plotly 图表适配新宽度
+    setTimeout(function(){
+        if (typeof Plotly !== 'undefined') Plotly.Plots.resize(document.getElementById('scatterPlot'));
+        if (typeof Plotly !== 'undefined') Plotly.Plots.resize(document.getElementById('trendChart'));
+    }, 300);
 }
 
 // ═══════════════════════════════════════════════
@@ -628,7 +682,7 @@ function renderProducts() {
     var cnt={}; ST.clusters.forEach(function(p){cnt[p.cluster_label]=(cnt[p.cluster_label]||0)+1;});
     div.innerHTML='<div class="btn-row"><div class="step"><div class="emoji">🟡</div><div class="title">黄金品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--gold);">'+(cnt['黄金品']||0)+'</div></div><div class="step"><div class="emoji">⚪</div><div class="title">白银品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:#a0a0a0;">'+(cnt['白银品']||0)+'</div></div><div class="step"><div class="emoji">🔵</div><div class="title">观察品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:#5b9bd5;">'+(cnt['观察品']||0)+'</div></div><div class="step"><div class="title">📦 总计</div><div class="desc" style="font-size:1.5rem;font-weight:700;">'+ST.clusters.length+'</div></div></div>';
     pg.appendChild(div);
-    [{l:'黄金品',c:'var(--gold)'},{l:'白银品',c:'#a0a0a0'},{l:'观察品',c:'#5b9bd5'}].forEach(function(g){var s=ST.clusters.filter(function(p){return p.cluster_label===g.l;});if(s.length>0){var exp=document.createElement('details');exp.className='expander';exp.open=true;exp.innerHTML='<summary>'+g.l+' 概况（'+s.length+' 个SPU）</summary><div class="expander-content"><div class="alert alert-info" style="border-left:3px solid '+g.c+'"><div><strong style="color:'+g.c+'">'+g.l+'</strong><br>毛利率: '+avg(s.map(function(p){return p.gross_margin;})).toFixed(1)+'% | 日销: '+avg(s.map(function(p){return p.daily_sales;})).toFixed(1)+' | 克重: '+Math.round(avg(s.map(function(p){return p.weight_g;})))+'g | 成本: $'+avg(s.map(function(p){return p.cost;})).toFixed(2)+'</div></div></div>';div.appendChild(exp);}});
+    [{l:'黄金品',c:'var(--gold)',bc:'badge badge-gold'},{l:'白银品',c:'#a0a0a0',bc:'badge badge-silver'},{l:'观察品',c:'#5b9bd5',bc:'badge badge-watch'}].forEach(function(g){var s=ST.clusters.filter(function(p){return p.cluster_label===g.l;});if(s.length>0){var exp=document.createElement('details');exp.className='expander';exp.open=true;exp.innerHTML='<summary><span class="'+g.bc+'">'+g.l+'</span> 概况（'+s.length+' 个SPU）</summary><div class="expander-content"><div class="alert alert-info" style="border-left:3px solid '+g.c+'"><div><strong style="color:'+g.c+'">'+g.l+'</strong><br>毛利率: '+avg(s.map(function(p){return p.gross_margin;})).toFixed(1)+'% | 日销: '+avg(s.map(function(p){return p.daily_sales;})).toFixed(1)+' | 克重: '+Math.round(avg(s.map(function(p){return p.weight_g;})))+'g | 成本: $'+avg(s.map(function(p){return p.cost;})).toFixed(2)+'</div></div></div>';div.appendChild(exp);}});
     var expPlot=document.createElement('details');expPlot.className='expander';expPlot.open=true;
     expPlot.innerHTML='<summary>📈 毛利率 vs 日销量 散点图</summary><div class="expander-content"><div id="scatterPlot" style="height:400px;"></div></div>';
     div.appendChild(expPlot);
@@ -637,7 +691,7 @@ function renderProducts() {
     div.appendChild(expTbl);
     var traces=['黄金品','白银品','观察品'].map(function(l){var s=ST.clusters.filter(function(p){return p.cluster_label===l;});return{x:s.map(function(p){return p.gross_margin;}),y:s.map(function(p){return p.daily_sales;}),mode:'markers',type:'scatter',name:l,text:s.map(function(p){return p.spu_id;}),marker:{size:10,color:l==='黄金品'?'#e2b87a':l==='白银品'?'#a0a0a0':'#5b9bd5'}};}).filter(function(t){return t.x.length>0;});
     Plotly.newPlot('scatterPlot',traces,{plot_bgcolor:'#0f0f17',paper_bgcolor:'#0f0f17',font:{color:'#f1f0ee'},xaxis:{title:'毛利率 %',gridcolor:'#2a2a3a'},yaxis:{title:'日均销量',gridcolor:'#2a2a3a'},legend:{font:{color:'#f1f0ee'}},margin:{l:50,r:30,t:20,b:50}});
-    setTimeout(function(){var t=document.getElementById('productsTable');if(!t)return;var h='<table><thead><tr><th>SPU ID</th><th>名称</th><th>分类</th><th>毛利率</th><th>日销</th><th>克重</th><th>成本</th><th>售价</th></tr></thead><tbody>';ST.clusters.sort(function(a,b){return a.cluster_label.localeCompare(b.cluster_label)||b.gross_margin-a.gross_margin;}).forEach(function(p){h+='<tr><td>'+p.spu_id+'</td><td>'+p.name+'</td><td>'+p.cluster_label+'</td><td>'+p.gross_margin.toFixed(1)+'%</td><td>'+p.daily_sales.toFixed(1)+'</td><td>'+Math.round(p.weight_g)+'g</td><td>$'+p.cost.toFixed(2)+'</td><td>$'+(p.price||0).toFixed(2)+'</td></tr>';});h+='</tbody></table>';t.innerHTML=h;},200);
+    setTimeout(function(){var t=document.getElementById('productsTable');if(!t)return;var h='<table><thead><tr><th>SPU ID</th><th>名称</th><th>分类</th><th>毛利率</th><th>日销</th><th>克重</th><th>成本</th><th>售价</th></tr></thead><tbody>';ST.clusters.sort(function(a,b){return a.cluster_label.localeCompare(b.cluster_label)||b.gross_margin-a.gross_margin;}).forEach(function(p){var bc=p.cluster_label==='黄金品'?'badge badge-gold':p.cluster_label==='白银品'?'badge badge-silver':'badge badge-watch';h+='<tr><td>'+p.spu_id+'</td><td>'+p.name+'</td><td><span class="'+bc+'">'+p.cluster_label+'</span></td><td>'+p.gross_margin.toFixed(1)+'%</td><td>'+p.daily_sales.toFixed(1)+'</td><td>'+Math.round(p.weight_g)+'g</td><td>$'+p.cost.toFixed(2)+'</td><td>$'+(p.price||0).toFixed(2)+'</td></tr>';});h+='</tbody></table>';t.innerHTML=h;},200);
 }
 function renderRules() {
     var pg=document.getElementById('page-rules'); if(!pg) return;
@@ -696,9 +750,9 @@ function renderBlacklist() {
         order.forEach(function(r){
             if(!grp[r]) return;
             var exp=document.createElement('details'); exp.className='expander'; exp.open=true;
-            exp.innerHTML='<summary>⚠️ '+r+'（'+grp[r].length+' 个问题品）</summary><div class="expander-content"><div class="scroll-box">'+
+            exp.innerHTML='<summary>⚠️ <span class="badge badge-danger">'+r+'</span>（'+grp[r].length+' 个问题品）</summary><div class="expander-content"><div class="scroll-box">'+
                 grp[r].map(function(i){
-                    var sev=(i.gross_margin<5||i.weight_g>1000)?'🔴 严重':'🟡 注意';
+                    var sev=(i.gross_margin<5||i.weight_g>1000)?'<span class="badge badge-danger">🔴 严重</span>':'<span class="badge badge-watch">🟡 注意</span>';
                     return '<div class="warn-card" style="padding:14px 20px;margin:8px 0;text-align:left;border-width:1px;"><strong>'+sev+' — '+i.spu_id+'</strong><br><span style="color:var(--text-dim);">'+i.name+' | 毛利率:'+i.gross_margin.toFixed(1)+'% | 日销:'+i.daily_sales.toFixed(1)+' | 克重:'+Math.round(i.weight_g)+'g</span></div>';
                 }).join('')+'</div></div>';
             div.appendChild(exp);
