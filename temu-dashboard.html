@@ -5,54 +5,68 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Temu 运营数据分析面板 — 完整版</title>
     <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
 
     <!-- ============================================================
-    来源: http://localhost:8501 全部6个页面 (2026-05-31)
-    包含: 数据导入 · 商品画像 · 选品规则 · 智能预测 · 避坑清单 · 个人诊断
-    当前状态: 空数据（未上传 Excel），但 UI 结构完整
+    Temu 运营数据分析面板 v6 · shadcn/ui Maia 风格
+    来源: http://localhost:8501 (Streamlit → 纯 HTML + SheetJS + Plotly)
+    设计: Inter 字体 · 圆润大圆角 · 柔和阴影 · 琥珀金色调
+    存储: localStorage + 快照系统 · 可导出 JSON 备份
+    交互: 折叠面板 expander + scroll-box 滚轮（对标 Streamlit st.expander）
     ============================================================ -->
 
     <style>
+        /* ── shadcn/ui Maia-inspired 设计系统 ── */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
         :root {
-            --bg: #16161f;
-            --card: #1f1f2e;
-            --card-hover: #252535;
-            --card-alt: #2a2a40;
-            --gold: #d4a373;
-            --gold-dark: #b8956a;
-            --gold-glow: rgba(212, 163, 115, 0.3);
-            --text: #e8e6e3;
-            --text-dim: #a8a5a0;
-            --text-faded: rgba(232, 230, 227, 0.45);
-            --border: rgba(212, 163, 115, 0.2);
-            --border-hover: rgba(212, 163, 115, 0.45);
-            --border-light: rgba(212, 163, 115, 0.12);
-            --success: rgba(45, 106, 79, 0.18);
-            --success-border: rgba(45, 106, 79, 0.5);
+            --bg: #0f0f17;
+            --card: #1a1a24;
+            --card-hover: #20202c;
+            --card-alt: #262634;
+            --gold: #e2b87a;
+            --gold-dark: #c99e5e;
+            --gold-glow: rgba(226, 184, 122, 0.22);
+            --gold-bg: rgba(226, 184, 122, 0.06);
+            --text: #f1f0ee;
+            --text-dim: #a1a09c;
+            --text-faded: rgba(241, 240, 238, 0.38);
+            --border: rgba(226, 184, 122, 0.14);
+            --border-hover: rgba(226, 184, 122, 0.35);
+            --border-light: rgba(226, 184, 122, 0.08);
+            --success: rgba(34, 197, 94, 0.12);
+            --success-border: rgba(34, 197, 94, 0.35);
             --success-text: #4ade80;
-            --warning-bg: rgba(139, 105, 20, 0.18);
-            --warning-border: rgba(139, 105, 20, 0.5);
-            --warning-text: #fbbf24;
-            --danger-bg: rgba(139, 0, 0, 0.18);
-            --danger-border: rgba(139, 0, 0, 0.5);
-            --danger-text: #f87171;
-            --info-bg: rgba(212, 163, 115, 0.08);
-            --info-border: rgba(212, 163, 115, 0.25);
-            --shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
-            --radius-sm: 8px;
-            --radius: 10px;
-            --radius-lg: 12px;
-            --radius-xl: 14px;
-            --radius-2xl: 16px;
+            --warning-bg: rgba(250, 204, 21, 0.12);
+            --warning-border: rgba(250, 204, 21, 0.35);
+            --warning-text: #fde047;
+            --danger-bg: rgba(239, 68, 68, 0.12);
+            --danger-border: rgba(239, 68, 68, 0.35);
+            --danger-text: #fca5a5;
+            --info-bg: rgba(226, 184, 122, 0.06);
+            --info-border: rgba(226, 184, 122, 0.18);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+            --shadow: 0 4px 20px rgba(0,0,0,0.35);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,0.45);
+            --radius-sm: 10px;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --radius-2xl: 24px;
             --sidebar-w: 260px;
-            --font: 'Source Sans Pro', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            --font: 'Inter', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
         }
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+        body {
+            font-family: var(--font); background: var(--bg); color: var(--text);
+            line-height: 1.65; min-height: 100vh; -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
 
+        /* ── 布局 ── */
         .app { display: flex; min-height: 100vh; }
-
         .sidebar {
             width: var(--sidebar-w); min-width: var(--sidebar-w); flex-shrink: 0;
             background: linear-gradient(180deg, #12121a 0%, var(--card) 100%);
@@ -66,7 +80,6 @@
         }
         .sidebar-brand .title { font-size: 1.3rem; font-weight: 800; color: var(--bg); }
         .sidebar-brand .sub   { font-size: 0.7rem; color: var(--text-faded); margin-top: 2px; }
-
         .sidebar-nav { list-style: none; padding: 4px 12px; flex: 1; }
         .sidebar-nav li { margin-bottom: 2px; }
         .sidebar-nav a {
@@ -74,14 +87,9 @@
             border-radius: var(--radius-sm); text-decoration: none;
             color: var(--text-dim); font-size: 0.92rem; transition: all 0.15s; cursor: pointer;
         }
-        .sidebar-nav a:hover,
-        .sidebar-nav a.active { background: var(--info-bg); color: var(--text); }
+        .sidebar-nav a:hover, .sidebar-nav a.active { background: var(--info-bg); color: var(--text); }
         .nav-icon { font-size: 1.1rem; }
-
-        .sidebar-info {
-            padding: 12px; border-top: 1px solid var(--border-light);
-            font-size: 0.82rem; color: var(--text-dim);
-        }
+        .sidebar-info { padding: 12px; border-top: 1px solid var(--border-light); font-size: 0.82rem; color: var(--text-dim); }
         .sidebar-info .stat-card {
             background: var(--success); border: 1px solid var(--success-border);
             border-radius: var(--radius); padding: 10px 12px; margin-bottom: 8px;
@@ -94,7 +102,7 @@
         .sidebar-actions { display: flex; gap: 8px; margin-top: 8px; }
         .sidebar-actions button {
             flex: 1; padding: 8px; border-radius: var(--radius);
-            border: 1px solid rgba(212, 163, 115, 0.18);
+            border: 1px solid rgba(226, 184, 122, 0.18);
             background: var(--card); color: var(--text-dim); font-weight: 600;
             cursor: pointer; font-size: 0.85rem; transition: all 0.2s;
         }
@@ -102,9 +110,7 @@
             background: var(--card-hover); border-color: var(--border-hover);
             transform: translateY(-1px);
         }
-
         .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-
         .topbar {
             display: flex; align-items: center; justify-content: flex-end;
             padding: 10px 20px; gap: 10px;
@@ -114,77 +120,96 @@
             background: var(--gold); color: var(--bg); font-weight: 700;
             cursor: pointer; font-size: 0.85rem;
         }
-        .topbar .btn-menu {
-            background: none; border: none; cursor: pointer; padding: 4px 8px;
-            color: var(--text-dim);
-        }
-        .topbar .btn-menu svg { fill: currentColor; width: 20px; height: 20px; }
-
         .content { padding: 24px 32px; max-width: 1100px; }
-
         .page { display: none; }
         .page.active { display: block; }
 
+        /* ── Hero ── */
         .hero {
             background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
             border-radius: var(--radius-2xl); padding: 28px 32px; margin-bottom: 24px;
             box-shadow: 0 4px 16px var(--gold-glow);
         }
         .hero h1 { font-size: 2rem; font-weight: 700; color: var(--bg); margin-bottom: 6px; }
-        .hero p  { font-size: 0.95rem; color: rgba(22,22,31,0.8); line-height: 1.5; }
+        .hero p  { font-size: 0.95rem; color: rgba(15,15,23,0.8); line-height: 1.5; }
 
+        /* ── Button ── */
         .btn {
             display: inline-flex; align-items: center; gap: 6px;
-            padding: 10px 20px; border-radius: var(--radius); font-weight: 600;
-            cursor: pointer; transition: all 0.2s; font-size: 0.9rem;
+            padding: 11px 22px; border-radius: var(--radius-sm); font-weight: 600;
+            cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 0.88rem; letter-spacing: -0.005em;
             border: 1px solid var(--border); background: var(--card); color: var(--text);
         }
         .btn:hover {
             transform: translateY(-1px); box-shadow: var(--shadow);
-            border-color: var(--border-hover); background: var(--card-alt);
+            border-color: var(--border-hover); background: var(--card-hover);
         }
-        .btn-row { display: flex; gap: 12px; margin: 16px 0; flex-wrap: wrap; }
+        .btn:active { transform: translateY(0); }
+        .btn-row { display: flex; gap: 12px; margin: 18px 0; flex-wrap: wrap; }
 
+        /* ── Alert 提示条 ── */
         .alert {
-            padding: 14px 18px; border-radius: var(--radius);
-            display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px;
+            padding: 16px 20px; border-radius: var(--radius); font-size: 0.9rem;
+            display: flex; align-items: flex-start; gap: 12px; margin-bottom: 18px;
+            line-height: 1.55;
         }
-        .alert-info    { background: var(--info-bg);    border: 1px solid var(--info-border); }
-        .alert-success { background: var(--success);    border: 1px solid var(--success-border); color: var(--success-text); }
+        .alert-info    { background: var(--info-bg); border: 1px solid var(--info-border); }
+        .alert-success { background: var(--success); border: 1px solid var(--success-border); color: var(--success-text); }
         .alert-warning { background: var(--warning-bg); border: 1px solid var(--warning-border); color: var(--warning-text); }
         .alert-icon { font-size: 1.2rem; flex-shrink: 0; }
 
+        /* ── 上传区 ── */
         .upload-zone {
-            background: var(--card); border: 1px dashed rgba(212,163,115,0.25);
-            border-radius: var(--radius-lg); padding: 48px 40px; text-align: center;
-            transition: border-color 0.2s; cursor: pointer; margin-bottom: 16px;
+            background: var(--card); border: 2px dashed rgba(226,184,122,0.18);
+            border-radius: var(--radius-lg); padding: 52px 44px; text-align: center;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; margin-bottom: 18px;
         }
-        .upload-zone:hover { border-color: var(--border-hover); }
-        .upload-zone .icon { font-size: 2.5rem; margin-bottom: 8px; }
-        .upload-zone .hint { font-size: 0.85rem; color: var(--text-dim); margin-top: 8px; }
+        .upload-zone:hover { border-color: var(--border-hover); background: var(--card-hover); box-shadow: var(--shadow-sm); }
+        .upload-zone .icon { font-size: 2.8rem; margin-bottom: 10px; }
+        .upload-zone .hint { font-size: 0.84rem; color: var(--text-dim); margin-top: 10px; }
 
+        /* ── 折叠面板 ── */
         .expander {
-            border-radius: var(--radius-lg); box-shadow: var(--shadow);
-            border: 1px solid rgba(212,163,115,0.18); background: var(--card);
-            margin-bottom: 16px;
+            border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border); background: var(--card);
+            margin-bottom: 18px; overflow: hidden;
         }
         .expander summary {
-            padding: 14px 18px; cursor: pointer; font-weight: 600;
-            list-style: none; display: flex; align-items: center; gap: 8px;
+            padding: 16px 20px; cursor: pointer; font-weight: 600; font-size: 0.93rem;
+            list-style: none; display: flex; align-items: center; gap: 10px;
+            transition: background 0.15s;
         }
+        .expander summary:hover { background: var(--card-hover); }
         .expander summary::-webkit-details-marker { display: none; }
-        .expander-content { padding: 0 18px 18px; }
+        .expander-content { padding: 0 20px 20px; }
 
-        .steps { display: flex; gap: 16px; flex-wrap: wrap; }
-        .step {
-            flex: 1; min-width: 150px;
-            background: var(--info-bg); border: 1px solid rgba(212,163,115,0.18);
-            border-radius: var(--radius-lg); padding: 16px; text-align: center;
+        /* ── 滚轮盒子（对标 st.expander scroll-box）── */
+        .scroll-box {
+            max-height: 380px; overflow-y: auto;
+            padding-right: 4px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
         }
-        .step .emoji { font-size: 2rem; }
-        .step .title { font-weight: 700; margin: 6px 0; }
-        .step .desc  { font-size: 0.82rem; color: var(--text-dim); }
+        .scroll-box::-webkit-scrollbar { width: 6px; }
+        .scroll-box::-webkit-scrollbar-track { background: transparent; }
+        .scroll-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        .scroll-box::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
 
+        /* ── Steps 步骤条 ── */
+        .steps { display: flex; gap: 18px; flex-wrap: wrap; }
+        .step {
+            flex: 1; min-width: 160px;
+            background: var(--info-bg); border: 1px solid var(--border);
+            border-radius: var(--radius-lg); padding: 20px 16px; text-align: center;
+            transition: all 0.2s;
+        }
+        .step:hover { border-color: var(--border-hover); transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+        .step .emoji { font-size: 2.2rem; margin-bottom: 4px; }
+        .step .title { font-weight: 700; margin: 8px 0 4px; font-size: 0.95rem; }
+        .step .desc  { font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+
+        /* ── Warn Card ── */
         .warn-card {
             background: rgba(251,191,36,0.12); border: 2px solid var(--warning-text);
             border-radius: var(--radius-2xl); padding: 24px 28px; margin: 16px 0; text-align: center;
@@ -192,33 +217,58 @@
         .warn-card .title { font-size: 1.8rem; font-weight: 700; color: var(--warning-text); }
         .warn-card .desc  { font-size: 0.95rem; color: var(--text); margin-top: 6px; }
 
-        hr {
-            border: none; border-top: 1px solid var(--border-light);
-            margin: 24px 0;
+        /* ── Table ── */
+        table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+        thead { position: sticky; top: 0; z-index: 1; }
+        th {
+            background: var(--card-alt); color: var(--text-dim);
+            font-weight: 600; text-align: left; padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+        }
+        td {
+            padding: 9px 14px; border-bottom: 1px solid var(--border-light);
+            color: var(--text);
+        }
+        tr:hover td { background: var(--card-hover); }
+
+        hr { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
+
+        /* ── Form ── */
+        label { display: block; font-size: 0.82rem; color: var(--text-dim); margin-bottom: 4px; }
+        input, select, textarea {
+            background: var(--card-alt); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); padding: 9px 14px; color: var(--text);
+            font-family: var(--font); transition: all 0.15s;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--gold); outline: none;
+            box-shadow: 0 0 0 3px rgba(226,184,122,0.1);
+        }
+        select { cursor: pointer; appearance: none; padding-right: 32px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' fill='none' stroke='%23a1a09c' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 12px center;
         }
 
-        table { width: 100%; border-collapse: collapse; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border-light); }
-        thead th { background: var(--card); color: var(--gold); font-weight: 600; border-bottom: 2px solid rgba(212,163,115,0.25); padding: 10px 12px; text-align: left; }
-        tbody tr:nth-child(even) { background: var(--card); }
-        tbody tr:nth-child(odd)  { background: var(--card-hover); }
-        tbody tr:hover { background: rgba(212,163,115,0.08); }
-        tbody td { padding: 8px 12px; }
+        /* ── Toast ── */
+        #toast { position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 420px; }
+        .toast-msg { padding: 12px 20px; border-radius: var(--radius); margin-bottom: 8px; font-size: 0.9rem; animation: slideIn 0.3s ease; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: var(--bg); }
-        ::-webkit-scrollbar-thumb { background: #2d2d40; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #3a3a50; }
+        /* ── Modal ── */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+        .modal-box { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 28px; max-width: 480px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+        .modal-box h2 { margin-bottom: 16px; color: var(--gold); font-size: 1.3rem; }
     </style>
 </head>
 <body>
+<div id="toast"></div>
 
 <div class="app">
     <aside class="sidebar">
         <div class="sidebar-brand">
             <div class="title">🛒 Temu 数据看板</div>
-            <div class="sub">运营数据分析 v4</div>
+            <div class="sub">运营数据分析 v6</div>
         </div>
-
         <ul class="sidebar-nav">
             <li><a class="active" onclick="switchPage('import')"><span class="nav-icon">📥</span> 数据导入</a></li>
             <li><a onclick="switchPage('products')"><span class="nav-icon">📊</span> 商品画像</a></li>
@@ -227,37 +277,23 @@
             <li><a onclick="switchPage('blacklist')"><span class="nav-icon">🚨</span> 避坑清单</a></li>
             <li><a onclick="switchPage('diagnosis')"><span class="nav-icon">📈</span> 个人诊断</a></li>
         </ul>
-
         <div class="sidebar-info">
-            <label style="display:block; margin-bottom:4px;">👤 当前用户</label>
-            <select style="width:100%; padding:8px 12px; border-radius:8px; background:var(--card); border:1px solid var(--border); color:var(--text); margin-bottom:12px;">
-                <option>李可伟</option>
-                <option>胡玉成</option>
-                <option>徐总</option>
-            </select>
-
             <div class="stat-card">
                 💾 已保存 <b>0</b> 个文件<br>
-                <span class="time">2026-05-29 14:07</span>
+                <span class="time">—</span>
             </div>
-
-            <div class="snapshot">📸 <b>1</b> 份历史快照</div>
-
+            <div class="snapshot">📸 <b>0</b> 份历史快照</div>
             <div class="sidebar-actions">
-                <button>💾 保存</button>
-                <button>🗑️ 清除</button>
+                <button onclick="doSave()">💾 保存</button>
+                <button onclick="doClear()">🗑️ 清除</button>
             </div>
         </div>
     </aside>
 
     <main class="main">
         <header class="topbar">
-            <button class="btn-deploy">Deploy</button>
-            <button class="btn-menu" title="菜单">
-                <svg viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
-            </button>
+            <button class="btn-deploy" onclick="location.reload()">🔄 刷新</button>
         </header>
-
         <div class="content">
 
             <!-- ═══ 页面 1: 数据导入 ═══ -->
@@ -266,53 +302,33 @@
                     <h1>📥 数据导入</h1>
                     <p>批量上传利润统计 Excel 文件（.xls / .xlsx），系统自动识别文件类型和归属人并解析数据。导入后自动保存，下次打开无需重新上传。</p>
                 </div>
-
                 <div class="alert alert-info">
                     <span class="alert-icon">💾</span>
-                    <span>检测到历史数据：<strong>0</strong> 个文件，上次导入于 <strong>2026-05-29 14:07</strong>。点击下方「📂 加载历史数据」恢复。</span>
+                    <span>检测到历史数据：<strong>0</strong> 个文件。点击下方「📂 加载历史数据」恢复。</span>
                 </div>
-
                 <div class="btn-row">
-                    <button class="btn">📂 加载历史数据</button>
-                    <button class="btn">🔄 刷新页面</button>
+                    <button class="btn" onclick="doLoad()">📂 加载历史数据</button>
+                    <button class="btn" onclick="location.reload()">🔄 刷新页面</button>
                 </div>
-
                 <details class="expander" open>
                     <summary>🚀 第一次使用？看这里</summary>
                     <div class="expander-content">
                         <div class="steps">
-                            <div class="step">
-                                <div class="emoji">📤</div>
-                                <div class="title">1. 上传文件</div>
-                                <div class="desc">拖拽利润统计 Excel 文件</div>
-                            </div>
-                            <div class="step">
-                                <div class="emoji">🔍</div>
-                                <div class="title">2. 开始解析</div>
-                                <div class="desc">自动识别类型和归属人</div>
-                            </div>
-                            <div class="step">
-                                <div class="emoji">📊</div>
-                                <div class="title">3. 查看分析</div>
-                                <div class="desc">切换到其他页面查看聚类和选品建议</div>
-                            </div>
+                            <div class="step"><div class="emoji">📤</div><div class="title">1. 上传文件</div><div class="desc">拖拽利润统计 Excel 文件</div></div>
+                            <div class="step"><div class="emoji">🔍</div><div class="title">2. 开始解析</div><div class="desc">自动识别类型和归属人</div></div>
+                            <div class="step"><div class="emoji">📊</div><div class="title">3. 查看分析</div><div class="desc">切换到其他页面查看聚类和选品建议</div></div>
                         </div>
                     </div>
                 </details>
-
                 <hr>
-
-                <div class="upload-zone">
+                <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
                     <div class="icon">📁</div>
                     <div style="font-size:1.1rem; margin-bottom:8px;">拖拽文件到此处或点击选择</div>
                     <div class="hint">200MB per file · XLS, XLSX</div>
-                    <button class="btn" style="margin-top:14px;">⬆ Upload</button>
+                    <button class="btn" style="margin-top:14px;" onclick="event.stopPropagation(); document.getElementById('fileInput').click();">⬆ Upload</button>
                 </div>
-
-                <div class="alert alert-info">
-                    <span class="alert-icon">📂</span>
-                    <span>请上传 Excel 文件开始分析</span>
-                </div>
+                <input type="file" id="fileInput" accept=".xls,.xlsx" multiple style="display:none" onchange="handleFileUpload(this.files)">
+                <div class="alert alert-info"><span class="alert-icon">📂</span><span>请上传 Excel 文件开始分析</span></div>
             </div>
 
             <!-- ═══ 页面 2: 商品画像 ═══ -->
@@ -321,11 +337,7 @@
                     <h1>📊 商品画像 — 聚类分析</h1>
                     <p>基于 K-Means 聚类算法，按克重、成本、毛利率、日销量对商品自动分组，快速识别好品与差品的特征分布。</p>
                 </div>
-
-                <div class="alert alert-info">
-                    <span class="alert-icon">ℹ</span>
-                    <span>📂 暂无数据，请先前往「数据导入」页面上传 Excel 文件。</span>
-                </div>
+                <div class="alert alert-info"><span class="alert-icon">ℹ</span><span>📂 暂无数据，请先前往「数据导入」页面上传 Excel 文件。</span></div>
             </div>
 
             <!-- ═══ 页面 3: 选品规则 ═══ -->
@@ -334,11 +346,7 @@
                     <h1>📋 选品规则 — 从数据中提取铁律</h1>
                     <p>基于聚类分组结果，用纯统计方法自动提取可操作的选品规则。每条规则包含条件、验证指标和置信度，选品时优先匹配 🟢 铁律，遇到 🔴 避坑特征直接 pass。</p>
                 </div>
-
-                <div class="alert alert-info">
-                    <span class="alert-icon">ℹ</span>
-                    <span>📂 暂无数据，请先前往「数据导入」页面上传 Excel 文件。</span>
-                </div>
+                <div class="alert alert-info"><span class="alert-icon">ℹ</span><span>📂 暂无数据，请先前往「数据导入」页面上传 Excel 文件。</span></div>
             </div>
 
             <!-- ═══ 页面 4: 智能预测 ═══ -->
@@ -347,11 +355,7 @@
                     <h1>🔮 智能预测 — 利润推算</h1>
                     <p>输入新品的成本、克重和预计卖价，系统自动匹对历史相似品数据，给出毛利率与日销预估、风险评级和选品建议。</p>
                 </div>
-
-                <div class="alert alert-info">
-                    <span class="alert-icon">ℹ</span>
-                    <span>📂 暂无数据，请先前往「数据导入」页面上传 Excel 文件。</span>
-                </div>
+                <div class="alert alert-info"><span class="alert-icon">ℹ</span><span>📂 暂无数据，请先前往「数据导入」页面上传 Excel 文件。</span></div>
             </div>
 
             <!-- ═══ 页面 5: 避坑清单 ═══ -->
@@ -360,11 +364,7 @@
                     <h1>🚫 避坑清单 — 亏损品异常检测</h1>
                     <p>自动筛选历史亏损品，按特征分组分析亏损原因，提炼可操作的避坑规则，避免重复踩坑。</p>
                 </div>
-
-                <div class="alert alert-info">
-                    <span class="alert-icon">ℹ</span>
-                    <span>📂 暂无数据，请先前往「数据导入」页面上传 Excel 文件。</span>
-                </div>
+                <div class="alert alert-info"><span class="alert-icon">ℹ</span><span>📂 暂无数据，请先前往「数据导入」页面上传 Excel 文件。</span></div>
             </div>
 
             <!-- ═══ 页面 6: 个人诊断 ═══ -->
@@ -373,7 +373,6 @@
                     <h1>📈 个人诊断</h1>
                     <p>基于历史快照对比，追踪你的选品质量变化，给出个性化优化建议。</p>
                 </div>
-
                 <div class="warn-card">
                     <div class="title">📂 需要至少 2 次数据上传</div>
                     <div class="desc">请回到「数据导入」页上传本周的利润统计 Excel，再回来看趋势分析。</div>
@@ -385,15 +384,591 @@
 </div>
 
 <script>
+// ═══════════════════════════════════════════════
+// 全局状态
+// ═══════════════════════════════════════════════
+var ST = { files: [], products: [], clusters: [], rules: [], snapshots: [] };
+
+// ═══════════════════════════════════════════════
+// 工具函数
+// ═══════════════════════════════════════════════
+function med(a){var m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m])/2;}
+function q75(a){return a[Math.floor(a.length*0.75)];}
+function q25(a){return a[Math.floor(a.length*0.25)];}
+function avg(a){return a.reduce(function(x,y){return x+y;},0)/a.length;}
+
+// ═══════════════════════════════════════════════
+// 初始化
+// ═══════════════════════════════════════════════
+(function init() {
+    var raw = localStorage.getItem('temu_v6_data');
+    if (raw) { try { ST.files = JSON.parse(raw); } catch(e) {} }
+    var idx = localStorage.getItem('temu_v6_snap_idx');
+    if (idx) { try { ST.snapshots = JSON.parse(idx); } catch(e) {} }
+    updateSidebar();
+    if (ST.files.length > 0) { reprocessAll(); renderImportPage(); }
+})();
+
+function reprocessAll() { ST.products = extractProducts(ST.files); ST.clusters = doClustering(ST.products); ST.rules = extractRules(ST.clusters); }
+
+function updateSidebar() {
+    var card = document.querySelector('.stat-card');
+    if (!card) return;
+    var meta = JSON.parse(localStorage.getItem('temu_v6_meta') || '{}');
+    card.innerHTML = '💾 已保存 <b>'+ST.files.length+'</b> 个文件'+(meta.saved_at?'<br><span class="time">'+meta.saved_at+'</span>':'');
+    var sd = document.querySelector('.snapshot');
+    if (sd) sd.innerHTML = '📸 <b>'+ST.snapshots.length+'</b> 份历史快照';
+}
+
+// ═══════════════════════════════════════════════
+// Toast & Modal
+// ═══════════════════════════════════════════════
+function toast(msg, type) {
+    var bg = {success:'rgba(45,106,79,0.18)',warning:'rgba(139,105,20,0.18)',error:'rgba(139,0,0,0.18)'}[type]||'rgba(226,184,122,0.08)';
+    var bd = {success:'rgba(45,106,79,0.5)',warning:'rgba(139,105,20,0.5)',error:'rgba(139,0,0,0.5)'}[type]||'rgba(226,184,122,0.25)';
+    var cl = {success:'#4ade80',warning:'#fbbf24',error:'#f87171'}[type]||'#f1f0ee';
+    var d = document.createElement('div'); d.className = 'toast-msg';
+    d.style.cssText = 'background:'+bg+';border:1px solid '+bd+';color:'+cl;
+    d.textContent = msg; document.getElementById('toast').appendChild(d);
+    setTimeout(function(){ d.style.opacity='0'; d.style.transition='opacity 0.3s'; setTimeout(function(){ d.remove(); },300); }, 3000);
+}
+
+function showModal(title, bodyHTML, confirmText, onConfirm) {
+    var o = document.createElement('div'); o.className = 'modal-overlay';
+    o.innerHTML = '<div class="modal-box"><h2>'+title+'</h2>'+bodyHTML+'<div style="display:flex;gap:12px;margin-top:16px;justify-content:flex-end;"><button class="btn" onclick="this.closest(\'.modal-overlay\').remove()">取消</button><button class="btn" id="modalOK" style="background:var(--gold);color:var(--bg);">'+confirmText+'</button></div></div>';
+    document.body.appendChild(o);
+    o.addEventListener('click', function(e) { if (e.target === o) o.remove(); });
+    document.getElementById('modalOK').addEventListener('click', function() { o.remove(); if (onConfirm) onConfirm(); });
+}
+
+// ═══════════════════════════════════════════════
+// 页面切换
+// ═══════════════════════════════════════════════
 function switchPage(name) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById('page-' + name).classList.add('active');
-    document.querySelectorAll('.sidebar-nav a').forEach(a => a.classList.remove('active'));
-    document.querySelectorAll('.sidebar-nav a').forEach(a => {
-        if (a.getAttribute('onclick').includes("'" + name + "'")) a.classList.add('active');
+    document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+    var pg = document.getElementById('page-'+name); if(pg) pg.classList.add('active');
+    document.querySelectorAll('.sidebar-nav a').forEach(function(a){a.classList.remove('active');});
+    document.querySelectorAll('.sidebar-nav a').forEach(function(a){
+        var oc = a.getAttribute('onclick')||''; if(oc.indexOf("'"+name+"'")!==-1) a.classList.add('active');
+    });
+    if (name==='products' && ST.products.length>0) renderProducts();
+    if (name==='rules' && ST.products.length>0) renderRules();
+    if (name==='predict') renderPredict();
+    if (name==='blacklist' && ST.products.length>0) renderBlacklist();
+    if (name==='diagnosis') renderDiagnosis();
+}
+
+// ═══════════════════════════════════════════════
+// 保存 / 清除
+// ═══════════════════════════════════════════════
+function doSave() {
+    if (ST.files.length===0) { toast('没有数据可保存','warning'); return; }
+    var now = new Date().toLocaleString('zh-CN');
+    var snapKey = 'temu_v6_snap_'+Date.now();
+    localStorage.setItem(snapKey, JSON.stringify(ST.files));
+    ST.snapshots.push({key:snapKey, time:now}); if (ST.snapshots.length>50) ST.snapshots.shift();
+    localStorage.setItem('temu_v6_snap_idx', JSON.stringify(ST.snapshots));
+    localStorage.setItem('temu_v6_meta', JSON.stringify({count:ST.files.length, saved_at:now}));
+    localStorage.setItem('temu_v6_data', JSON.stringify(ST.files));
+    updateSidebar();
+    var blob = new Blob([JSON.stringify(ST.files,null,2)],{type:'application/json'});
+    var url = URL.createObjectURL(blob); var a = document.createElement('a');
+    a.href=url; a.download='temu-backup-'+new Date().toISOString().slice(0,10)+'.json'; a.click();
+    URL.revokeObjectURL(url);
+    toast('已保存 '+ST.files.length+' 个文件 | 备份已下载','success');
+}
+
+function doClear() {
+    showModal('确认清除', '<p style="color:var(--text-dim);">将清除 <b style="color:var(--danger-text);">全部</b> '+ST.files.length+' 个文件</p>', '确认清除', function(){
+        ST.files=[]; ST.products=[]; ST.clusters=[]; ST.rules=[];
+        localStorage.removeItem('temu_v6_data'); localStorage.removeItem('temu_v6_meta');
+        updateSidebar(); renderImportPage(); toast('已清除','info');
     });
 }
-</script>
 
+function doLoad() {
+    var raw = localStorage.getItem('temu_v6_data');
+    if (!raw) { toast('没有历史数据','warning'); return; }
+    ST.files = JSON.parse(raw); reprocessAll(); updateSidebar(); renderImportPage();
+    toast('已加载 '+ST.files.length+' 个文件','success');
+}
+
+// ═══════════════════════════════════════════════
+// 拖拽绑定
+// ═══════════════════════════════════════════════
+(function bindDrag(){
+    var uz = document.getElementById('uploadZone');
+    if (uz) {
+        uz.addEventListener('dragover', function(e) { e.preventDefault(); uz.style.borderColor='var(--gold)'; });
+        uz.addEventListener('dragleave', function(){ uz.style.borderColor=''; });
+        uz.addEventListener('drop', function(e){ e.preventDefault(); uz.style.borderColor=''; handleFileUpload(e.dataTransfer.files); });
+    }
+})();
+
+// ═══════════════════════════════════════════════
+// Excel 解析
+// ═══════════════════════════════════════════════
+function normalizeCols(headers) {
+    var map = {spuid:'spu_id','spu id':'spu_id',name:'name','成本':'cost','克重':'weight_g','重量':'weight_g','weight':'weight_g','weight_g':'weight_g','售价':'price','卖价':'price','日均销量':'daily_sales','销量':'daily_sales','daily_sales':'daily_sales','sales':'daily_sales','毛利率':'gross_margin','日利润':'daily_profit','品类':'category'};
+    return headers.map(function(h){var l=h.toLowerCase().replace(/\s/g,'');return map[l]||map[h]||h;});
+}
+
+function handleFileUpload(inputFiles) {
+    if (!inputFiles||inputFiles.length===0) return;
+    var count=0;
+    Array.from(inputFiles).forEach(function(f){
+        var reader = new FileReader();
+        reader.onload = function(e){
+            try {
+                var wb = XLSX.read(e.target.result,{type:'array'});
+                wb.SheetNames.forEach(function(sn){
+                    var ws = wb.Sheets[sn], json = XLSX.utils.sheet_to_json(ws,{header:1});
+                    if (json.length<=1) return;
+                    var headers = json[0].map(function(h){return String(h).trim();});
+                    var rows = json.slice(1).filter(function(r){return r.some(function(c){return c!==null&&c!=='';});});
+                    if (rows.length===0) return;
+                    var cols = normalizeCols(headers);
+                    var data = rows.map(function(r){var o={};cols.forEach(function(c,i){o[c]=(i<r.length)?r[i]:'';});return o;});
+                    ST.files.push({filename:f.name,sheet:sn,headers:cols,data:data,rowCount:data.length,time:new Date().toLocaleString('zh-CN')});
+                    count+=data.length;
+                });
+            } catch(err) { toast('解析失败: '+f.name,'error'); return; }
+            localStorage.setItem('temu_v6_data', JSON.stringify(ST.files));
+            var now = new Date().toLocaleString('zh-CN'), snapKey = 'temu_v6_snap_'+Date.now();
+            localStorage.setItem(snapKey, JSON.stringify(ST.files));
+            ST.snapshots.push({key:snapKey, time:now});
+            localStorage.setItem('temu_v6_snap_idx', JSON.stringify(ST.snapshots));
+            localStorage.setItem('temu_v6_meta', JSON.stringify({count:ST.files.length, saved_at:now}));
+            reprocessAll(); updateSidebar(); renderImportPage();
+            toast('上传完成：'+count+' 条商品','success');
+        };
+        reader.readAsArrayBuffer(f);
+    });
+}
+
+// ═══════════════════════════════════════════════
+// 数据提取 & 聚类
+// ═══════════════════════════════════════════════
+function extractProducts(files) {
+    var pros=[];
+    files.forEach(function(f){
+        (f.data||[]).forEach(function(r){
+            var cost=parseFloat(r.cost)||0, price=parseFloat(r.price)||0, ds=parseFloat(r.daily_sales)||0, gm=parseFloat(r.gross_margin)||(price>0?((price-cost)/price*100):0);
+            pros.push({spu_id:r.spu_id||('SPU-'+Math.random().toString(36).slice(2,8)),name:r.name||r.spu_id||'?',cost:cost,weight_g:parseFloat(r.weight_g)||0,price:price,daily_sales:ds,gross_margin:gm,daily_profit:parseFloat(r.daily_profit)||(ds*cost*gm/100),category:r.category||''});
+        });
+    }); return pros;
+}
+
+function doClustering(products) {
+    if(products.length<3) return products.map(function(p){p.cluster_label='白银品';return p;});
+    var scored=products.map(function(p,i){return{idx:i,score:(p.gross_margin||0)*0.6+(Math.min(p.daily_sales||0,20)/20*100)*0.4};});
+    scored.sort(function(a,b){return b.score-a.score;});
+    var n=products.length, top=Math.max(1,Math.round(n*0.33)), mid=Math.max(1,Math.round(n*0.33));
+    scored.forEach(function(s,r){if(r<top) products[s.idx].cluster_label='黄金品';else if(r<top+mid) products[s.idx].cluster_label='白银品';else products[s.idx].cluster_label='观察品';});
+    return products;
+}
+
+// ═══════════════════════════════════════════════
+// 规则提取
+// ═══════════════════════════════════════════════
+function extractRules(clusters) {
+    if(clusters.length===0) return [];
+    var golds=clusters.filter(function(p){return p.cluster_label==='黄金品';}), wat=clusters.filter(function(p){return p.cluster_label==='观察品';}), rules=[];
+    if(golds.length>0){
+        var m=golds.map(function(p){return p.gross_margin;}).sort(function(a,b){return a-b;}), c=golds.map(function(p){return p.cost;}).sort(function(a,b){return a-b;}), w=golds.map(function(p){return p.weight_g;}).sort(function(a,b){return a-b;}), s=golds.map(function(p){return p.daily_sales;}).sort(function(a,b){return a-b;});
+        rules.push({type:'铁律',rule:'毛利率 ≥ '+med(m).toFixed(1)+'%',detail:'黄金品中位毛利率 '+med(m).toFixed(1)+'%'});
+        rules.push({type:'铁律',rule:'克重 ≤ '+Math.round(q75(w))+'g',detail:'黄金品75%分位克重 '+Math.round(q75(w))+'g'});
+        rules.push({type:'铁律',rule:'成本 $'+med(c).toFixed(2)+' 附近',detail:'黄金品中位成本 $'+med(c).toFixed(2)});
+        rules.push({type:'铁律',rule:'日销 ≥ '+Math.round(q25(s))+' 单',detail:'黄金品25%分位日销 '+Math.round(q25(s))+' 单'});
+    }
+    var heavy=wat.filter(function(p){return p.weight_g>500&&p.daily_sales<1;}), low=wat.filter(function(p){return p.gross_margin<10;});
+    if(heavy.length>0) rules.push({type:'避坑',rule:'高克重陷阱',detail:'克重>500g且日销<1单：'+heavy.length+'个品'});
+    if(low.length>0) rules.push({type:'避坑',rule:'低毛利陷阱',detail:'毛利率<10%：'+low.length+'个品'});
+    return rules;
+}
+
+function checkAvoidance(products) {
+    var iss=[];
+    products.forEach(function(p){
+        if(p.weight_g>500&&p.daily_sales<1) iss.push({spu_id:p.spu_id,name:p.name,reason:'高克重陷阱',gross_margin:p.gross_margin,daily_sales:p.daily_sales,weight_g:p.weight_g});
+        else if(p.gross_margin<10) iss.push({spu_id:p.spu_id,name:p.name,reason:'低毛利陷阱',gross_margin:p.gross_margin,daily_sales:p.daily_sales,weight_g:p.weight_g});
+        else if(p.daily_sales<0.5&&p.daily_profit<=0) iss.push({spu_id:p.spu_id,name:p.name,reason:'滞销品',gross_margin:p.gross_margin,daily_sales:p.daily_sales,weight_g:p.weight_g});
+    }); return iss;
+}
+
+// ═══════════════════════════════════════════════
+// 页面 ① 数据导入
+// ═══════════════════════════════════════════════
+function renderImportPage() {
+    var pg=document.getElementById('page-import'); if(!pg) return;
+    var alertEl=pg.querySelector('.alert.alert-info');
+    if(alertEl){if(ST.files.length>0){var meta=JSON.parse(localStorage.getItem('temu_v6_meta')||'{}');alertEl.innerHTML='<span class="alert-icon">💾</span><span>已加载 <strong>'+ST.files.length+'</strong> 个文件 | '+ST.products.length+' 个SPU | 上次: '+(meta.saved_at||'--')+'</span>';}else{alertEl.innerHTML='<span class="alert-icon">📂</span><span>请上传 Excel 文件开始分析</span>';}}
+    var old=pg.querySelector('.parsed'); if(old) old.remove();
+    if(ST.files.length===0) return;
+    var div=document.createElement('div'); div.className='parsed';
+    var total=ST.files.reduce(function(s,f){return s+f.rowCount;},0);
+    div.innerHTML='<hr><h3 style="color:var(--gold);margin:16px 0 8px;">📋 解析结果</h3><div class="btn-row"><div class="step"><div class="title">'+ST.files.length+' 个文件</div></div><div class="step"><div class="title">'+total+' 条商品</div></div><div class="step"><div class="title">'+ST.products.length+' 个SPU</div></div></div>';
+    ST.files.slice(0,10).forEach(function(f,i){
+        var exp=document.createElement('details'); exp.className='expander';
+        exp.innerHTML='<summary>✅ '+f.filename+' → '+f.sheet+' ('+f.rowCount+' 行)</summary><div class="expander-content" id="prev-'+i+'"></div>';
+        div.appendChild(exp);
+        setTimeout(function(){var c=document.getElementById('prev-'+i);if(!c)return;var t='<table><thead><tr>'+f.headers.map(function(h){return'<th>'+h+'</th>';}).join('')+'</tr></thead><tbody>';f.data.slice(0,10).forEach(function(r){t+='<tr>'+f.headers.map(function(h){return'<td>'+(r[h]||'')+'</td>';}).join('')+'</tr>';});t+='</tbody></table>';c.innerHTML=t+(f.data.length>10?'<p style="color:var(--text-dim);font-size:0.82rem;margin-top:8px;">... 共 '+f.data.length+' 行</p>':'');},50);
+    });
+    pg.appendChild(div);
+}
+
+// ═══════════════════════════════════════════════
+// 页面 ② 商品画像
+// ═══════════════════════════════════════════════
+function renderProducts() {
+    var pg=document.getElementById('page-products'); if(!pg) return;
+    var alertEl=pg.querySelector('.alert.alert-info'); if(alertEl) alertEl.style.display='none';
+    var old=pg.querySelector('.pc'); if(old) old.remove();
+    var div=document.createElement('div'); div.className='pc';
+    var cnt={}; ST.clusters.forEach(function(p){cnt[p.cluster_label]=(cnt[p.cluster_label]||0)+1;});
+    div.innerHTML='<div class="btn-row"><div class="step"><div class="emoji">🟡</div><div class="title">黄金品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--gold);">'+(cnt['黄金品']||0)+'</div></div><div class="step"><div class="emoji">⚪</div><div class="title">白银品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:#a0a0a0;">'+(cnt['白银品']||0)+'</div></div><div class="step"><div class="emoji">🔵</div><div class="title">观察品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:#5b9bd5;">'+(cnt['观察品']||0)+'</div></div><div class="step"><div class="title">📦 总计</div><div class="desc" style="font-size:1.5rem;font-weight:700;">'+ST.clusters.length+'</div></div></div>';
+    [{l:'黄金品',c:'var(--gold)'},{l:'白银品',c:'#a0a0a0'},{l:'观察品',c:'#5b9bd5'}].forEach(function(g){var s=ST.clusters.filter(function(p){return p.cluster_label===g.l;});if(s.length>0){div.innerHTML+='<div class="alert alert-info" style="border-left:3px solid '+g.c+'"><div><strong style="color:'+g.c+'">'+g.l+' ('+s.length+')</strong><br>毛利率: '+avg(s.map(function(p){return p.gross_margin;})).toFixed(1)+'% | 日销: '+avg(s.map(function(p){return p.daily_sales;})).toFixed(1)+' | 克重: '+Math.round(avg(s.map(function(p){return p.weight_g;})))+'g | 成本: $'+avg(s.map(function(p){return p.cost;})).toFixed(2)+'</div></div>';}});
+    div.innerHTML+='<hr><h3 style="color:var(--gold);margin:16px 0;">散点图</h3><div id="scatterPlot" style="height:400px;"></div><hr><h3 style="color:var(--gold);margin:16px 0;">全部商品</h3><div id="productsTable"></div>';
+    pg.appendChild(div);
+    var traces=['黄金品','白银品','观察品'].map(function(l){var s=ST.clusters.filter(function(p){return p.cluster_label===l;});return{x:s.map(function(p){return p.gross_margin;}),y:s.map(function(p){return p.daily_sales;}),mode:'markers',type:'scatter',name:l,text:s.map(function(p){return p.spu_id;}),marker:{size:10,color:l==='黄金品'?'#e2b87a':l==='白银品'?'#a0a0a0':'#5b9bd5'}};}).filter(function(t){return t.x.length>0;});
+    Plotly.newPlot('scatterPlot',traces,{plot_bgcolor:'#0f0f17',paper_bgcolor:'#0f0f17',font:{color:'#f1f0ee'},xaxis:{title:'毛利率 %',gridcolor:'#2a2a3a'},yaxis:{title:'日均销量',gridcolor:'#2a2a3a'},legend:{font:{color:'#f1f0ee'}},margin:{l:50,r:30,t:20,b:50}});
+    setTimeout(function(){var t=document.getElementById('productsTable');if(!t)return;var h='<table><thead><tr><th>SPU ID</th><th>名称</th><th>分类</th><th>毛利率</th><th>日销</th><th>克重</th><th>成本</th><th>售价</th></tr></thead><tbody>';ST.clusters.sort(function(a,b){return a.cluster_label.localeCompare(b.cluster_label)||b.gross_margin-a.gross_margin;}).forEach(function(p){h+='<tr><td>'+p.spu_id+'</td><td>'+p.name+'</td><td>'+p.cluster_label+'</td><td>'+p.gross_margin.toFixed(1)+'%</td><td>'+p.daily_sales.toFixed(1)+'</td><td>'+Math.round(p.weight_g)+'g</td><td>$'+p.cost.toFixed(2)+'</td><td>$'+(p.price||0).toFixed(2)+'</td></tr>';});h+='</tbody></table>';t.innerHTML=h;},200);
+}
+
+// ═══════════════════════════════════════════════
+// 页面 ③ 选品规则
+// ═══════════════════════════════════════════════
+function renderRules() {
+    var pg=document.getElementById('page-rules'); if(!pg) return;
+    var alertEl=pg.querySelector('.alert.alert-info'); if(alertEl) alertEl.style.display='none';
+    var old=pg.querySelector('.rc'); if(old) old.remove();
+    var div=document.createElement('div'); div.className='rc';
+    var iron=ST.rules.filter(function(r){return r.type==='铁律';}), avoid=ST.rules.filter(function(r){return r.type==='避坑';});
+    div.innerHTML='<div class="btn-row"><div class="step"><div class="title">🔨 铁律</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--gold);">'+iron.length+'</div></div><div class="step"><div class="title">🛡️ 避坑</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--danger-text);">'+avoid.length+'</div></div></div><hr><h3 style="color:var(--gold);margin:16px 0;">铁律</h3>';
+    iron.forEach(function(r){div.innerHTML+='<div class="alert alert-info" style="margin-bottom:8px;"><div><strong style="color:var(--gold);">✨ '+r.rule+'</strong><br><span style="color:var(--text-dim);font-size:0.85rem;">'+r.detail+'</span></div></div>';});
+    div.innerHTML+='<h3 style="color:var(--danger-text);margin:16px 0;">避坑</h3>';
+    if(avoid.length===0) div.innerHTML+='<div class="alert alert-success">🎉 未检测到避坑信号</div>';
+    else avoid.forEach(function(r){div.innerHTML+='<div class="alert alert-warning" style="margin-bottom:8px;"><div><strong>⚠️ '+r.rule+'</strong><br><span style="color:var(--text-dim);font-size:0.85rem;">'+r.detail+'</span></div></div>';});
+    var golds=ST.clusters.filter(function(p){return p.cluster_label==='黄金品';});
+    if(golds.length>0){div.innerHTML+='<hr><h3 style="color:var(--gold);margin:16px 0;">黄金品基准区间</h3><div class="btn-row">';[{k:'gross_margin',n:'毛利率'},{k:'daily_sales',n:'日均销量'},{k:'cost',n:'成本($)'},{k:'weight_g',n:'克重(g)'}].forEach(function(fd){var v=golds.map(function(p){return p[fd.k];}).sort(function(a,b){return a-b;});div.innerHTML+='<div class="step" style="border-left:3px solid var(--gold);"><div class="title" style="font-size:0.8rem;color:var(--text-dim);">'+fd.n+'</div><div class="desc" style="font-size:1.1rem;font-weight:700;color:var(--gold);">'+(Math.round(q25(v)*10)/10)+' — '+(Math.round(q75(v)*10)/10)+'</div><div style="font-size:0.7rem;color:var(--text-dim);">中位: '+(Math.round(med(v)*10)/10)+'</div></div>';});div.innerHTML+='</div>';}
+    pg.appendChild(div);
+}
+
+// ═══════════════════════════════════════════════
+// 页面 ④ 智能预测
+// ═══════════════════════════════════════════════
+function renderPredict() {
+    var pg=document.getElementById('page-predict'); if(!pg) return;
+    var alertEl=pg.querySelector('.alert.alert-info');
+    var old=pg.querySelector('.prc'); if(old) old.remove();
+    var div=document.createElement('div'); div.className='prc';
+    div.innerHTML='<hr><h3 style="color:var(--gold);margin:16px 0;">输入新品参数</h3><div class="btn-row"><div><label>采购价($)</label><br><input type="number" id="pred_purchase" value="3" min="0" step="0.5" style="width:120px;"></div><div><label>克重(g)</label><br><input type="number" id="pred_weight" value="200" min="0" step="10" style="width:120px;"></div><div><label>售价($)</label><br><input type="number" id="pred_price" value="15" min="0" step="0.5" style="width:120px;"></div><div><label>日销</label><br><input type="number" id="pred_sales" value="5" min="0" step="0.5" style="width:120px;"></div></div><div class="alert alert-info" style="margin:16px 0;"><span>📐 成本 = 克重 x 0.06 + 采购价（运输+商品成本）</span></div><button class="btn" style="background:var(--gold);color:var(--bg);font-weight:700;margin-bottom:16px;" onclick="doPrediction()">🔍 匹配相似品</button><div id="predResult"></div>';
+    pg.appendChild(div);
+    if(alertEl){if(ST.products.length===0){alertEl.style.display='block';}else{alertEl.style.display='none';}}
+}
+
+function doPrediction(){
+    var purchase=parseFloat(document.getElementById('pred_purchase').value)||0, w=parseFloat(document.getElementById('pred_weight').value)||0, price=parseFloat(document.getElementById('pred_price').value)||0, sales=parseFloat(document.getElementById('pred_sales').value)||0;
+    var cost=w*0.06+purchase, margin=price>0?((price-cost)/price*100):0;
+    var res=document.getElementById('predResult'); if(!res) return;
+    if(ST.products.length===0){res.innerHTML='<div class="alert alert-warning">需要历史数据</div>';return;}
+    var scored=ST.products.map(function(p,i){return{idx:i,diff:Math.abs(p.gross_margin-margin)/100+Math.abs(p.weight_g-w)/1000+Math.abs(p.cost-cost)/50+Math.abs(p.daily_sales-sales)/50};}).sort(function(a,b){return a.diff-b.diff;});
+    var top15=scored.slice(0,Math.min(15,scored.length)).map(function(s){return ST.products[s.idx];}), avgM=avg(top15.map(function(p){return p.gross_margin;}));
+    var ri=margin>=30?'低':margin>=15?'中':'高', rc=ri==='低'?'var(--success-text)':ri==='中'?'var(--warning-text)':'var(--danger-text)', re=ri==='低'?'🟢':ri==='中'?'🟡':'🔴';
+    var html='<hr><div class="btn-row"><div class="step"><div class="title">计算成本</div><div class="desc" style="font-size:1.3rem;font-weight:700;">$'+cost.toFixed(2)+'</div><div style="font-size:0.7rem;color:var(--text-dim);">='+w+'gx0.06+$'+purchase+'</div></div><div class="step"><div class="title">毛利率</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:'+rc+';">'+margin.toFixed(1)+'%</div></div><div class="step"><div class="title">匹配</div><div class="desc" style="font-size:1.3rem;font-weight:700;">'+top15.length+'</div><div style="font-size:0.7rem;color:var(--text-dim);">均毛利率 '+avgM.toFixed(1)+'%</div></div></div><div class="alert" style="border:2px solid '+rc+';background:rgba(226,184,122,0.04);margin:16px 0;"><div><strong style="font-size:1.2rem;">'+re+' '+ri+'风险</strong><br>相似品均值毛利率 '+avgM.toFixed(1)+'%</div></div><table><thead><tr><th>SPU ID</th><th>名称</th><th>毛利率</th><th>日销</th><th>克重</th><th>成本</th></tr></thead><tbody>';
+    top15.forEach(function(p){html+='<tr><td>'+p.spu_id+'</td><td>'+p.name+'</td><td>'+p.gross_margin.toFixed(1)+'%</td><td>'+p.daily_sales.toFixed(1)+'</td><td>'+Math.round(p.weight_g)+'g</td><td>$'+(p.cost||0).toFixed(2)+'</td></tr>';});
+    html+='</tbody></table>'; res.innerHTML=html;
+}
+
+// ═══════════════════════════════════════════════
+// 页面 ⑤ 避坑清单（expander + scroll-box）
+// ═══════════════════════════════════════════════
+function renderBlacklist() {
+    var pg=document.getElementById('page-blacklist'); if(!pg) return;
+    var alertEl=pg.querySelector('.alert.alert-info'); if(alertEl) alertEl.style.display='none';
+    var old=pg.querySelector('.blc'); if(old) old.remove(); var div=document.createElement('div'); div.className='blc';
+    var issues=checkAvoidance(ST.products);
+    div.innerHTML='<div class="btn-row"><div class="step"><div class="title">🟢 健康品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--success-text);">'+(ST.products.length-issues.length)+'</div></div><div class="step"><div class="title">🔴 问题品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--danger-text);">'+issues.length+'</div></div></div>';
+    if(issues.length===0){div.innerHTML+='<div class="alert alert-success">🎉 没有问题品</div>';}else{
+        var grp={}; var order=['高克重陷阱','低毛利陷阱','滞销品'];
+        issues.forEach(function(i){grp[i.reason]=grp[i.reason]||[];grp[i.reason].push(i);});
+        order.forEach(function(r){
+            if(!grp[r]) return;
+            var exp=document.createElement('details'); exp.className='expander'; exp.open=true;
+            exp.innerHTML='<summary>⚠️ '+r+'（'+grp[r].length+' 个问题品）</summary><div class="expander-content"><div class="scroll-box">'+
+                grp[r].map(function(i){
+                    var sev=(i.gross_margin<5||i.weight_g>1000)?'🔴 严重':'🟡 注意';
+                    return '<div class="warn-card" style="padding:14px 20px;margin:8px 0;text-align:left;border-width:1px;"><strong>'+sev+' — '+i.spu_id+'</strong><br><span style="color:var(--text-dim);">'+i.name+' | 毛利率:'+i.gross_margin.toFixed(1)+'% | 日销:'+i.daily_sales.toFixed(1)+' | 克重:'+Math.round(i.weight_g)+'g</span></div>';
+                }).join('')+'</div></div>';
+            div.appendChild(exp);
+        });
+        var allExp=document.createElement('details'); allExp.className='expander';
+        allExp.innerHTML='<summary>📋 全量问题品数据表（'+issues.length+' 条）</summary><div class="expander-content"><div class="scroll-box"><table><thead><tr><th>SPU ID</th><th>名称</th><th>问题类型</th><th>毛利率</th><th>日销</th><th>克重</th><th>严重度</th></tr></thead><tbody>'+
+            issues.map(function(i){var sev=(i.gross_margin<5||i.weight_g>1000)?'🔴 严重':'🟡 注意';return '<tr><td>'+i.spu_id+'</td><td>'+i.name+'</td><td>'+i.reason+'</td><td>'+i.gross_margin.toFixed(1)+'%</td><td>'+i.daily_sales.toFixed(1)+'</td><td>'+Math.round(i.weight_g)+'g</td><td>'+sev+'</td></tr>';}).join('')+
+            '</tbody></table></div></div>';
+        div.appendChild(allExp);
+    }
+    pg.appendChild(div);
+}
+
+// ═══════════════════════════════════════════════
+// 快照对比 & 剔除建议（诊断页辅助）
+// ═══════════════════════════════════════════════
+function compareSnapshots() {
+    if (ST.snapshots.length < 2) return null;
+    var prevSnap = ST.snapshots[ST.snapshots.length - 2];
+    var prevData = JSON.parse(localStorage.getItem(prevSnap.key) || '[]');
+    var prevProducts = extractProducts(prevData);
+    var prevClusters = doClustering(prevProducts);
+    var res = {
+        old_count: prevProducts.length, new_count: ST.products.length,
+        old_gold: prevClusters.filter(function(p){return p.cluster_label==='黄金品';}).length,
+        new_gold: ST.clusters.filter(function(p){return p.cluster_label==='黄金品';}).length,
+        old_silver: prevClusters.filter(function(p){return p.cluster_label==='白银品';}).length,
+        new_silver: ST.clusters.filter(function(p){return p.cluster_label==='白银品';}).length,
+        old_watch: prevClusters.filter(function(p){return p.cluster_label==='观察品';}).length,
+        new_watch: ST.clusters.filter(function(p){return p.cluster_label==='观察品';}).length,
+        old_margin: avg(prevProducts.map(function(p){return p.gross_margin;})),
+        new_margin: avg(ST.products.map(function(p){return p.gross_margin;})),
+        old_sales: avg(prevProducts.map(function(p){return p.daily_sales;})),
+        new_sales: avg(ST.products.map(function(p){return p.daily_sales;})),
+        new_prods: [], gone_prods: [], degraded: []
+    };
+    res.margin_delta = res.new_margin - res.old_margin;
+    res.sales_delta = res.new_sales - res.old_sales;
+    var oldIds = {}, newIds = {};
+    prevProducts.forEach(function(p){oldIds[p.spu_id]=p;});
+    ST.products.forEach(function(p){newIds[p.spu_id]=p;});
+    Object.keys(newIds).forEach(function(id){if(!oldIds[id]) res.new_prods.push(newIds[id]);});
+    Object.keys(oldIds).forEach(function(id){if(!newIds[id]) res.gone_prods.push(oldIds[id]);});
+    var prevLabels = {};
+    prevClusters.forEach(function(p){prevLabels[p.spu_id]=p.cluster_label;});
+    ST.clusters.forEach(function(p){
+        var oldL = prevLabels[p.spu_id];
+        if (oldL === '黄金品' && (p.cluster_label === '白银品' || p.cluster_label === '观察品')) {
+            res.degraded.push({spu_id:p.spu_id, name:p.name, old_label:oldL, new_label:p.cluster_label, old_margin:(oldIds[p.spu_id]||{}).gross_margin||0, new_margin:p.gross_margin, margin_drop:((oldIds[p.spu_id]||{}).gross_margin||0)-p.gross_margin, severity:p.cluster_label==='观察品'?'严重':'注意', suggestion:p.cluster_label==='观察品'?'下架/提价':'观察'});
+        } else if (oldL === '白银品' && p.cluster_label === '观察品') {
+            res.degraded.push({spu_id:p.spu_id, name:p.name, old_label:oldL, new_label:p.cluster_label, old_margin:(oldIds[p.spu_id]||{}).gross_margin||0, new_margin:p.gross_margin, margin_drop:((oldIds[p.spu_id]||{}).gross_margin||0)-p.gross_margin, severity:'注意', suggestion:'观察/下架'});
+        } else if (oldL && p.cluster_label && (oldIds[p.spu_id]||{}).gross_margin - p.gross_margin > 10) {
+            res.degraded.push({spu_id:p.spu_id, name:p.name, old_label:oldL, new_label:p.cluster_label, old_margin:(oldIds[p.spu_id]||{}).gross_margin||0, new_margin:p.gross_margin, margin_drop:((oldIds[p.spu_id]||{}).gross_margin||0)-p.gross_margin, severity:'注意', suggestion:'提价'});
+        }
+    });
+    res.degraded.sort(function(a,b){return b.margin_drop-a.margin_drop;});
+    return res;
+}
+
+function suggestPruning(products, oldProducts) {
+    if (!products || products.length===0) return [];
+    var suggestions = [], seen = {};
+    products.forEach(function(p){
+        if (p.gross_margin < 10 && p.daily_profit <= 0) {
+            suggestions.push({spu_id:p.spu_id, name:p.name, reason:'连续亏损：毛利率低于10%且日利润<=0', data:'毛利率:'+p.gross_margin.toFixed(1)+'% | 日利润:$'+p.daily_profit.toFixed(2)+' | 日销:'+p.daily_sales.toFixed(1)+'单', severity:p.gross_margin<5?'严重':'注意'});
+            seen[p.spu_id]=true;
+        } else if (p.weight_g>500 && p.daily_sales<1) {
+            suggestions.push({spu_id:p.spu_id, name:p.name, reason:'高克重陷阱：克重'+Math.round(p.weight_g)+'g>500g且日销<1单', data:'克重:'+Math.round(p.weight_g)+'g | 日销:'+p.daily_sales.toFixed(1)+'单 | 毛利率:'+p.gross_margin.toFixed(1)+'%', severity:p.weight_g>1000?'严重':'注意'});
+            seen[p.spu_id]=true;
+        }
+    });
+    if (oldProducts && oldProducts.length>0) {
+        var oldMap = {};
+        oldProducts.forEach(function(p){oldMap[p.spu_id]=p.gross_margin;});
+        products.forEach(function(p){
+            if (seen[p.spu_id]) return;
+            var oldM = oldMap[p.spu_id];
+            if (oldM !== undefined && oldM - p.gross_margin > 10) {
+                suggestions.push({spu_id:p.spu_id, name:p.name, reason:'毛利率持续下降：从'+oldM.toFixed(1)+'%降至'+p.gross_margin.toFixed(1)+'%（降幅'+(oldM-p.gross_margin).toFixed(1)+'pp）', data:'旧毛利率:'+oldM.toFixed(1)+'% -> 新毛利率:'+p.gross_margin.toFixed(1)+'% | 日销:'+p.daily_sales.toFixed(1)+'单 | 克重:'+Math.round(p.weight_g)+'g', severity:(oldM-p.gross_margin)>20?'严重':'注意'});
+            }
+        });
+    }
+    return suggestions.sort(function(a,b){return a.severity==='严重'?-1:b.severity==='严重'?1:0;});
+}
+
+// ═══════════════════════════════════════════════
+// 方向建议生成器
+// ═══════════════════════════════════════════════
+function generateDirectionAdvice(cmp) {
+    if (!cmp) return null;
+    var advice = [];
+    var goldPct = (cmp.new_gold / Math.max(cmp.new_count,1) * 100);
+    if (goldPct < 30) {
+        advice.push({priority:'🔴 高',title:'黄金品占比偏低（'+goldPct.toFixed(0)+'%）',detail:'当前黄金品占比不足30%，建议重点筛选高毛利率（≥25%）+ 低克重（≤300g）的新品，减少盲目铺货。',action:'提高选品标准，优先上架毛利率≥25%的轻小件'});
+    } else if (goldPct >= 50) {
+        advice.push({priority:'🟢 好',title:'黄金品占比健康（'+goldPct.toFixed(0)+'%）',detail:'选品结构良好，继续保持现有策略。可适度增加高利润品类投入。',action:'维持现有选品节奏，扩大优势品类'});
+    } else {
+        advice.push({priority:'🟡 中',title:'黄金品占比中等（'+goldPct.toFixed(0)+'%）',detail:'选品结构有提升空间，重点关注毛利率和克重的平衡。',action:'优化选品结构，向轻小高毛利靠拢'});
+    }
+    if (cmp.margin_delta < -5) {
+        advice.push({priority:'🔴 高',title:'均毛利率下降 '+Math.abs(cmp.margin_delta).toFixed(1)+'pp',detail:'整体毛利率在走低，需排查是否新上架了过多低毛利品，或原有产品被迫降价。',action:'暂停低毛利新品上架，优先处理亏损品'});
+    } else if (cmp.margin_delta > 3) {
+        advice.push({priority:'🟢 好',title:'均毛利率提升 '+cmp.margin_delta.toFixed(1)+'pp',detail:'整体毛利率在改善，说明选品和定价策略效果良好。',action:'继续保持，记录有效策略为铁律'});
+    }
+    if (cmp.new_watch > cmp.new_count * 0.3) {
+        advice.push({priority:'🔴 高',title:'观察品占比过高（'+cmp.new_watch+'个）',detail:'超过30%的商品处于观察区，大量低效品拉低整体表现。',action:'批量清理日销<1单且毛利率<15%的滞销品'});
+    }
+    var heavyIssues = (ST.products||[]).filter(function(p){return p.weight_g>500&&p.daily_sales<1;});
+    if (heavyIssues.length > 0) {
+        advice.push({priority:'🟡 中',title:'高克重陷阱：'+heavyIssues.length+'个品',detail:'克重>500g且日销<1单，运费成本高、转化低，建议尽快清理。',action:'高克重品设置库存警戒线，达线后自动下架'});
+    }
+    if (cmp.new_prods.length > 0) {
+        var newGold = cmp.new_prods.filter(function(p){return (p.gross_margin||0)>=25;}).length;
+        var newBad = cmp.new_prods.filter(function(p){return (p.gross_margin||0)<10;}).length;
+        if (newBad > newGold) {
+            advice.push({priority:'🔴 高',title:'新增品质量堪忧',detail:'新上架的'+cmp.new_prods.length+'个品中，低毛利（<10%）品（'+newBad+'个）多于高毛利（≥25%）品（'+newGold+'个）。',action:'暂停铺货，重新审核选品标准'});
+        }
+    }
+    if (advice.length===0) {
+        advice.push({priority:'🟢',title:'当前表现良好',detail:'各项指标稳定，继续保持现有运营节奏。',action:'定期复盘，保持选品纪律'});
+    }
+    return advice.sort(function(a,b){var o={'🔴 高':0,'🟡 中':1,'🟢 好':2,'🟢':2};return (o[a.priority]||9)-(o[b.priority]||9);});
+}
+
+// ═══════════════════════════════════════════════
+// 页面 ⑥ 个人诊断（7个expander模块）
+// ═══════════════════════════════════════════════
+function renderDiagnosis() {
+    var pg=document.getElementById('page-diagnosis'); if(!pg) return;
+    var msg=pg.querySelector('.warn-card'); var old=pg.querySelector('.dc'); if(old) old.remove();
+    if(ST.snapshots.length<2){if(msg) msg.style.display='block';return;}
+    if(msg) msg.style.display='none';
+    var div=document.createElement('div'); div.className='dc';
+    var cmp = compareSnapshots();
+    if (!cmp) { pg.appendChild(div); return; }
+
+    var goldPct = (cmp.new_gold / Math.max(cmp.new_count,1) * 100);
+    var oldGoldPct = (cmp.old_gold / Math.max(cmp.old_count,1) * 100);
+
+    /* ── ① 概览对比（默认展开）── */
+    var exp1=document.createElement('details'); exp1.className='expander'; exp1.open=true;
+    var ovHTML='<summary>📊 概览对比 — 最新 vs 上一份</summary><div class="expander-content">';
+    ovHTML+='<div class="btn-row">';
+    ovHTML+='<div class="step"><div class="title">商品总数</div><div class="desc" style="font-size:1.3rem;font-weight:700;">'+cmp.old_count+' → '+cmp.new_count+'</div></div>';
+    ovHTML+='<div class="step"><div class="title">黄金品占比</div><div class="desc" style="font-size:1.3rem;font-weight:700;color:var(--gold);">'+(oldGoldPct).toFixed(0)+'% → '+(goldPct).toFixed(0)+'%</div></div>';
+    ovHTML+='<div class="step"><div class="title">均毛利率</div><div class="desc" style="font-size:1.3rem;font-weight:700;color:var(--success-text);">'+(cmp.old_margin).toFixed(1)+'% → '+(cmp.new_margin).toFixed(1)+'%</div></div>';
+    ovHTML+='<div class="step"><div class="title">均日销</div><div class="desc" style="font-size:1.3rem;font-weight:700;">'+(cmp.old_sales).toFixed(1)+' → '+(cmp.new_sales).toFixed(1)+' 单</div></div>';
+    ovHTML+='</div><div class="btn-row">';
+    ovHTML+='<div class="step" style="border-left:3px solid var(--gold);"><div class="title">黄金品</div><div class="desc" style="font-size:1.1rem;font-weight:700;color:var(--gold);">'+cmp.old_gold+' → '+cmp.new_gold+'</div></div>';
+    ovHTML+='<div class="step" style="border-left:3px solid #a0a0a0;"><div class="title">白银品</div><div class="desc" style="font-size:1.1rem;font-weight:700;color:#a0a0a0;">'+cmp.old_silver+' → '+cmp.new_silver+'</div></div>';
+    ovHTML+='<div class="step" style="border-left:3px solid #5b9bd5;"><div class="title">观察品</div><div class="desc" style="font-size:1.1rem;font-weight:700;color:#5b9bd5;">'+cmp.old_watch+' → '+cmp.new_watch+'</div></div>';
+    ovHTML+='</div></div>';
+    exp1.innerHTML=ovHTML; div.appendChild(exp1);
+
+    /* ── ② 趋势图 ── */
+    if (ST.snapshots.length >= 3) {
+        var expTrend=document.createElement('details'); expTrend.className='expander';
+        expTrend.innerHTML='<summary>📈 趋势折线图</summary><div class="expander-content"><div id="trendChart" style="height:350px;"></div></div>';
+        div.appendChild(expTrend);
+    }
+
+    /* ── ③ 在变差的品 ── */
+    if (cmp.degraded.length > 0) {
+        var expDeg=document.createElement('details'); expDeg.className='expander';
+        var degHTML='<summary>📉 在变差的品（'+cmp.degraded.length+'）</summary><div class="expander-content"><div class="scroll-box"><table><thead><tr><th>SPU ID</th><th>旧标签</th><th>新标签</th><th>旧毛利率</th><th>新毛利率</th><th>降幅</th><th>建议</th></tr></thead><tbody>';
+        cmp.degraded.forEach(function(d){
+            var sevStyle = d.severity==='严重'?' style="color:var(--danger-text);font-weight:700;"':'';
+            degHTML+='<tr'+sevStyle+'><td>'+d.spu_id+'</td><td>'+d.old_label+'</td><td>'+d.new_label+'</td><td>'+d.old_margin.toFixed(1)+'%</td><td>'+d.new_margin.toFixed(1)+'%</td><td>'+d.margin_drop.toFixed(1)+'pp</td><td>'+d.suggestion+'</td></tr>';
+        });
+        degHTML+='</tbody></table></div></div>';
+        expDeg.innerHTML=degHTML; div.appendChild(expDeg);
+    } else {
+        var expDeg2=document.createElement('details'); expDeg2.className='expander';
+        expDeg2.innerHTML='<summary>📉 在变差的品（0）</summary><div class="expander-content"><div class="alert alert-success">所有商品保持稳定</div></div>';
+        div.appendChild(expDeg2);
+    }
+
+    /* ── ④ 建议剔除 ── */
+    var prevSnap = ST.snapshots[ST.snapshots.length - 2];
+    var prevData = JSON.parse(localStorage.getItem(prevSnap.key) || '[]');
+    var pruned = suggestPruning(ST.products, extractProducts(prevData));
+    var expPrune=document.createElement('details'); expPrune.className='expander';
+    if (pruned.length > 0) {
+        var pruneHTML='<summary>🗑️ 建议剔除（'+pruned.length+'）</summary><div class="expander-content"><div class="scroll-box">';
+        pruned.forEach(function(p){
+            var sevEmoji = p.severity==='严重'?'🔴':'🟡';
+            pruneHTML+='<div class="warn-card" style="padding:14px 20px;margin:8px 0;text-align:left;border-width:1px;"><strong>'+sevEmoji+' '+p.severity+' — '+p.spu_id+' — '+p.name+'</strong><br><span style="color:var(--text-dim);">'+p.reason+'</span><br><span style="color:var(--text-dim);font-size:0.82rem;">'+p.data+'</span></div>';
+        });
+        pruneHTML+='</div></div>'; expPrune.innerHTML=pruneHTML;
+    } else {
+        expPrune.innerHTML='<summary>🗑️ 建议剔除（0）</summary><div class="expander-content"><div class="alert alert-success">当前没有明显需要剔除的品</div></div>';
+    }
+    div.appendChild(expPrune);
+
+    /* ── ⑤ 个人 vs 团队 ── */
+    var expVs=document.createElement('details'); expVs.className='expander';
+    var vsHTML='<summary>👥 个人 vs 团队</summary><div class="expander-content">';
+    vsHTML+='<div class="alert alert-info"><span class="alert-icon">ℹ</span><span>团队基准数据需导入团队 Excel 后自动计算。当前仅展示个人数据，虚线为估算团队中位。</span></div>';
+    vsHTML+='<table><thead><tr><th>指标</th><th>个人（最新）</th><th>团队中位（估算）</th><th>差距</th></tr></thead><tbody>';
+    var metrics = [
+        {label:'商品总数', my:cmp.new_count, tm:Math.max(15,cmp.new_count*0.8|0), unit:' 个'},
+        {label:'黄金品占比', my:goldPct, tm:40, unit:'%'},
+        {label:'均毛利率', my:cmp.new_margin, tm:25, unit:'%'},
+        {label:'均日销量', my:cmp.new_sales, tm:3, unit:' 单'},
+    ];
+    metrics.forEach(function(m){
+        var gap = m.my - m.tm;
+        var gapColor = gap >= 0 ? 'var(--success-text)' : 'var(--danger-text)';
+        var gapSign = gap >= 0 ? '+' : '';
+        vsHTML+='<tr><td>'+m.label+'</td><td>'+m.my.toFixed(1)+m.unit+'</td><td>~'+m.tm+m.unit+'</td><td style="color:'+gapColor+';font-weight:700;">'+gapSign+gap.toFixed(1)+m.unit+'</td></tr>';
+    });
+    vsHTML+='</tbody></table></div>';
+    expVs.innerHTML=vsHTML; div.appendChild(expVs);
+
+    /* ── ⑥ 方向建议 ── */
+    var advice = generateDirectionAdvice(cmp);
+    if (advice) {
+        var expAdv=document.createElement('details'); expAdv.className='expander';
+        var advHTML='<summary>🧭 方向建议（'+advice.length+' 条）</summary><div class="expander-content"><div class="scroll-box">';
+        advice.forEach(function(a){
+            var pc = a.priority.indexOf('高')>=0?'var(--danger-text)':a.priority.indexOf('中')>=0?'var(--warning-text)':'var(--success-text)';
+            advHTML+='<div class="alert alert-info" style="border-left:3px solid '+pc+';margin-bottom:10px;">';
+            advHTML+='<div><strong style="color:'+pc+';">'+a.priority+' '+a.title+'</strong><br><span style="color:var(--text-dim);font-size:0.85rem;">'+a.detail+'</span>';
+            advHTML+='<br><span style="color:var(--gold);font-size:0.82rem;">→ '+a.action+'</span></div></div>';
+        });
+        advHTML+='</div></div>'; expAdv.innerHTML=advHTML; div.appendChild(expAdv);
+    }
+
+    /* ── ⑦ 商品变动 ── */
+    if (cmp.new_prods.length > 0 || cmp.gone_prods.length > 0) {
+        var expChg=document.createElement('details'); expChg.className='expander';
+        var chgHTML='<summary>🔄 商品变动 — 新增 '+cmp.new_prods.length+' · 下架 '+cmp.gone_prods.length+'</summary><div class="expander-content">';
+        chgHTML+='<div class="btn-row"><div class="step" style="border-left:3px solid var(--success-text);"><div class="title">新增品</div><div class="desc" style="font-size:1.2rem;font-weight:700;">'+cmp.new_prods.length+'</div></div><div class="step" style="border-left:3px solid var(--danger-text);"><div class="title">消失品</div><div class="desc" style="font-size:1.2rem;font-weight:700;">'+cmp.gone_prods.length+'</div></div></div>';
+        if (cmp.new_prods.length > 0) {
+            chgHTML+='<div class="scroll-box" style="max-height:300px;"><table><thead><tr><th>新增 SPU</th><th>名称</th><th>毛利率</th><th>日销</th><th>克重</th></tr></thead><tbody>';
+            cmp.new_prods.forEach(function(p){chgHTML+='<tr><td>'+p.spu_id+'</td><td>'+p.name+'</td><td>'+(p.gross_margin||0).toFixed(1)+'%</td><td>'+(p.daily_sales||0).toFixed(1)+'</td><td>'+Math.round(p.weight_g||0)+'g</td></tr>';});
+            chgHTML+='</tbody></table></div>';
+        }
+        if (cmp.gone_prods.length > 0) {
+            chgHTML+='<div class="scroll-box" style="max-height:300px;margin-top:12px;"><table><thead><tr><th>下架 SPU</th><th>名称</th><th>原毛利率</th><th>原日销</th><th>克重</th></tr></thead><tbody>';
+            cmp.gone_prods.forEach(function(p){chgHTML+='<tr><td>'+p.spu_id+'</td><td>'+p.name+'</td><td>'+(p.gross_margin||0).toFixed(1)+'%</td><td>'+(p.daily_sales||0).toFixed(1)+'</td><td>'+Math.round(p.weight_g||0)+'g</td></tr>';});
+            chgHTML+='</tbody></table></div>';
+        }
+        chgHTML+='</div>'; expChg.innerHTML=chgHTML; div.appendChild(expChg);
+    }
+
+    pg.appendChild(div);
+
+    /* 趋势图渲染 */
+    if (ST.snapshots.length >= 3) {
+        setTimeout(function(){
+            var el=document.getElementById('trendChart'); if(!el) return;
+            var times=[], golds=[], margins=[], sales=[];
+            for (var i=0; i<Math.min(ST.snapshots.length,10); i++) {
+                var sd = JSON.parse(localStorage.getItem(ST.snapshots[i].key)||'[]');
+                var prods = extractProducts(sd);
+                var clust = doClustering(prods);
+                times.push(ST.snapshots[i].time);
+                golds.push(clust.filter(function(p){return p.cluster_label==='黄金品';}).length);
+                margins.push(avg(prods.map(function(p){return p.gross_margin;})));
+                sales.push(avg(prods.map(function(p){return p.daily_sales;})));
+            }
+            Plotly.newPlot('trendChart', [
+                {x:times,y:golds,type:'scatter',mode:'lines+markers',name:'黄金品数量',line:{color:'#e2b87a',width:2.5}},
+                {x:times,y:margins,type:'scatter',mode:'lines+markers',name:'均毛利率(%)',line:{color:'#4ade80',width:2.5}},
+                {x:times,y:sales,type:'scatter',mode:'lines+markers',name:'均日销',line:{color:'#5b9bd5',width:2,dash:'dot'},yaxis:'y2'}
+            ], {plot_bgcolor:'#0f0f17',paper_bgcolor:'#0f0f17',font:{color:'#f1f0ee'},xaxis:{title:'时间',gridcolor:'#2a2a3a'},yaxis:{title:'数量/毛利率(%)',gridcolor:'#2a2a3a'},yaxis2:{title:'日销',overlaying:'y',side:'right',gridcolor:'#2a2a3a'},legend:{font:{color:'#f1f0ee'}},hovermode:'x unified',margin:{l:50,r:50,t:20,b:60}});
+        }, 300);
+    }
+}
+
+</script>
 </body>
 </html>
