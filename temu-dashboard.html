@@ -524,6 +524,7 @@ function clearAllData() {
     keys.forEach(function(k) { localStorage.removeItem(k); });
     ST.files = []; ST.products = []; ST.clusters = []; ST.rules = [];
     ST._avoidance = []; ST._stats = {}; ST.snapshots = [];
+    ST.storeData = [];  // ← 之前漏了
     updateSidebar();
     toast('本地数据已清空，请重新上传','warning');
 }
@@ -532,7 +533,8 @@ function updateSidebar() {
     var card = document.querySelector('.stat-card');
     if (!card) return;
     var meta = JSON.parse(localStorage.getItem('temu_v6_meta') || '{}');
-    card.innerHTML = '💾 已保存 <b>'+ST.files.length+'</b> 个文件'+(meta.saved_at?'<br><span class="time">'+meta.saved_at+'</span>':'');
+    var storeCount = (ST.storeData && ST.storeData.length) ? ST.storeData.length : 0;
+    card.innerHTML = '📦 商品 <b>'+ST.files.length+'</b> 个文件<br>🏪 店铺 <b>'+storeCount+'</b> 条记录'+(meta.saved_at?'<br><span class="time">'+meta.saved_at+'</span>':'');
     var sd = document.querySelector('.snapshot');
     if (sd) sd.innerHTML = '📸 <b>'+ST.snapshots.length+'</b> 份历史快照';
 }
