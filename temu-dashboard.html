@@ -661,12 +661,12 @@ function handleFileUpload(inputFiles) {
                     if (rows.length===0) return;
 
                     // 检测文件类型：店铺数据记录 vs 利润统计
-                    // 店铺数据记录格式特殊：row0=日期序列号，row1=真实表头
-                    var isStoreData = headers.some(function(h){return h==='店铺名称'||h==='目标ROAS'||h==='今日销量';});
-                    // 如果 row0 没匹配到（可能是日期行），检查 row1
+                    // 关键区分：'店铺名称' 列仅存在于店铺数据记录（利润统计无此列）
+                    var isStoreData = headers.some(function(h){return h==='店铺名称';});
+                    // 如果 row0 没匹配到（店铺数据记录row0=日期序列号），检查 row1
                     if (!isStoreData && json.length > 1) {
                         var h1 = json[1].map(function(h){return String(h).trim();});
-                        isStoreData = h1.some(function(h){return h==='店铺名称'||h==='目标ROAS'||h==='今日销量';});
+                        isStoreData = h1.some(function(h){return h==='店铺名称';});
                     }
                     if (isStoreData) {
                         // 店铺数据：走 StoreDataPipeline，保留原始行
