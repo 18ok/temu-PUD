@@ -314,6 +314,7 @@
             <li><a onclick="switchPage('predict')"><span class="nav-icon">🔮</span> <span class="nav-text">智能预测</span></a></li>
             <li><a onclick="switchPage('blacklist')"><span class="nav-icon">🚨</span> <span class="nav-text">避坑清单</span></a></li>
             <li><a onclick="switchPage('diagnosis')"><span class="nav-icon">📈</span> <span class="nav-text">个人诊断</span></a></li>
+            <li><a onclick="switchPage('store')"><span class="nav-icon">🏪</span> <span class="nav-text">店铺运营</span></a></li>
         </ul>
         <div class="sidebar-info">
             <div class="stat-card">
@@ -418,6 +419,15 @@
                 </div>
             </div>
 
+            <!-- ═══ 页面 7: 店铺运营 ═══ -->
+            <div class="page" id="page-store">
+                <div class="hero">
+                    <h1>🏪 店铺运营</h1>
+                    <p>店铺级运营数据分析：ROAS、转化率、花费效率、多日趋势对比。上传「店铺数据记录.xlsx」自动解析。</p>
+                </div>
+                <div class="alert alert-info"><span class="alert-icon">📂</span><span>请上传店铺数据记录 Excel（.xlsx），系统自动按日期和店铺分组展示。</span></div>
+            </div>
+
         </div>
     </main>
 </div>
@@ -426,7 +436,7 @@
 // ═══════════════════════════════════════════════
 // 全局状态
 // ═══════════════════════════════════════════════
-var ST = { files: [], products: [], clusters: [], rules: [], snapshots: [] };
+var ST = { files: [], products: [], clusters: [], rules: [], snapshots: [], storeData: [] };
 
 // ═══════════════════════════════════════════════
 // 工具函数
@@ -436,23 +446,87 @@ function q75(a){return a[Math.floor(a.length*0.75)];}
 function q25(a){return a[Math.floor(a.length*0.25)];}
 function avg(a){return a.reduce(function(x,y){return x+y;},0)/a.length;}
 
+// 安全写入 localStorage：配额溢出时自动清理旧快照后重试
+function safeSetItem(key, value) {
+    try {
+        localStorage.setItem(key, value);
+    } catch(e) {
+        if (e.name === 'QuotaExceededError') {
+            console.warn('localStorage 配额不足，清理旧快照...');
+            // 清理所有快照
+            var snapKeys = [];
+            for (var i = localStorage.length - 1; i >= 0; i--) {
+                var k = localStorage.key(i);
+                if (k && k.indexOf('temu_v6_snap_') === 0) snapKeys.push(k);
+            }
+            // 只保留最近 3 个快照，其余删除
+            snapKeys.sort().reverse();
+            snapKeys.slice(3).forEach(function(k) { try { localStorage.removeItem(k); } catch(e2) {} });
+            ST.snapshots = ST.snapshots.slice(-3);
+            // 重试
+            try { localStorage.setItem(key, value); } catch(e2) {
+                // 仍然失败：清空全部数据
+                toast('存储空间不足，请清理旧数据后重试','error');
+                throw e2;
+            }
+        } else { throw e; }
+    }
+}
+
 // ═══════════════════════════════════════════════
 // 初始化
 // ═══════════════════════════════════════════════
 (function init() {
     var raw = localStorage.getItem('temu_v6_data');
-    if (raw) { try { ST.files = JSON.parse(raw); } catch(e) {} }
+    if (raw) { try { ST.files = JSON.parse(raw); } catch(e) { ST.files = []; } }
+    // 确保 ST.files 是数组
+    if (!Array.isArray(ST.files)) ST.files = [];
     var idx = localStorage.getItem('temu_v6_snap_idx');
-    if (idx) { try { ST.snapshots = JSON.parse(idx); } catch(e) {} }
+    if (idx) { try { ST.snapshots = JSON.parse(idx); } catch(e) { ST.snapshots = []; } }
+    if (!Array.isArray(ST.snapshots)) ST.snapshots = [];
+    var storeRaw = localStorage.getItem('temu_v6_store');
+    if (storeRaw) { try { ST.storeData = JSON.parse(storeRaw); } catch(e) { ST.storeData = []; } }
+    if (!Array.isArray(ST.storeData)) ST.storeData = [];
     updateSidebar();
-    if (ST.files.length > 0) { reprocessAll(); renderImportPage(); }
+    if (ST.files.length > 0) {
+        try { reprocessAll(); renderImportPage(); } catch(e) {
+            console.warn('数据加载失败，已重置:', e.message);
+            ST.files = []; ST.products = []; ST.clusters = []; ST.rules = []; ST._avoidance = []; ST._stats = {};
+            clearAllData();
+        }
+    }
     // 侧边栏折叠状态恢复
     if (localStorage.getItem('temu_v6_sidebar') === 'collapsed') {
         document.querySelector('.sidebar').classList.add('collapsed');
     }
 })();
 
-function reprocessAll() { ST.products = extractProducts(ST.files); ST.clusters = doClustering(ST.products); ST.rules = extractRules(ST.clusters); }
+function reprocessAll() {
+    var result = DataPipeline.analyze(ST.files);
+    if (!result || !result.products) {
+        console.warn('reprocessAll: analyze 返回无效数据，使用空结果');
+        result = { products: [], clusters: [], rules: [], avoidance: [], stats: {} };
+    }
+    ST.products = result.products;
+    ST.clusters = result.clusters;
+    ST.rules = result.rules;
+    ST._avoidance = result.avoidance;
+    ST._stats = result.stats;
+}
+
+// 清空所有本地数据（配额恢复用）
+function clearAllData() {
+    var keys = [];
+    for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf('temu_v6') === 0) keys.push(k);
+    }
+    keys.forEach(function(k) { localStorage.removeItem(k); });
+    ST.files = []; ST.products = []; ST.clusters = []; ST.rules = [];
+    ST._avoidance = []; ST._stats = {}; ST.snapshots = [];
+    updateSidebar();
+    toast('本地数据已清空，请重新上传','warning');
+}
 
 function updateSidebar() {
     var card = document.querySelector('.stat-card');
@@ -510,6 +584,7 @@ function switchPage(name) {
     if (name==='predict') renderPredict();
     if (name==='blacklist' && ST.products.length>0) renderBlacklist();
     if (name==='diagnosis') renderDiagnosis();
+    if (name==='store') renderStorePage();
 }
 
 // ═══════════════════════════════════════════════
@@ -563,38 +638,64 @@ function doLoad() {
 // Excel 解析
 // ═══════════════════════════════════════════════
 function normalizeCols(headers) {
-    var map = {spuid:'spu_id','spu id':'spu_id',name:'name','成本':'cost','克重':'weight_g','重量':'weight_g','weight':'weight_g','weight_g':'weight_g','售价':'price','卖价':'price','日均销量':'daily_sales','销量':'daily_sales','daily_sales':'daily_sales','sales':'daily_sales','毛利率':'gross_margin','日利润':'daily_profit','品类':'category'};
+    var map = {spuid:'spu_id','spu id':'spu_id','商品spuid':'spu_id',name:'name','名称':'name','品名':'name','商品名称':'name','成本':'cost','克重':'weight_g','重量':'weight_g','weight':'weight_g','weight_g':'weight_g','售价':'price','卖价':'price','实际卖价':'price','同行卖价':'competitor_price','日均销量':'daily_sales','每天销量':'daily_sales','今日销量':'daily_sales','销量':'daily_sales','daily_sales':'daily_sales','sales':'daily_sales','毛利率':'gross_margin','毛利润率':'gross_margin','gross_margin':'gross_margin','日利润':'daily_profit','每天利润':'daily_profit','daily_profit':'daily_profit','品类':'category','累计销量':'total_sales'};
     return headers.map(function(h){var l=h.toLowerCase().replace(/\s/g,'');return map[l]||map[h]||h;});
 }
 
 function handleFileUpload(inputFiles) {
     if (!inputFiles||inputFiles.length===0) return;
-    var count=0;
+    var count=0, storeCount=0;
     Array.from(inputFiles).forEach(function(f){
         var reader = new FileReader();
         reader.onload = function(e){
             try {
                 var wb = XLSX.read(e.target.result,{type:'array'});
                 wb.SheetNames.forEach(function(sn){
+                    if (sn==='计算公式') return;
                     var ws = wb.Sheets[sn], json = XLSX.utils.sheet_to_json(ws,{header:1});
                     if (json.length<=1) return;
                     var headers = json[0].map(function(h){return String(h).trim();});
                     var rows = json.slice(1).filter(function(r){return r.some(function(c){return c!==null&&c!=='';});});
                     if (rows.length===0) return;
+
+                    // 检测文件类型：店铺数据记录 vs 利润统计
+                    // 店铺数据记录格式特殊：row0=日期序列号，row1=真实表头
+                    var isStoreData = headers.some(function(h){return h==='店铺名称'||h==='目标ROAS'||h==='今日销量';});
+                    // 如果 row0 没匹配到（可能是日期行），检查 row1
+                    if (!isStoreData && json.length > 1) {
+                        var h1 = json[1].map(function(h){return String(h).trim();});
+                        isStoreData = h1.some(function(h){return h==='店铺名称'||h==='目标ROAS'||h==='今日销量';});
+                    }
+                    if (isStoreData) {
+                        // 店铺数据：走 StoreDataPipeline，保留原始行
+                        var storeRecs = StoreDataPipeline.analyze([{rows: json, sheet: sn, filename: f.name}]);
+                        ST.storeData = (ST.storeData||[]).concat(storeRecs);
+                        storeCount += storeRecs.length;
+                        // 保存到 localStorage
+                        safeSetItem('temu_v6_store', JSON.stringify(ST.storeData));
+                        return; // 不进入商品管线
+                    }
+
                     var cols = normalizeCols(headers);
                     var data = rows.map(function(r){var o={};cols.forEach(function(c,i){o[c]=(i<r.length)?r[i]:'';});return o;});
                     ST.files.push({filename:f.name,sheet:sn,headers:cols,data:data,rowCount:data.length,time:new Date().toLocaleString('zh-CN')});
                     count+=data.length;
                 });
             } catch(err) { toast('解析失败: '+f.name,'error'); return; }
-            localStorage.setItem('temu_v6_data', JSON.stringify(ST.files));
+            // 安全写入 localStorage（自动处理配额溢出和快照清理）
+            safeSetItem('temu_v6_data', JSON.stringify(ST.files));
             var now = new Date().toLocaleString('zh-CN'), snapKey = 'temu_v6_snap_'+Date.now();
-            localStorage.setItem(snapKey, JSON.stringify(ST.files));
+            safeSetItem(snapKey, JSON.stringify({time:now, fileCount:ST.files.length, rowCount:count}));
             ST.snapshots.push({key:snapKey, time:now});
-            localStorage.setItem('temu_v6_snap_idx', JSON.stringify(ST.snapshots));
-            localStorage.setItem('temu_v6_meta', JSON.stringify({count:ST.files.length, saved_at:now}));
+            // 只保留最近 10 个快照
+            while (ST.snapshots.length > 10) {
+                var oldSnap = ST.snapshots.shift();
+                try { localStorage.removeItem(oldSnap.key); } catch(e) {}
+            }
+            safeSetItem('temu_v6_snap_idx', JSON.stringify(ST.snapshots));
+            safeSetItem('temu_v6_meta', JSON.stringify({count:ST.files.length, saved_at:now}));
             reprocessAll(); updateSidebar(); renderImportPage();
-            toast('上传完成：'+count+' 条商品','success');
+            toast('上传完成：'+count+' 条商品'+(storeCount>0?' + '+storeCount+' 条店铺数据':''),'success');
         };
         reader.readAsArrayBuffer(f);
     });
@@ -607,8 +708,11 @@ function extractProducts(files) {
     var pros=[];
     files.forEach(function(f){
         (f.data||[]).forEach(function(r){
-            var cost=parseFloat(r.cost)||0, price=parseFloat(r.price)||0, ds=parseFloat(r.daily_sales)||0, gm=parseFloat(r.gross_margin)||(price>0?((price-cost)/price*100):0);
-            pros.push({spu_id:r.spu_id||('SPU-'+Math.random().toString(36).slice(2,8)),name:r.name||r.spu_id||'?',cost:cost,weight_g:parseFloat(r.weight_g)||0,price:price,daily_sales:ds,gross_margin:gm,daily_profit:parseFloat(r.daily_profit)||(ds*cost*gm/100),category:r.category||''});
+            var cost=parseFloat(r.cost)||0, price=parseFloat(r.price)||0;
+            var ds=parseFloat(r.daily_sales)||parseFloat(r.total_sales)||0;
+            var gm=parseFloat(r.gross_margin)||(price>0?((price-cost)/price*100):0);
+            var spu=String(r.spu_id||'').replace(/\.0$/,'');
+            pros.push({spu_id:spu||('SPU-'+Math.random().toString(36).slice(2,8)),name:r.name||spu||'?',cost:cost,weight_g:parseFloat(r.weight_g)||0,price:price,daily_sales:ds,gross_margin:gm,daily_profit:parseFloat(r.daily_profit)||(ds*cost*gm/100),category:r.category||''});
         });
     }); return pros;
 }
@@ -651,7 +755,90 @@ function checkAvoidance(products) {
 }
 
 // ═══════════════════════════════════════════════
-// 页面 ① 数据导入
+// DataPipeline — thin wrapper (Candidate #1)
+// Preserves all existing global functions.
+// Adds unified analyze() + stats computation.
+// ═══════════════════════════════════════════════
+var DataPipeline = {
+    analyze: function(files) {
+        var products = extractProducts(files);
+        var clusters = doClustering(products);
+        var rules = extractRules(clusters);
+        var avoidance = checkAvoidance(products);
+        var cnt = {}; clusters.forEach(function(p) { cnt[p.cluster_label] = (cnt[p.cluster_label] || 0) + 1; });
+        var stats = {
+            totalSPU: clusters.length,
+            goldCount: cnt['黄金品'] || 0,
+            silverCount: cnt['白银品'] || 0,
+            watchCount: cnt['观察品'] || 0,
+            avgMargin: avg(products.map(function(p) { return p.gross_margin; })),
+            avgSales: avg(products.map(function(p) { return p.daily_sales; })),
+            avgWeight: avg(products.map(function(p) { return p.weight_g; })),
+            avgCost: avg(products.map(function(p) { return p.cost; }))
+        };
+        return { products: products, clusters: clusters, rules: rules, avoidance: avoidance, stats: stats };
+    }
+};
+// ═══════════════════════════════════════════════
+// StoreDataPipeline — 店铺运营数据管线
+// 解析 .xlsx 店铺数据记录（row1=日期, row2=表头, row3+=数据, 4行一块多日堆叠）
+// interface: analyze(rawRows) → [{date, store, roas, ctr, cvr, spend, sales, revenue, profit, impressions, clicks, products}]
+// ═══════════════════════════════════════════════
+function excelSerialToDate(serial) {
+    var d = new Date((serial - 25569) * 86400 * 1000);
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+var StoreDataPipeline = {
+    analyze: function(sheetsData) {
+        var records = [];
+        sheetsData.forEach(function(sd) {
+            var rows = sd.rows, sheetName = sd.sheet;
+            for (var i = 0; i < rows.length; i++) {
+                var r0 = rows[i];
+                if (!r0 || r0.length === 0) continue;
+                // 检测日期行（第一列为数字且其余为空）
+                var firstVal = parseFloat(r0[0]);
+                if (!isNaN(firstVal) && firstVal > 40000 && firstVal < 50000) {
+                    var dateStr = excelSerialToDate(firstVal);
+                    // 下一行应该是表头，再下一行开始是数据
+                    i++; // 跳过表头行
+                    // 读数据行直到遇到下一个日期行或空行
+                    while (i + 1 < rows.length) {
+                        i++;
+                        var dataRow = rows[i];
+                        if (!dataRow || dataRow.length === 0) break;
+                        var nextFirst = parseFloat(dataRow[0]);
+                        if (!isNaN(nextFirst) && nextFirst > 40000) { i--; break; }
+                        // 检测是否为表头行（含"店铺名称"）
+                        if (String(dataRow[0]||'').indexOf('店铺名称') >= 0) continue;
+                        var store = String(dataRow[0]||'').trim();
+                        if (!store || store === '无') continue;
+                        records.push({
+                            date: dateStr,
+                            sheet: sheetName,
+                            store: store,
+                            roas: parseFloat(dataRow[1]) || null,
+                            imprGrowth: parseFloat(dataRow[2]) || 0,
+                            clickGrowth: parseFloat(dataRow[3]) || 0,
+                            ctr: parseFloat(dataRow[4]) || 0,
+                            cvr: parseFloat(dataRow[5]) || 0,
+                            spend: parseFloat(dataRow[6]) || 0,
+                            notes: String(dataRow[7]||'').trim(),
+                            sales: parseFloat(dataRow[12]) || 0,
+                            revenue: parseFloat(dataRow[13]) || 0,
+                            profit: parseFloat(dataRow[14]) || 0,
+                            impressions: parseFloat(dataRow[15]) || 0,
+                            clicks: parseFloat(dataRow[16]) || 0,
+                            orderRate: parseFloat(dataRow[17]) || 0,
+                            products: parseFloat(dataRow[18]) || 0
+                        });
+                    }
+                }
+            }
+        });
+        return records;
+    }
+};
 // ═══════════════════════════════════════════════
 function renderImportPage() {
     var pg=document.getElementById('page-import'); if(!pg) return;
@@ -742,7 +929,7 @@ function renderBlacklist() {
     var pg=document.getElementById('page-blacklist'); if(!pg) return;
     var alertEl=pg.querySelector('.alert.alert-info'); if(alertEl) alertEl.style.display='none';
     var old=pg.querySelector('.blc'); if(old) old.remove(); var div=document.createElement('div'); div.className='blc';
-    var issues=checkAvoidance(ST.products);
+    var issues = ST._avoidance || checkAvoidance(ST.products);
     div.innerHTML='<div class="btn-row"><div class="step"><div class="title">🟢 健康品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--success-text);">'+(ST.products.length-issues.length)+'</div></div><div class="step"><div class="title">🔴 问题品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--danger-text);">'+issues.length+'</div></div></div>';
     if(issues.length===0){div.innerHTML+='<div class="alert alert-success">🎉 没有问题品</div>';}else{
         var grp={}; var order=['高克重陷阱','低毛利陷阱','滞销品'];
@@ -773,8 +960,9 @@ function compareSnapshots() {
     if (ST.snapshots.length < 2) return null;
     var prevSnap = ST.snapshots[ST.snapshots.length - 2];
     var prevData = JSON.parse(localStorage.getItem(prevSnap.key) || '[]');
-    var prevProducts = extractProducts(prevData);
-    var prevClusters = doClustering(prevProducts);
+    var prevResult = DataPipeline.analyze(prevData);
+    var prevProducts = prevResult.products;
+    var prevClusters = prevResult.clusters;
     var res = {
         old_count: prevProducts.length, new_count: ST.products.length,
         old_gold: prevClusters.filter(function(p){return p.cluster_label==='黄金品';}).length,
@@ -933,7 +1121,7 @@ function renderDiagnosis() {
     /* ── ④ 建议剔除 ── */
     var prevSnap = ST.snapshots[ST.snapshots.length - 2];
     var prevData = JSON.parse(localStorage.getItem(prevSnap.key) || '[]');
-    var pruned = suggestPruning(ST.products, extractProducts(prevData));
+    var pruned = suggestPruning(ST.products, DataPipeline.analyze(prevData).products);
     var expPrune=document.createElement('details'); expPrune.className='expander';
     if (pruned.length > 0) {
         var pruneHTML='<summary>🗑️ 建议剔除（'+pruned.length+'）</summary><div class="expander-content"><div class="scroll-box">';
@@ -1008,8 +1196,9 @@ function renderDiagnosis() {
             var times=[], golds=[], margins=[], sales=[];
             for (var i=0; i<Math.min(ST.snapshots.length,10); i++) {
                 var sd = JSON.parse(localStorage.getItem(ST.snapshots[i].key)||'[]');
-                var prods = extractProducts(sd);
-                var clust = doClustering(prods);
+                var snapResult = DataPipeline.analyze(sd);
+                var prods = snapResult.products;
+                var clust = snapResult.clusters;
                 times.push(ST.snapshots[i].time);
                 golds.push(clust.filter(function(p){return p.cluster_label==='黄金品';}).length);
                 margins.push(avg(prods.map(function(p){return p.gross_margin;})));
@@ -1022,6 +1211,75 @@ function renderDiagnosis() {
             ], {plot_bgcolor:'#0f0f17',paper_bgcolor:'#0f0f17',font:{color:'#f1f0ee'},xaxis:{title:'时间',gridcolor:'#2a2a3a'},yaxis:{title:'数量/毛利率(%)',gridcolor:'#2a2a3a'},yaxis2:{title:'日销',overlaying:'y',side:'right',gridcolor:'#2a2a3a'},legend:{font:{color:'#f1f0ee'}},hovermode:'x unified',margin:{l:50,r:50,t:20,b:60}});
         }, 300);
     }
+}
+
+// ═══════════════════════════════════════════════
+// 页面 ⑦ 店铺运营
+// ═══════════════════════════════════════════════
+function renderStorePage() {
+    var pg = document.getElementById('page-store'); if (!pg) return;
+    var old = pg.querySelector('.sc'); if (old) old.remove();
+    var data = ST.storeData || [];
+    if (data.length === 0) {
+        var alertEl = pg.querySelector('.alert.alert-info');
+        if (alertEl) alertEl.style.display = 'block';
+        return;
+    }
+    var alertEl = pg.querySelector('.alert.alert-info');
+    if (alertEl) alertEl.style.display = 'none';
+
+    var div = document.createElement('div'); div.className = 'sc';
+
+    // 汇总卡片
+    var stores = {}, dates = {};
+    data.forEach(function(r) {
+        stores[r.store] = (stores[r.store] || 0) + 1;
+        dates[r.date] = true;
+    });
+    var totalSpend = data.reduce(function(s, r) { return s + (r.spend || 0); }, 0);
+    var totalRevenue = data.reduce(function(s, r) { return s + (r.revenue || 0); }, 0);
+    var totalProfit = data.reduce(function(s, r) { return s + (r.profit || 0); }, 0);
+
+    div.innerHTML = '<div class="btn-row">' +
+        '<div class="step"><div class="title">🏪 店铺</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--gold);">' + Object.keys(stores).length + '</div></div>' +
+        '<div class="step"><div class="title">📅 天数</div><div class="desc" style="font-size:1.5rem;font-weight:700;">' + Object.keys(dates).length + '</div></div>' +
+        '<div class="step"><div class="title">💰 总花费</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--warning-text);">$' + totalSpend.toFixed(0) + '</div></div>' +
+        '<div class="step"><div class="title">💵 总营收</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--success-text);">$' + totalRevenue.toFixed(0) + '</div></div>' +
+        '<div class="step"><div class="title">📈 总利润</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--gold);">$' + totalProfit.toFixed(0) + '</div></div>' +
+    '</div>';
+
+    // 各店铺概况表
+    var storeSummary = {};
+    data.forEach(function(r) {
+        if (!storeSummary[r.store]) storeSummary[r.store] = { days: 0, spend: 0, revenue: 0, profit: 0, sales: 0, ctrs: [], cvrs: [] };
+        var s = storeSummary[r.store];
+        s.days++; s.spend += r.spend || 0; s.revenue += r.revenue || 0; s.profit += r.profit || 0; s.sales += r.sales || 0;
+        if (r.ctr > 0) s.ctrs.push(r.ctr);
+        if (r.cvr > 0) s.cvrs.push(r.cvr);
+    });
+
+    var tblHTML = '<details class="expander" open><summary>📊 店铺概况</summary><div class="expander-content"><div class="scroll-box"><table><thead><tr><th>店铺</th><th>天数</th><th>总销量</th><th>总营收</th><th>总利润</th><th>总花费</th><th>ROAS</th><th>均CTR</th><th>均CVR</th></tr></thead><tbody>';
+    Object.keys(storeSummary).sort().forEach(function(store) {
+        var s = storeSummary[store];
+        var roas = s.spend > 0 ? (s.revenue / s.spend).toFixed(1) : '—';
+        var avgCtr = s.ctrs.length > 0 ? (avg(s.ctrs) * 100).toFixed(2) + '%' : '—';
+        var avgCvr = s.cvrs.length > 0 ? (avg(s.cvrs) * 100).toFixed(2) + '%' : '—';
+        tblHTML += '<tr><td><strong>' + store + '</strong></td><td>' + s.days + '</td><td>' + s.sales + '</td><td>$' + s.revenue.toFixed(0) + '</td><td>$' + s.profit.toFixed(0) + '</td><td>$' + s.spend.toFixed(0) + '</td><td>' + roas + '</td><td>' + avgCtr + '</td><td>' + avgCvr + '</td></tr>';
+    });
+    tblHTML += '</tbody></table></div></div></details>';
+    div.innerHTML += tblHTML;
+
+    // 每日明细
+    var sortedDates = Object.keys(dates).sort();
+    var detailHTML = '<details class="expander"><summary>📋 每日明细（' + sortedDates.length + ' 天）</summary><div class="expander-content"><div class="scroll-box" style="max-height:500px;"><table><thead><tr><th>日期</th><th>店铺</th><th>销量</th><th>营收</th><th>利润</th><th>花费</th><th>ROAS</th><th>曝光</th><th>点击</th><th>CTR</th><th>CVR</th></tr></thead><tbody>';
+    data.sort(function(a, b) { return a.date.localeCompare(b.date) || a.store.localeCompare(b.store); }).forEach(function(r) {
+        var roas = r.spend > 0 ? (r.revenue / r.spend).toFixed(1) : '—';
+        detailHTML += '<tr><td>' + r.date + '</td><td>' + r.store + '</td><td>' + r.sales + '</td><td>$' + (r.revenue||0).toFixed(0) + '</td><td>$' + (r.profit||0).toFixed(0) + '</td><td>$' + (r.spend||0).toFixed(0) + '</td><td>' + roas + '</td><td>' + (r.impressions||0) + '</td><td>' + (r.clicks||0) + '</td><td>' + ((r.ctr||0)*100).toFixed(2) + '%</td><td>' + ((r.cvr||0)*100).toFixed(2) + '%</td></tr>';
+    });
+    detailHTML += '</tbody></table></div></div></details>';
+    div.innerHTML += detailHTML;
+
+    pg.appendChild(div);
 }
 
 </script>
