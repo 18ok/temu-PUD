@@ -452,8 +452,7 @@
 // ═══════════════════════════════════════════════
 // 全局状态
 // ═══════════════════════════════════════════════
-var ST = { files: [], products: [], clusters: [], rules: [], snapshots: [], storeData: [], teamProducts: [] };
-var hasTeam = false;
+var ST = { files: [], products: [], clusters: [], rules: [], snapshots: [], storeData: [] };
 
 // ═══════════════════════════════════════════════
 // 工具函数
@@ -505,9 +504,6 @@ function safeSetItem(key, value) {
     if (!Array.isArray(ST.snapshots)) ST.snapshots = [];
     var storeRaw = localStorage.getItem('temu_v6_store');
     if (storeRaw) { try { ST.storeData = JSON.parse(storeRaw); } catch(e) { ST.storeData = []; } }
-    var teamRaw = localStorage.getItem('temu_v6_team');
-    if (teamRaw) { try { ST.teamProducts = JSON.parse(teamRaw); hasTeam = ST.teamProducts && ST.teamProducts.length > 0; } catch(e) { ST.teamProducts = []; hasTeam = false; } }
-    if (!Array.isArray(ST.teamProducts)) { ST.teamProducts = []; hasTeam = false; }
     if (!Array.isArray(ST.storeData)) ST.storeData = [];
     updateSidebar();
     if (ST.files.length > 0) {
@@ -547,7 +543,6 @@ function clearAllData() {
     ST.files = []; ST.products = []; ST.clusters = []; ST.rules = [];
     ST._avoidance = []; ST._stats = {}; ST.snapshots = [];
     ST.storeData = [];  // ← 之前漏了
-    ST.teamProducts = []; hasTeam = false; localStorage.removeItem('temu_v6_team');  // 团队数据重置
     updateSidebar();
     toast('本地数据已清空，请重新上传','warning');
 }
@@ -557,8 +552,7 @@ function updateSidebar() {
     if (!card) return;
     var meta = JSON.parse(localStorage.getItem('temu_v6_meta') || '{}');
     var storeCount = (ST.storeData && ST.storeData.length) ? ST.storeData.length : 0;
-    var teamCount = (ST.teamProducts && ST.teamProducts.length) ? ST.teamProducts.length : 0;
-    card.innerHTML = (teamCount > 0 ? '团队 <b>' + teamCount + '</b> 条 | ' : '') + '📦 商品 <b>'+ST.files.length+'</b> 个文件<br>🏪 店铺 <b>'+storeCount+'</b> 条记录'+(meta.saved_at?'<br><span class="time">'+meta.saved_at+'</span>':'');
+    card.innerHTML = '📦 商品 <b>'+ST.files.length+'</b> 个文件<br>🏪 店铺 <b>'+storeCount+'</b> 条记录'+(meta.saved_at?'<br><span class="time">'+meta.saved_at+'</span>':'');
     var sd = document.querySelector('.snapshot');
     if (sd) sd.innerHTML = '📸 <b>'+ST.snapshots.length+'</b> 份历史快照';
 }
@@ -610,6 +604,7 @@ function switchPage(name) {
     if (name==='predict') renderPredict();
     if (name==='blacklist' && ST.products.length>0) renderBlacklist();
     if (name==='diagnosis') { if(typeof Plotly!=='undefined') try{Plotly.purge('trendChart');}catch(e){} renderDiagnosis(); }
+    if (name==='import') renderImportPage();
     if (name==='store') renderStorePage();
     if (name==='pk') renderPKPage();
 }
@@ -729,41 +724,6 @@ function handleFileUpload(inputFiles) {
 }
 
 // ═══════════════════════════════════════════════
-// 团队数据上传Pipeline
-function handleTeamUpload(inputFiles) {
-    if (!inputFiles || inputFiles.length === 0) return;
-    toast('正在解析团队数据...', 'info');
-    var files = Array.from(inputFiles);
-    var count = 0;
-    files.forEach(function (f) {
-        var reader = new FileReader();
-        reader.onload = function (e) {
-            try {
-                var wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
-                var sn = wb.SheetNames[0];
-                var json = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1 });
-                if (!json || json.length < 2) { toast('团队文件无数据: ' + f.name, 'warning'); return; }
-                var headers = json[0];
-                var rows = json.slice(1);
-                var cols = normalizeCols(headers);
-                var data = rows.map(function (r) {
-                    var o = {};
-                    cols.forEach(function (ci, i) { o[ci] = (i < r.length) ? r[i] : ''; });
-                    return o;
-                });
-                var result = DataPipeline.analyze([{rows: json, sheet: sn, filename: f.name}]);
-                ST.teamProducts = (ST.teamProducts || []).concat(result.products || data);
-                count += (result.products || data).length;
-            } catch (err) { toast('团队数据解析失败: ' + f.name, 'error'); return; }
-            hasTeam = ST.teamProducts.length > 0;
-            safeSetItem('temu_v6_team', JSON.stringify(ST.teamProducts));
-            reprocessAll(); updateSidebar(); if (typeof renderPKPage !== "undefined") try { renderPKPage(); } catch (e2) {}
-            toast('团队数据导入完成：' + count + ' 条商品', 'success');
-        };
-        reader.readAsArrayBuffer(f);
-    });
-}
-
 // 数据提取 & 聚类
 // ═══════════════════════════════════════════════
 function extractProducts(files) {
@@ -902,7 +862,8 @@ var StoreDataPipeline = {
     }
 };
 // ═══════════════════════════════════════════════
-function renderImportPage() {
+window.renderImportPage = (function() {
+    function renderImportPage() {
     var pg=document.getElementById('page-import'); if(!pg) return;
     var alertEl=pg.querySelector('.alert.alert-info');
     if(alertEl){if(ST.files.length>0){var meta=JSON.parse(localStorage.getItem('temu_v6_meta')||'{}');alertEl.innerHTML='<span class="alert-icon">💾</span><span>已加载 <strong>'+ST.files.length+'</strong> 个文件 | '+ST.products.length+' 个SPU | 上次: '+(meta.saved_at||'--')+'</span>';}else{alertEl.innerHTML='<span class="alert-icon">📂</span><span>请上传 Excel 文件开始分析</span>';}}
@@ -919,8 +880,11 @@ function renderImportPage() {
     });
     pg.appendChild(div);
 }
+    return renderImportPage;
+})();
 
-// ═══════════════════════════════════════════════
+window.renderProducts = (function() {
+    // ═══════════════════════════════════════════════
 // 页面 ② 商品画像
 // ═══════════════════════════════════════════════
 function renderProducts() {
@@ -928,8 +892,7 @@ function renderProducts() {
     var alertEl=pg.querySelector('.alert.alert-info'); if(alertEl) alertEl.style.display='none';
     var old=pg.querySelector('.pc'); if(old) old.remove();
     var div=document.createElement('div'); div.className='pc';
-window.renderProducts = (function() {
-    function renderProducts() {
+    var cnt={}; ST.clusters.forEach(function(p){cnt[p.cluster_label]=(cnt[p.cluster_label]||0)+1;});
     div.innerHTML='<div class="btn-row"><div class="step"><div class="emoji">🟡</div><div class="title">黄金品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--gold);">'+(cnt['黄金品']||0)+'</div></div><div class="step"><div class="emoji">⚪</div><div class="title">白银品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:#a0a0a0;">'+(cnt['白银品']||0)+'</div></div><div class="step"><div class="emoji">🔵</div><div class="title">观察品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:#5b9bd5;">'+(cnt['观察品']||0)+'</div></div><div class="step"><div class="title">📦 总计</div><div class="desc" style="font-size:1.5rem;font-weight:700;">'+ST.clusters.length+'</div></div></div>';
     pg.appendChild(div);
     [{l:'黄金品',c:'var(--gold)',bc:'badge badge-gold'},{l:'白银品',c:'#a0a0a0',bc:'badge badge-silver'},{l:'观察品',c:'#5b9bd5',bc:'badge badge-watch'}].forEach(function(g){var s=ST.clusters.filter(function(p){return p.cluster_label===g.l;});if(s.length>0){var exp=document.createElement('details');exp.className='expander';exp.open=true;exp.innerHTML='<summary><span class="'+g.bc+'">'+g.l+'</span> 概况（'+s.length+' 个SPU）</summary><div class="expander-content"><div class="alert alert-info" style="border-left:3px solid '+g.c+'"><div><strong style="color:'+g.c+'">'+g.l+'</strong><br>毛利率: '+avg(s.map(function(p){return p.gross_margin;})).toFixed(1)+'% | 日销: '+avg(s.map(function(p){return p.daily_sales;})).toFixed(1)+' | 克重: '+Math.round(avg(s.map(function(p){return p.weight_g;})))+'g | 成本: $'+avg(s.map(function(p){return p.cost;})).toFixed(2)+'</div></div></div>';div.appendChild(exp);}});
@@ -939,7 +902,10 @@ window.renderProducts = (function() {
     var expTbl=document.createElement('details');expTbl.className='expander';
     expTbl.innerHTML='<summary>📋 全部商品数据表（'+ST.clusters.length+' 条）</summary><div class="expander-content"><div class="scroll-box"><div id="productsTable"></div></div></div>';
     div.appendChild(expTbl);
-    var traces=['黄金品','白银品','观察品'].map(function(l){var s=ST.clusters.filter(function(p){return p.cluster_label===l;});return{x:s.map(function(p){return p.gross_margin;}),y:s.map(function(p){return p.daily_sales;}),mode:'markers',type:'scatter',name:l,text:s.map(function(p){return p.spu_id;}),marker:{size:10,color:l==='黄金品'?'#e2b87a':l==='白银品'?'#a0a0a0':'#5b9bd5'}};}).filter(function(t){return t.x.length>0;});
+window.renderRules = (function() {
+        var traces=['黄金品','白银品','观察品'].map(function(l){var s=ST.clusters.filter(function(p){return p.cluster_label===l;});return{x:s.map(function(p){return p.gross_margin;}),y:s.map(function(p){return p.daily_sales;}),mode:'markers',type:'scatter',name:l,text:s.map(function(p){return p.spu_id;}),marker:{size:10,color:l==='黄金品'?'#e2b87a':l==='白银品'?'#a0a0a0':'#5b9bd5'}};}).filter(function(t){return t.x.length>0;});
+    return renderProducts;
+})();
     Plotly.newPlot('scatterPlot',traces,{plot_bgcolor:'#0f0f17',paper_bgcolor:'#0f0f17',font:{color:'#f1f0ee'},xaxis:{title:'毛利率 %',gridcolor:'#2a2a3a'},yaxis:{title:'日均销量',gridcolor:'#2a2a3a'},legend:{font:{color:'#f1f0ee'}},margin:{l:50,r:30,t:20,b:50}},{displayModeBar:true,modeBarButtonsToAdd:['zoom2d','pan2d','downloadImage']});
     setTimeout(function(){var t=document.getElementById('productsTable');if(!t)return;var h='<table><thead><tr><th>SPU ID</th><th>名称</th><th>分类</th><th>毛利率</th><th>日销</th><th>克重</th><th>成本</th><th>售价</th></tr></thead><tbody>';ST.clusters.sort(function(a,b){return a.cluster_label.localeCompare(b.cluster_label)||b.gross_margin-a.gross_margin;}).forEach(function(p){var bc=p.cluster_label==='黄金品'?'badge badge-gold':p.cluster_label==='白银品'?'badge badge-silver':'badge badge-watch';h+='<tr><td>'+p.spu_id+'</td><td>'+p.name+'</td><td><span class="'+bc+'">'+p.cluster_label+'</span></td><td>'+p.gross_margin.toFixed(1)+'%</td><td>'+p.daily_sales.toFixed(1)+'</td><td>'+Math.round(p.weight_g)+'g</td><td>$'+p.cost.toFixed(2)+'</td><td>$'+(p.price||0).toFixed(2)+'</td></tr>';});h+='</tbody></table>';t.innerHTML=h;},200);
 }
@@ -947,9 +913,7 @@ function renderRules() {
     var pg=document.getElementById('page-rules'); if(!pg) return;
     var alertEl=pg.querySelector('.alert.alert-info'); if(alertEl) alertEl.style.display='none';
     var old=pg.querySelector('.rc'); if(old) old.remove();
-}
-    return renderProducts;
-})();
+    var div=document.createElement('div'); div.className='rc';
     var iron=ST.rules.filter(function(r){return r.type==='铁律';}), avoid=ST.rules.filter(function(r){return r.type==='避坑';});
     div.innerHTML='<div class="btn-row"><div class="step"><div class="title">🔨 铁律</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--gold);">'+iron.length+'</div></div><div class="step"><div class="title">🛡️ 避坑</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--danger-text);">'+avoid.length+'</div></div></div>';
     pg.appendChild(div);
@@ -957,13 +921,18 @@ function renderRules() {
     if(iron.length>0){var ih='<summary>🔨 铁律（'+iron.length+' 条）</summary><div class="expander-content"><div class="scroll-box">';iron.forEach(function(r){ih+='<div class="alert alert-info" style="margin-bottom:8px;"><div><strong style="color:var(--gold);">✨ '+r.rule+'</strong><br><span style="color:var(--text-dim);font-size:0.85rem;">'+r.detail+'</span></div></div>';});ih+='</div></div>';expIron.innerHTML=ih;}else{expIron.innerHTML='<summary>🔨 铁律（0 条）</summary><div class="expander-content"><div class="alert alert-info">暂无铁律，需要更多黄金品数据</div></div>';}
     div.appendChild(expIron);
     var expAvoid=document.createElement('details');expAvoid.className='expander';
-    if(avoid.length>0){var ah='<summary>🛡️ 避坑规则（'+avoid.length+' 条）</summary><div class="expander-content"><div class="scroll-box">';avoid.forEach(function(r){ah+='<div class="alert alert-warning" style="margin-bottom:8px;"><div><strong>⚠️ '+r.rule+'</strong><br><span style="color:var(--text-dim);font-size:0.85rem;">'+r.detail+'</span></div></div>';});ah+='</div></div>';expAvoid.innerHTML=ah;}else{expAvoid.innerHTML='<summary>🛡️ 避坑规则（0 条）</summary><div class="expander-content"><div class="alert alert-success">🎉 未检测到避坑信号</div></div>';}
+window.renderPredict = (function() {
+        if(avoid.length>0){var ah='<summary>🛡️ 避坑规则（'+avoid.length+' 条）</summary><div class="expander-content"><div class="scroll-box">';avoid.forEach(function(r){ah+='<div class="alert alert-warning" style="margin-bottom:8px;"><div><strong>⚠️ '+r.rule+'</strong><br><span style="color:var(--text-dim);font-size:0.85rem;">'+r.detail+'</span></div></div>';});ah+='</div></div>';expAvoid.innerHTML=ah;}else{expAvoid.innerHTML='<summary>🛡️ 避坑规则（0 条）</summary><div class="expander-content"><div class="alert alert-success">🎉 未检测到避坑信号</div></div>';}
+    return renderRules;
+})();
     div.appendChild(expAvoid);
     var expRange=document.createElement('details');expRange.className='expander';
     var golds=ST.clusters.filter(function(p){return p.cluster_label==='黄金品';});
     if(golds.length>0){var rh='<summary>📐 黄金品基准区间（基于'+golds.length+'个黄金品）</summary><div class="expander-content"><div class="btn-row">';[{k:'gross_margin',n:'毛利率'},{k:'daily_sales',n:'日均销量'},{k:'cost',n:'成本($)'},{k:'weight_g',n:'克重(g)'}].forEach(function(fd){var v=golds.map(function(p){return p[fd.k];}).sort(function(a,b){return a-b;});rh+='<div class="step" style="border-left:3px solid var(--gold);"><div class="title" style="font-size:0.8rem;color:var(--text-dim);">'+fd.n+'</div><div class="desc" style="font-size:1.1rem;font-weight:700;color:var(--gold);">'+(Math.round(q25(v)*10)/10)+' — '+(Math.round(q75(v)*10)/10)+'</div><div style="font-size:0.7rem;color:var(--text-dim);">中位: '+(Math.round(med(v)*10)/10)+'</div></div>';});rh+='</div></div>';expRange.innerHTML=rh;}else{expRange.innerHTML='<summary>📐 黄金品基准区间</summary><div class="expander-content"><div class="alert alert-info">需要至少1个黄金品</div></div>';}
     div.appendChild(expRange);
 }
+    return renderPredict;
+})();
 function renderPredict() {
     var pg=document.getElementById('page-predict'); if(!pg) return;
     var alertEl=pg.querySelector('.alert.alert-info');
@@ -978,7 +947,8 @@ function doPrediction(){
     var cost=w*0.06+purchase, margin=price>0?((price-cost)/price*100):0;
     var res=document.getElementById('predResult'); if(!res) return;
     if(ST.products.length===0){res.innerHTML='<div class="alert alert-warning">需要历史数据</div>';return;}
-    var scored=ST.products.map(function(p,i){return{idx:i,diff:Math.abs(p.gross_margin-margin)/100+Math.abs(p.weight_g-w)/1000+Math.abs(p.cost-cost)/50+Math.abs(p.daily_sales-sales)/50};}).sort(function(a,b){return a.diff-b.diff;});
+window.renderBlacklist = (function() {
+        var scored=ST.products.map(function(p,i){return{idx:i,diff:Math.abs(p.gross_margin-margin)/100+Math.abs(p.weight_g-w)/1000+Math.abs(p.cost-cost)/50+Math.abs(p.daily_sales-sales)/50};}).sort(function(a,b){return a.diff-b.diff;});
     var top15=scored.slice(0,Math.min(15,scored.length)).map(function(s){return ST.products[s.idx];}), avgM=avg(top15.map(function(p){return p.gross_margin;}));
     var ri=margin>=30?'低':margin>=15?'中':'高', rc=ri==='低'?'var(--success-text)':ri==='中'?'var(--warning-text)':'var(--danger-text)', re=ri==='低'?'🟢':ri==='中'?'🟡':'🔴';
     var html='<details class="expander" open><summary>📊 预测摘要 — '+re+' '+ri+'风险</summary><div class="expander-content">';
@@ -1005,8 +975,11 @@ function renderBlacklist() {
             exp.innerHTML='<summary>⚠️ <span class="badge badge-danger">'+r+'</span>（'+grp[r].length+' 个问题品）</summary><div class="expander-content"><div class="scroll-box">'+
                 grp[r].map(function(i){
                     var sev=(i.gross_margin<5||i.weight_g>1000)?'<span class="badge badge-danger">🔴 严重</span>':'<span class="badge badge-watch">🟡 注意</span>';
+    return renderBlacklist;
+})();
                     return '<div class="warn-card" style="padding:14px 20px;margin:8px 0;text-align:left;border-width:1px;"><strong>'+sev+' — '+i.spu_id+'</strong><br><span style="color:var(--text-dim);">'+i.name+' | 毛利率:'+i.gross_margin.toFixed(1)+'% | 日销:'+i.daily_sales.toFixed(1)+' | 克重:'+Math.round(i.weight_g)+'g</span></div>';
-                }).join('')+'</div></div>';
+window.compareSnapshots = (function() {
+                    }).join('')+'</div></div>';
             div.appendChild(exp);
         });
         var allExp=document.createElement('details'); allExp.className='expander';
@@ -1049,6 +1022,9 @@ function compareSnapshots() {
     ST.products.forEach(function(p){newIds[p.spu_id]=p;});
     Object.keys(newIds).forEach(function(id){if(!oldIds[id]) res.new_prods.push(newIds[id]);});
     Object.keys(oldIds).forEach(function(id){if(!newIds[id]) res.gone_prods.push(oldIds[id]);});
+window.suggestPruning = (function() {
+        return compareSnapshots;
+})();
     var prevLabels = {};
     prevClusters.forEach(function(p){prevLabels[p.spu_id]=p.cluster_label;});
     ST.clusters.forEach(function(p){
@@ -1072,8 +1048,11 @@ function suggestPruning(products, oldProducts) {
         if (p.gross_margin < 10 && p.daily_profit <= 0) {
             suggestions.push({spu_id:p.spu_id, name:p.name, reason:'连续亏损：毛利率低于10%且日利润<=0', data:'毛利率:'+p.gross_margin.toFixed(1)+'% | 日利润:$'+p.daily_profit.toFixed(2)+' | 日销:'+p.daily_sales.toFixed(1)+'单', severity:p.gross_margin<5?'严重':'注意'});
             seen[p.spu_id]=true;
+    return suggestPruning;
+})();
         } else if (p.weight_g>500 && p.daily_sales<1) {
-            suggestions.push({spu_id:p.spu_id, name:p.name, reason:'高克重陷阱：克重'+Math.round(p.weight_g)+'g>500g且日销<1单', data:'克重:'+Math.round(p.weight_g)+'g | 日销:'+p.daily_sales.toFixed(1)+'单 | 毛利率:'+p.gross_margin.toFixed(1)+'%', severity:p.weight_g>1000?'严重':'注意'});
+window.generateDirectionAdvice = (function() {
+                suggestions.push({spu_id:p.spu_id, name:p.name, reason:'高克重陷阱：克重'+Math.round(p.weight_g)+'g>500g且日销<1单', data:'克重:'+Math.round(p.weight_g)+'g | 日销:'+p.daily_sales.toFixed(1)+'单 | 毛利率:'+p.gross_margin.toFixed(1)+'%', severity:p.weight_g>1000?'严重':'注意'});
             seen[p.spu_id]=true;
         }
     });
@@ -1108,8 +1087,11 @@ function generateDirectionAdvice(cmp) {
     if (cmp.margin_delta < -5) {
         advice.push({priority:'🔴 高',title:'均毛利率下降 '+Math.abs(cmp.margin_delta).toFixed(1)+'pp',detail:'整体毛利率在走低，需排查是否新上架了过多低毛利品，或原有产品被迫降价。',action:'暂停低毛利新品上架，优先处理亏损品'});
     } else if (cmp.margin_delta > 3) {
+    return generateDirectionAdvice;
+})();
         advice.push({priority:'🟢 好',title:'均毛利率提升 '+cmp.margin_delta.toFixed(1)+'pp',detail:'整体毛利率在改善，说明选品和定价策略效果良好。',action:'继续保持，记录有效策略为铁律'});
-    }
+window.renderDiagnosis = (function() {
+        }
     if (cmp.new_watch > cmp.new_count * 0.3) {
         advice.push({priority:'🔴 高',title:'观察品占比过高（'+cmp.new_watch+'个）',detail:'超过30%的商品处于观察区，大量低效品拉低整体表现。',action:'批量清理日销<1单且毛利率<15%的滞销品'});
     }
@@ -1202,31 +1184,14 @@ function renderDiagnosis() {
 
     /* ── ⑤ 个人 vs 团队 ── */
     var expVs=document.createElement('details'); expVs.className='expander';
-    var tmGoldPct = 40, tmMargin = 25, tmSales = 3;
-    if (hasTeam && ST.teamProducts && ST.teamProducts.length > 0) {
-        try {
-            var tmP = []; ST.teamProducts.forEach(function(r){
-                var spu = String(r.spu_id||'').replace(/\.0$/, '');
-                var cost = parseFloat(r.cost)||0, price = parseFloat(r.price)||0;
-                var ds = parseFloat(r.daily_sales)||0;
-                var gm = parseFloat(r.gross_margin)||(price>0?((price-cost)/price*100):0);
-                tmP.push({spu_id:spu, cost:cost, weight_g:parseFloat(r.weight_g)||0, price:price, daily_sales:ds, gross_margin:gm});
-            });
-            var tmC = doClustering(tmP);
-            var tg = tmC.filter(function(p){return p.cluster_label==='黄金品';});
-            tmGoldPct = tmC.length > 0 ? tg.length / tmC.length * 100 : 40;
-            tmMargin = avg(tmP.map(function(p){return p.gross_margin;})) || 25;
-            tmSales = avg(tmP.map(function(p){return p.daily_sales;})) || 3;
-        } catch(e) { console.error('team calc:', e); }
-    }
     var vsHTML='<summary>👥 个人 vs 团队</summary><div class="expander-content">';
     vsHTML+='<div class="alert alert-info"><span class="alert-icon">ℹ</span><span>"+ (hasTeam ? "团队基准来自导入的 "+ST.teamProducts.length+" 条真实数据" : "团队基准数据需导入团队 Excel 后自动计算。当前仅展示个人数据，虚线为估算团队中位。") +"</span></div>';
     vsHTML+='<table><thead><tr><th>指标</th><th>个人（最新）</th><th>团队中位（估算）</th><th>差距</th></tr></thead><tbody>';
     var metrics = [
-        {label:'商品总数', my:cmp.new_count, tm:hasTeam?Math.round(tmP.length):Math.max(15,cmp.new_count*0.8|0), unit:' 个'},
-        {label:'黄金品占比', my:goldPct, tm:Math.round(tmGoldPct), unit:'%'},
-        {label:'均毛利率', my:cmp.new_margin, tm:Math.round(tmMargin), unit:'%'},
-        {label:'均日销量', my:cmp.new_sales, tm:Math.round(tmSales), unit:' 单'},
+        {label:'商品总数', my:cmp.new_count, tm:Math.max(15,cmp.new_count*0.8|0), unit:' 个'},
+        {label:'黄金品占比', my:goldPct, tm:40, unit:'%'},
+        {label:'均毛利率', my:cmp.new_margin, tm:25, unit:'%'},
+        {label:'均日销量', my:cmp.new_sales, tm:3, unit:' 单'},
     ];
     metrics.forEach(function(m){
         var gap = m.my - m.tm;
@@ -1270,8 +1235,11 @@ function renderDiagnosis() {
     }
 
     pg.appendChild(div);
+    return renderDiagnosis;
+})();
 
-    /* 趋势图渲染 */
+window.renderStorePage = (function() {
+        /* 趋势图渲染 */
     if (ST.snapshots.length >= 3) {
         setTimeout(function(){
             var el=document.getElementById('trendChart'); if(!el) return;
@@ -1336,7 +1304,10 @@ function renderStorePage() {
         if (!storeSummary[r.store]) storeSummary[r.store] = { days: 0, spend: 0, revenue: 0, profit: 0, sales: 0, ctrs: [], cvrs: [] };
         var s = storeSummary[r.store];
         s.days++; s.spend += r.spend || 0; s.revenue += r.revenue || 0; s.profit += r.profit || 0; s.sales += r.sales || 0;
-        if (r.ctr > 0) s.ctrs.push(r.ctr);
+    return renderStorePage;
+})();
+window.renderPKPage = (function() {
+            if (r.ctr > 0) s.ctrs.push(r.ctr);
         if (r.cvr > 0) s.cvrs.push(r.cvr);
     });
 
@@ -1353,6 +1324,9 @@ function renderStorePage() {
 
     // 每日明细
     var sortedDates = Object.keys(dates).sort();
+window.renderPKWithBoth = (function() {
+        return renderPKPage;
+})();
     var detailHTML = '<details class="expander"><summary>📋 每日明细（' + sortedDates.length + ' 天）</summary><div class="expander-content"><div class="scroll-box" style="max-height:500px;"><table><thead><tr><th>日期</th><th>店铺</th><th>销量</th><th>营收</th><th>利润</th><th>花费</th><th>ROAS</th><th>曝光</th><th>点击</th><th>CTR</th><th>CVR</th></tr></thead><tbody>';
     data.sort(function(a, b) { return a.date.localeCompare(b.date) || a.store.localeCompare(b.store); }).forEach(function(r) {
         var roas = r.spend > 0 ? (r.revenue / r.spend).toFixed(1) : '—';
@@ -1428,15 +1402,26 @@ function renderPKWithBoth(pg) {
     gaps.push({label:'商品日销 vs 店铺日销', pVal:avgSales, sVal:avgDaySales, fmtP:sf(avgSales, 1)+'单/日', fmtS:sf(avgDaySales, 1)+'单/日', gap:Math.abs(avgSales - avgDaySales), unit:'单'});
     var maxGap = Math.max.apply(null, gaps.map(function(g){return g.gap;}));
     // === 运营建议 ===
-    var tips = [];
+window.renderPKNoStore = (function() {
+        var tips = [];
+    return renderPKWithBoth;
+})();
     if (avgMargin > 20 && roas < 2) tips.push({emoji:'🎯', text:'毛利率 '+sf(avgMargin, 1)+'% 较高但 ROAS 仅 '+sf(roas, 1)+'，说明选品方向不错但投流效率有待提升。建议优化广告素材/人群定向/落地页体验。'});
     if (goldPct > 40 && avgDaySales < 3) tips.push({emoji:'📦', text:'黄金品占比 '+sf(goldPct, 0)+'% 偏高，但店铺日均销量仅 '+sf(avgDaySales, 1)+' 单，说明选品能力不错但运营承接不足。建议加大推广力度或优化商品页转化。'});
+window.renderPKNoProducts = (function() {
+        return renderPKNoStore;
+})();
     if (avgDaySales > 5 && goldPct < 20) tips.push({emoji:'⚡', text:'店铺日均销量 '+sf(avgDaySales, 1)+' 单较高但黄金品占比仅 '+sf(goldPct, 0)+'%，可能是走"黑马品"路线（日销>5但毛利率<15%）。注意控制损耗率。'});
     if (avgMargin < avgProfitRate) tips.push({emoji:'📐', text:'选品毛利率 '+sf(avgMargin, 1)+'% 低于运营利润率 '+sf(avgProfitRate, 1)+'%，可能是采购成本核算口径不同，或运营端有提价/组合销售策略。建议核对两个数据源口径是否一致。'});
     if (avgSales > avgDaySales * 1.5) tips.push({emoji:'📏', text:'商品日均销量 '+sf(avgSales, 1)+' 单远高于店铺日均销量 '+sf(avgDaySales, 1)+' 单，数据口径可能存在差异（选品统计 vs 实销统计）。建议确认两个数据源的样本范围和计算方式。'});
+window.renderPKNoData = (function() {
+        return renderPKNoProducts;
+})();
     if (tips.length === 0) tips.push({emoji:'📊', text: '当前 '+(ST.products?ST.products.length:0)+' 个选品 vs '+(ST.storeData?ST.storeData.length:0)+' 个运营记录，各项指标偏差不大。<br><br>建议持续积累更多数据以获得更精准的对齐分析。'});
     tips.push({emoji:'💡', text:'以上建议基于当前数据自动生成，请结合实际运营情况综合判断。建议定期做 PK 对比，追踪改善效果。'});
     var tipsHTML = tips.map(function(t){return '<div class="alert alert-info" style="margin-bottom:8px;border-left:3px solid var(--gold);"><strong>'+t.emoji+'</strong> '+t.text+'</div>';}).join("");
+    return renderPKNoData;
+})();
     // === 构建 HTML ===
     var h = '<div class="hero" style="padding:20px 28px;margin-bottom:12px;"><h1 style="font-size:1.5rem;">🏆 个人选品 vs 店铺运营</h1><p style="font-size:0.82rem;">选品是输入，运营是输出。二者的差距就是成长空间。</p></div>';
     // 评分卡片
