@@ -1,0 +1,2357 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temu 运营数据分析面板 — 完整版</title>
+    <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+    <script src="https://gosspublic.alicdn.com/aliyun-oss-sdk-6.18.0.min.js"></script>
+
+    <!-- ============================================================
+    Temu 运营数据分析面板 v6 · shadcn/ui Maia 风格
+    来源: http://localhost:8501 (Streamlit → 纯 HTML + SheetJS + Plotly)
+    设计: Inter 字体 · 圆润大圆角 · 柔和阴影 · 琥珀金色调
+    存储: localStorage（本地缓存）+ 阿里云 OSS（团队 JSON 摘要）
+    交互: 折叠面板 expander + scroll-box 滚轮（对标 Streamlit st.expander）
+    ============================================================ -->
+
+    <style>
+        /* ── shadcn/ui Maia-inspired 设计系统 ── */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+        :root {
+            --bg: #0f0f17;
+            --card: #1a1a24;
+            --card-hover: #20202c;
+            --card-alt: #262634;
+            --gold: #e2b87a;
+            --gold-dark: #c99e5e;
+            --gold-glow: rgba(226, 184, 122, 0.22);
+            --gold-bg: rgba(226, 184, 122, 0.06);
+            --text: #f1f0ee;
+            --text-dim: #a1a09c;
+            --text-faded: rgba(241, 240, 238, 0.38);
+            --border: rgba(226, 184, 122, 0.14);
+            --border-hover: rgba(226, 184, 122, 0.35);
+            --border-light: rgba(226, 184, 122, 0.08);
+            --success: rgba(34, 197, 94, 0.12);
+            --success-border: rgba(34, 197, 94, 0.35);
+            --success-text: #4ade80;
+            --warning-bg: rgba(250, 204, 21, 0.12);
+            --warning-border: rgba(250, 204, 21, 0.35);
+            --warning-text: #fde047;
+            --danger-bg: rgba(239, 68, 68, 0.12);
+            --danger-border: rgba(239, 68, 68, 0.35);
+            --danger-text: #fca5a5;
+            --info-bg: rgba(226, 184, 122, 0.06);
+            --info-border: rgba(226, 184, 122, 0.18);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+            --shadow: 0 4px 20px rgba(0,0,0,0.35);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,0.45);
+            --radius-sm: 10px;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --radius-2xl: 24px;
+            --sidebar-w: 260px;
+            --font: 'Inter', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: var(--font); background: var(--bg); color: var(--text);
+            line-height: 1.65; min-height: 100vh; -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* ── 布局 ── */
+        .app { display: flex; min-height: 100vh; }
+        .sidebar {
+            width: var(--sidebar-w); min-width: var(--sidebar-w); flex-shrink: 0;
+            background: linear-gradient(180deg, #12121a 0%, var(--card) 100%);
+            border-right: 1px solid var(--border-light);
+            display: flex; flex-direction: column;
+            transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+        .sidebar.collapsed { width: 64px; min-width: 64px; }
+        .sidebar.collapsed .sidebar-brand { padding: 12px 6px; margin: 6px; border-radius: var(--radius); }
+        .sidebar.collapsed .sidebar-brand .title { font-size: 0.9rem; }
+        .sidebar.collapsed .sidebar-brand .sub,
+        .sidebar.collapsed .nav-text,
+        .sidebar.collapsed .sidebar-info { display: none; }
+        .sidebar.collapsed .sidebar-nav { padding: 4px 6px; }
+        .sidebar.collapsed .sidebar-nav a { justify-content: center; padding: 10px 6px; }
+        .sidebar.collapsed .nav-icon { font-size: 1.3rem; }
+        .sidebar-brand {
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+            border-radius: var(--radius-xl); padding: 18px 14px; margin: 12px;
+            text-align: center;
+        }
+        .sidebar-brand .title { font-size: 1.3rem; font-weight: 800; color: var(--bg); }
+        .sidebar-brand .sub   { font-size: 0.7rem; color: var(--text-faded); margin-top: 2px; }
+        .sidebar-nav { list-style: none; padding: 4px 12px; flex: 1; }
+        .sidebar-nav li { margin-bottom: 2px; }
+        .sidebar-nav a {
+            display: flex; align-items: center; gap: 10px; padding: 9px 14px;
+            border-radius: var(--radius-sm); text-decoration: none;
+            color: var(--text-dim); font-size: 0.92rem; transition: all 0.15s; cursor: pointer;
+        }
+        .sidebar-nav a:hover, .sidebar-nav a.active { background: var(--info-bg); color: var(--text); }
+        .nav-icon { font-size: 1.1rem; }
+        .sidebar-info { padding: 12px; border-top: 1px solid var(--border-light); font-size: 0.82rem; color: var(--text-dim); }
+        .sidebar-info .stat-card {
+            background: var(--success); border: 1px solid var(--success-border);
+            border-radius: var(--radius); padding: 10px 12px; margin-bottom: 8px;
+        }
+        .sidebar-info .stat-card .time { font-size: 0.72rem; }
+        .sidebar-info .snapshot {
+            background: var(--info-bg); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 10px 12px; margin-bottom: 8px;
+        }
+        .sidebar-actions { display: flex; gap: 8px; margin-top: 8px; }
+        .sidebar-actions button {
+            flex: 1; padding: 8px; border-radius: var(--radius);
+            border: 1px solid rgba(226, 184, 122, 0.18);
+            background: var(--card); color: var(--text-dim); font-weight: 600;
+            cursor: pointer; font-size: 0.85rem; transition: all 0.2s;
+        }
+        .sidebar-actions button:hover {
+            background: var(--card-hover); border-color: var(--border-hover);
+            transform: translateY(-1px);
+        }
+        .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+        .topbar {
+            display: flex; align-items: center; justify-content: flex-end;
+            padding: 10px 20px; gap: 10px;
+        }
+        .topbar .btn-deploy {
+            padding: 6px 16px; border-radius: var(--radius-sm); border: none;
+            background: var(--gold); color: var(--bg); font-weight: 700;
+            cursor: pointer; font-size: 0.85rem;
+        }
+        .content { padding: 24px 32px; max-width: 1100px; }
+        .page { display: none; }
+        .page.active { display: block; }
+
+        /* ── Hero ── */
+        .hero {
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+            border-radius: var(--radius-2xl); padding: 28px 32px; margin-bottom: 24px;
+            box-shadow: 0 4px 16px var(--gold-glow);
+        }
+        .hero h1 { font-size: 2rem; font-weight: 700; color: var(--bg); margin-bottom: 6px; }
+        .hero p  { font-size: 0.95rem; color: rgba(15,15,23,0.8); line-height: 1.5; }
+
+        /* ── Button ── */
+        .btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 11px 22px; border-radius: var(--radius-sm); font-weight: 600;
+            cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 0.88rem; letter-spacing: -0.005em;
+            border: 1px solid var(--border); background: var(--card); color: var(--text);
+        }
+        .btn:hover {
+            transform: translateY(-1px); box-shadow: var(--shadow);
+            border-color: var(--border-hover); background: var(--card-hover);
+        }
+        .btn:active { transform: translateY(0); }
+        .btn-row { display: flex; gap: 12px; margin: 18px 0; flex-wrap: wrap; }
+
+        /* ── Alert 提示条 ── */
+        .alert {
+            padding: 16px 20px; border-radius: var(--radius); font-size: 0.9rem;
+            display: flex; align-items: flex-start; gap: 12px; margin-bottom: 18px;
+            line-height: 1.55;
+        }
+        .alert-info    { background: var(--info-bg); border: 1px solid var(--info-border); }
+        .alert-success { background: var(--success); border: 1px solid var(--success-border); color: var(--success-text); }
+        .alert-warning { background: var(--warning-bg); border: 1px solid var(--warning-border); color: var(--warning-text); }
+        .alert-icon { font-size: 1.2rem; flex-shrink: 0; }
+
+        /* ── 上传区 ── */
+        .upload-zone {
+            background: var(--card); border: 2px dashed rgba(226,184,122,0.18);
+            border-radius: var(--radius-lg); padding: 52px 44px; text-align: center;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; margin-bottom: 18px;
+        }
+        .upload-zone:hover { border-color: var(--border-hover); background: var(--card-hover); box-shadow: var(--shadow-sm); }
+        .upload-zone .icon { font-size: 2.8rem; margin-bottom: 10px; }
+        .upload-zone .hint { font-size: 0.84rem; color: var(--text-dim); margin-top: 10px; }
+
+        /* ── 折叠面板 ── */
+        .expander {
+            border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border); background: var(--card);
+            margin-bottom: 18px; overflow: hidden;
+        }
+        .expander summary {
+            padding: 16px 20px; cursor: pointer; font-weight: 600; font-size: 0.93rem;
+            list-style: none; display: flex; align-items: center; gap: 10px;
+            transition: background 0.15s;
+        }
+        .expander summary:hover { background: var(--card-hover); }
+        .expander summary::-webkit-details-marker { display: none; }
+        .expander-content { padding: 0 20px 20px; }
+
+        /* ── 滚轮盒子（对标 st.expander scroll-box）── */
+        .scroll-box {
+            max-height: 380px; overflow-y: auto;
+            padding-right: 4px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+        .scroll-box::-webkit-scrollbar { width: 6px; }
+        .scroll-box::-webkit-scrollbar-track { background: transparent; }
+        .scroll-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        .scroll-box::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+
+        /* ── Steps 步骤条 ── */
+        .steps { display: flex; gap: 18px; flex-wrap: wrap; }
+        .step {
+            flex: 1; min-width: 160px;
+            background: var(--info-bg); border: 1px solid var(--border);
+            border-radius: var(--radius-lg); padding: 20px 16px; text-align: center;
+            transition: all 0.2s;
+        }
+        .step:hover { border-color: var(--border-hover); transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+        .step .emoji { font-size: 2.2rem; margin-bottom: 4px; }
+        .step .title { font-weight: 700; margin: 8px 0 4px; font-size: 0.95rem; }
+        .step .desc  { font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+
+        /* ── Warn Card ── */
+        .warn-card {
+            background: rgba(251,191,36,0.12); border: 2px solid var(--warning-text);
+            border-radius: var(--radius-2xl); padding: 24px 28px; margin: 16px 0; text-align: center;
+        }
+        .warn-card .title { font-size: 1.8rem; font-weight: 700; color: var(--warning-text); }
+        .warn-card .desc  { font-size: 0.95rem; color: var(--text); margin-top: 6px; }
+
+        hr { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
+
+        /* ── Form ── */
+        label { display: block; font-size: 0.82rem; color: var(--text-dim); margin-bottom: 4px; }
+        input, select, textarea {
+            background: var(--card-alt); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); padding: 9px 14px; color: var(--text);
+            font-family: var(--font); transition: all 0.15s;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--gold); outline: none;
+            box-shadow: 0 0 0 3px rgba(226,184,122,0.1);
+        }
+        select { cursor: pointer; appearance: none; padding-right: 32px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' fill='none' stroke='%23a1a09c' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 12px center;
+        }
+
+        /* ── Badge 标签（shadcn 风格）── */
+        .badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 2px 10px; border-radius: 9999px;
+            font-size: 0.75rem; font-weight: 600; white-space: nowrap;
+        }
+        .badge-gold { background: rgba(226,184,122,0.13); color: #e2b87a; border: 1px solid rgba(226,184,122,0.28); }
+        .badge-silver { background: rgba(160,160,160,0.10); color: #a0a0a0; border: 1px solid rgba(160,160,160,0.22); }
+        .badge-watch { background: rgba(91,155,213,0.10); color: #5b9bd5; border: 1px solid rgba(91,155,213,0.22); }
+        .badge-danger { background: rgba(239,68,68,0.10); color: #fca5a5; border: 1px solid rgba(239,68,68,0.22); }
+
+        /* ── 趋势指示器 ── */
+        .trend-up { color: var(--success-text); }
+        .trend-down { color: var(--danger-text); }
+        .trend-flat { color: var(--text-dim); }
+
+        /* ── 表格优化（shadcn 风格）── */
+        table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+        thead { position: sticky; top: 0; z-index: 2; }
+        th {
+            background: var(--card-alt); color: var(--text-dim);
+            font-weight: 600; text-align: left; padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        td {
+            padding: 9px 14px; border-bottom: 1px solid var(--border-light);
+            color: var(--text);
+        }
+        tbody tr { transition: background 0.12s; }
+        tbody tr:hover td { background: var(--card-hover); }
+        tbody tr:nth-child(even) td { background: rgba(226,184,122,0.02); }
+        tbody tr:nth-child(even):hover td { background: var(--card-hover); }
+
+        /* ── 侧边栏折叠按钮 ── */
+        .sidebar-toggle-btn {
+            background: none; border: 1px solid var(--border);
+            border-radius: var(--radius-sm); color: var(--text-dim);
+            cursor: pointer; padding: 6px 10px; font-size: 1rem;
+            transition: all 0.15s; margin-right: auto;
+        }
+        .sidebar-toggle-btn:hover { color: var(--text); border-color: var(--border-hover); background: var(--card-hover); }
+        #toast { position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 420px; }
+        .toast-msg { padding: 12px 20px; border-radius: var(--radius); margin-bottom: 8px; font-size: 0.9rem; animation: slideIn 0.3s ease; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* ── Modal ── */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+        .modal-box { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 28px; max-width: 480px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+        .modal-box h2 { margin-bottom: 16px; color: var(--gold); font-size: 1.3rem; }
+    </style>
+</head>
+<body>
+<div style="background:rgba(239,68,68,0.15);border-bottom:2px solid rgba(239,68,68,0.4);padding:10px 20px;text-align:center;font-size:0.85rem;color:#fca5a5;font-family:Inter,sans-serif;">
+⚠️ 在线版仅可查看/导入本地 Excel — <strong>⬆ 云端同步</strong> 请用本地 <code style="background:rgba(226,184,122,0.15);color:#e2b87a;padding:1px 6px;border-radius:3px;">启动本地看板.bat</code> 版
+</div>
+
+<div id="toast"></div>
+
+<div class="app">
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="title">🛒 Temu 数据看板</div>
+            <div class="sub">运营数据分析 v6</div>
+        </div>
+        <ul class="sidebar-nav">
+            <li><a class="active" onclick="switchPage('import')"><span class="nav-icon">📥</span> <span class="nav-text">数据导入</span></a></li>
+            <li><a onclick="switchPage('products')"><span class="nav-icon">📊</span> <span class="nav-text">商品画像</span></a></li>
+            <li><a onclick="switchPage('rules')"><span class="nav-icon">📋</span> <span class="nav-text">选品规则</span></a></li>
+            <li><a onclick="switchPage('predict')"><span class="nav-icon">🔮</span> <span class="nav-text">智能预测</span></a></li>
+            <li><a onclick="switchPage('blacklist')"><span class="nav-icon">🚨</span> <span class="nav-text">避坑清单</span></a></li>
+            <li><a onclick="switchPage('diagnosis')"><span class="nav-icon">📈</span> <span class="nav-text">个人诊断</span></a></li>
+            <li><a onclick="switchPage('store')"><span class="nav-icon">🏪</span> <span class="nav-text">店铺运营</span></a></li>
+            <li><a onclick="switchPage('pk')"><span class="nav-icon">🏆</span> <span class="nav-text">个人PK</span></a></li>
+        </ul>
+        <div class="sidebar-info">
+            <div class="stat-card">
+                💾 已保存 <b>0</b> 个文件<br>
+                <span class="time">—</span>
+            </div>
+            <div class="snapshot">📸 <b>0</b> 份历史快照</div>
+            <div class="snapshot cloud-status" id="cloudStatus">☁️ 云端未配置</div>
+            <div class="sidebar-actions">
+                <button onclick="uploadToCloud()">⬆ 同步</button>
+                <button onclick="loadFromCloud()">📥 团队</button>
+            </div>
+            <div class="sidebar-actions">
+                <button onclick="showOssConfigModal()">⚙ OSS</button>
+                <button onclick="doSave()">💾 本地</button>
+            </div>
+            <div class="sidebar-actions">
+                <button onclick="runTeamSyncDrill()" title="上传虚拟同事数据并验证团队拉取">🧪 联调</button>
+                <button onclick="doClear()">🗑️ 清除</button>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main">
+        <header class="topbar">
+            <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="折叠侧边栏">☰</button>
+            <button class="btn-deploy" onclick="location.reload()">🔄 刷新</button>
+        </header>
+        <div class="content">
+
+            <!-- ═══ 页面 1: 数据导入 ═══ -->
+            <div class="page active" id="page-import">
+                <div class="hero">
+                    <h1>📥 数据导入</h1>
+                    <p>批量上传利润统计 Excel 文件（.xls / .xlsx），系统自动识别文件类型和归属人并解析数据。导入后自动保存，下次打开无需重新上传。</p>
+                </div>
+                <div class="alert alert-info">
+                    <span class="alert-icon">💾</span>
+                    <span>检测到历史数据：<strong>0</strong> 个文件。点击下方「📂 加载历史数据」恢复。</span>
+                </div>
+                <div class="btn-row">
+                    <button class="btn" onclick="doLoad()">📂 加载历史数据</button>
+                    <button class="btn" onclick="location.reload()">🔄 刷新页面</button>
+                </div>
+                <details class="expander" open>
+                    <summary>🚀 第一次使用？看这里</summary>
+                    <div class="expander-content">
+                        <div class="steps">
+                            <div class="step"><div class="emoji">📤</div><div class="title">1. 上传文件</div><div class="desc">利润统计 .xls + 数据记录 .xlsx 可混拖</div></div>
+                            <div class="step"><div class="emoji">🔍</div><div class="title">2. 自动分流</div><div class="desc">商品SPU→选品页 · 店铺名称→运营/PK</div></div>
+                            <div class="step"><div class="emoji">📊</div><div class="title">3. 查看分析</div><div class="desc">本地看板 + 侧边栏 ⬆同步 OSS</div></div>
+                        </div>
+                        <div class="alert alert-info" style="margin-top:12px;"><span class="alert-icon">☁️</span><span><strong>OSS 同步</strong>：解析后点侧边栏 <strong>⬆ 同步</strong>。请双击文件夹里的 <strong>启动本地看板.bat</strong>（含 OSS 代理，无需配 CORS），浏览器打开 <code style="color:var(--gold);">http://localhost:8080/temu-dashboard.html</code></span></div>
+                    </div>
+                </details>
+                <hr>
+                <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+                    <div class="icon">📁</div>
+                    <div style="font-size:1.1rem; margin-bottom:8px;">拖拽文件到此处或点击选择</div>
+                    <div class="hint">店铺利润统计 .xls（商品SPU）· 店铺数据记录 .xlsx（ROAS/花费）</div>
+                    <button class="btn" style="margin-top:14px;" onclick="event.stopPropagation(); document.getElementById('fileInput').click();">⬆ Upload</button>
+                </div>
+                <input type="file" id="fileInput" accept=".xls,.xlsx" multiple style="display:none" onchange="handleFileUpload(this.files)">
+                <div class="alert alert-info"><span class="alert-icon">📂</span><span>支持两类文件混传：<strong>店铺利润统计</strong>（.xls，表头含「商品SPU ID」→ 商品画像/选品）和 <strong>店铺数据记录</strong>（.xlsx，表头含「店铺名称」→ 店铺运营/个人PK）</span></div>
+                <div class="alert alert-info"><span class="alert-icon">👥</span><span>团队基准上传区 — 仅导入同事的<strong>利润统计</strong> .xls，用于「个人 vs 团队」对比（不要传数据记录）</span></div>
+                <div class="upload-zone" onclick="document.getElementById('teamFileInput').click()" style="border-color:rgba(91,155,213,0.28);margin-top:0;">
+                    <div class="icon">👥</div>
+                    <div style="font-size:1rem; margin-bottom:6px;color:var(--text);">导入团队利润统计</div>
+                    <div class="hint">同事的利润统计 Excel 文件</div>
+                    <button class="btn" style="margin-top:10px;border-color:rgba(91,155,213,0.28);" onclick="event.stopPropagation(); document.getElementById('teamFileInput').click();">⬆ 上传团队数据</button>
+                </div>
+                <input type="file" id="teamFileInput" accept=".xls,.xlsx" multiple style="display:none" onchange="handleTeamUpload(this.files)">
+            </div>
+
+            <!-- ═══ 页面 2: 商品画像 ═══ -->
+            <div class="page" id="page-products">
+                <div class="hero">
+                    <h1>📊 商品画像 — 聚类分析</h1>
+                    <p>基于 K-Means 聚类算法，按克重、成本、毛利率、日销量对商品自动分组，快速识别好品与差品的特征分布。</p>
+                </div>
+                <div class="alert alert-info"><span class="alert-icon">ℹ</span><span>📂 暂无数据，请先前往「数据导入」页面上传 Excel 文件。</span></div>
+            </div>
+
+            <!-- ═══ 页面 3: 选品规则 ═══ -->
+            <div class="page" id="page-rules">
+                <div class="hero">
+                    <h1>📋 选品规则 — 从数据中提取铁律</h1>
+                    <p>基于聚类分组结果，用纯统计方法自动提取可操作的选品规则。每条规则包含条件、验证指标和置信度，选品时优先匹配 🟢 铁律，遇到 🔴 避坑特征直接 pass。</p>
+                </div>
+                <div class="alert alert-info"><span class="alert-icon">ℹ</span><span>📂 暂无数据，请先前往「数据导入」页面上传 Excel 文件。</span></div>
+            </div>
+
+            <!-- ═══ 页面 4: 智能预测 ═══ -->
+            <div class="page" id="page-predict">
+                <div class="hero">
+                    <h1>🔮 智能预测 — 利润推算</h1>
+                    <p>输入新品的成本、克重和预计卖价，系统自动匹对历史相似品数据，给出毛利率与日销预估、风险评级和选品建议。</p>
+                </div>
+                <div class="alert alert-info"><span class="alert-icon">ℹ</span><span>📂 暂无数据，请先前往「数据导入」页面上传 Excel 文件。</span></div>
+            </div>
+
+            <!-- ═══ 页面 5: 避坑清单 ═══ -->
+            <div class="page" id="page-blacklist">
+                <div class="hero">
+                    <h1>🚫 避坑清单 — 亏损品异常检测</h1>
+                    <p>自动筛选历史亏损品，按特征分组分析亏损原因，提炼可操作的避坑规则，避免重复踩坑。</p>
+                </div>
+                <div class="alert alert-info"><span class="alert-icon">ℹ</span><span>📂 暂无数据，请先前往「数据导入」页面上传 Excel 文件。</span></div>
+            </div>
+
+            <!-- ═══ 页面 6: 个人诊断 ═══ -->
+            <div class="page" id="page-diagnosis">
+                <div class="hero">
+                    <h1>📈 个人诊断</h1>
+                    <p>基于历史快照对比，追踪你的选品质量变化，给出个性化优化建议。</p>
+                </div>
+                <div class="warn-card">
+                    <div class="title">📂 需要至少 2 次数据上传</div>
+                    <div class="desc">请回到「数据导入」页上传本周的利润统计 Excel，再回来看趋势分析。</div>
+                </div>
+            </div>
+
+            <!-- ═══ 页面 7: 店铺运营 ═══ -->
+            <div class="page" id="page-store">
+                <div class="hero">
+                    <h1>🏪 店铺运营</h1>
+                    <p>店铺级运营数据分析：ROAS、转化率、花费效率、多日趋势对比。上传「店铺数据记录.xlsx」自动解析。</p>
+                </div>
+                <div class="alert alert-info"><span class="alert-icon">📂</span><span>请上传店铺数据记录 Excel（.xlsx），系统自动按日期和店铺分组展示。</span></div>
+            </div>
+            <!-- ═══ 页面 8: 个人PK ═══ -->
+            <div class="page" id="page-pk">
+                <div class="hero">
+                    <h1>🏆 个人选品 vs 店铺运营</h1>
+                    <p>选品是输入，运营是输出。将个人选品指标与店铺运营数据并列对比，看清二者的因果链。</p>
+                </div>
+            </div>
+
+        </div>
+    </main>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// 全局状态
+// ═══════════════════════════════════════════════
+var ST = { files: [], products: [], clusters: [], rules: [], snapshots: [], storeData: [], teamProducts: [] };
+var hasTeam = false;
+
+// ═══════════════════════════════════════════════
+// 工具函数
+// ═══════════════════════════════════════════════
+function med(a){var m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m])/2;}
+function q75(a){return a[Math.floor(a.length*0.75)];}
+function q25(a){return a[Math.floor(a.length*0.25)];}
+function avg(a){var f=a.filter(function(v){return v!=null&&!isNaN(v);});return f.length===0?0:f.reduce(function(x,y){return x+y;},0)/f.length;}
+// ── 安全数值格式化：NaN/Infinity 时返回 '—' ──
+function sf(v,d){ d=d||0; return (isNaN(v)||!isFinite(v))?'—':v.toFixed(d); }
+
+// 安全写入 localStorage：配额溢出时自动清理旧快照后重试
+function safeSetItem(key, value) {
+    try {
+        localStorage.setItem(key, value);
+    } catch(e) {
+        if (e.name === 'QuotaExceededError') {
+            console.warn('localStorage 配额不足，清理旧快照...');
+            // 清理所有快照
+            var snapKeys = [];
+            for (var i = localStorage.length - 1; i >= 0; i--) {
+                var k = localStorage.key(i);
+                if (k && k.indexOf('temu_v6_snap_') === 0) snapKeys.push(k);
+            }
+            // 只保留最近 3 个快照，其余删除
+            snapKeys.sort().reverse();
+            snapKeys.slice(3).forEach(function(k) { try { localStorage.removeItem(k); } catch(e2) {} });
+            ST.snapshots = ST.snapshots.slice(-3);
+            // 重试
+            try { localStorage.setItem(key, value); } catch(e2) {
+                // 仍然失败：清空全部数据
+                toast('存储空间不足，请清理旧数据后重试','error');
+                throw e2;
+            }
+        } else { throw e; }
+    }
+}
+
+// 读取快照中的 files 数组（兼容旧版仅含摘要的对象格式）
+function loadSnapshotFiles(key) {
+    var raw = localStorage.getItem(key);
+    if (!raw) return null;
+    try {
+        var parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : null;
+    } catch(e) { return null; }
+}
+
+// 取上一份含完整数据的快照（跳过旧版摘要快照）
+function getPreviousSnapshotFiles() {
+    if (ST.snapshots.length < 2) return null;
+    for (var si = ST.snapshots.length - 2; si >= 0; si--) {
+        var files = loadSnapshotFiles(ST.snapshots[si].key);
+        if (files) return files;
+    }
+    return null;
+}
+
+function pushSnapshot() {
+    var now = new Date().toLocaleString('zh-CN');
+    var snapKey = 'temu_v6_snap_' + Date.now();
+    safeSetItem(snapKey, JSON.stringify(ST.files));
+    ST.snapshots.push({key: snapKey, time: now, fileCount: ST.files.length});
+    while (ST.snapshots.length > 5) {
+        var oldSnap = ST.snapshots.shift();
+        try { localStorage.removeItem(oldSnap.key); } catch(e) {}
+    }
+    safeSetItem('temu_v6_snap_idx', JSON.stringify(ST.snapshots));
+}
+
+// ═══════════════════════════════════════════════
+// 初始化
+// ═══════════════════════════════════════════════
+(function init() {
+    var raw = localStorage.getItem('temu_v6_data');
+    if (raw) { try { ST.files = JSON.parse(raw); } catch(e) { ST.files = []; } }
+    // 确保 ST.files 是数组
+    if (!Array.isArray(ST.files)) ST.files = [];
+    var idx = localStorage.getItem('temu_v6_snap_idx');
+    if (idx) { try { ST.snapshots = JSON.parse(idx); } catch(e) { ST.snapshots = []; } }
+    if (!Array.isArray(ST.snapshots)) ST.snapshots = [];
+    var storeRaw = localStorage.getItem('temu_v6_store');
+    if (storeRaw) { try { ST.storeData = JSON.parse(storeRaw); } catch(e) { ST.storeData = []; } }
+    var teamRaw = localStorage.getItem('temu_v6_team');
+    if (teamRaw) { try { ST.teamProducts = JSON.parse(teamRaw); hasTeam = ST.teamProducts && ST.teamProducts.length > 0; } catch(e) { ST.teamProducts = []; hasTeam = false; } }
+    if (!Array.isArray(ST.teamProducts)) { ST.teamProducts = []; hasTeam = false; }
+    if (!Array.isArray(ST.storeData)) ST.storeData = [];
+    updateSidebar();
+    if (ST.files.length > 0) {
+        try { reprocessAll(); renderImportPage(); } catch(e) {
+            console.warn('数据加载失败，保留原始文件:', e.message);
+            toast('历史数据解析失败，请重新上传 Excel（原始文件仍保留）','error');
+        }
+    }
+    // 侧边栏折叠状态恢复
+    if (localStorage.getItem('temu_v6_sidebar') === 'collapsed') {
+        document.querySelector('.sidebar').classList.add('collapsed');
+    }
+})();
+
+function reprocessAll() {
+    var result = DataPipeline.analyze(ST.files);
+    if (!result || !result.products) {
+        console.warn('reprocessAll: analyze 返回无效数据，使用空结果');
+        result = { products: [], clusters: [], rules: [], avoidance: [], stats: {} };
+    }
+    ST.products = result.products;
+    ST.clusters = result.clusters;
+    ST.rules = result.rules;
+    ST._avoidance = result.avoidance;
+    ST._stats = result.stats;
+}
+
+// 清空所有本地数据（配额恢复用）
+function clearAllData() {
+    var keys = [];
+    for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf('temu_v6') === 0) keys.push(k);
+    }
+    keys.forEach(function(k) { localStorage.removeItem(k); });
+    ST.files = []; ST.products = []; ST.clusters = []; ST.rules = [];
+    ST._avoidance = []; ST._stats = {}; ST.snapshots = [];
+    ST.storeData = [];  // ← 之前漏了
+    ST.teamProducts = []; hasTeam = false; localStorage.removeItem('temu_v6_team');  // 团队数据重置
+    updateSidebar();
+    toast('本地数据已清空，请重新上传','warning');
+}
+
+function updateSidebar() {
+    var card = document.querySelector('.stat-card');
+    if (!card) return;
+    var meta = JSON.parse(localStorage.getItem('temu_v6_meta') || '{}');
+    var storeCount = (ST.storeData && ST.storeData.length) ? ST.storeData.length : 0;
+    var teamCount = (ST.teamProducts && ST.teamProducts.length) ? ST.teamProducts.length : 0;
+    card.innerHTML = (teamCount > 0 ? '团队 <b>' + teamCount + '</b> 条 | ' : '') + '📦 商品 <b>'+ST.files.length+'</b> 个文件<br>🏪 店铺 <b>'+storeCount+'</b> 条记录'+(meta.saved_at?'<br><span class="time">'+meta.saved_at+'</span>':'');
+    var sd = document.querySelector('.snapshot');
+    if (sd) sd.innerHTML = '📸 <b>'+ST.snapshots.length+'</b> 份本地快照';
+    var cs = document.getElementById('cloudStatus');
+    if (cs) {
+        if (!isOssConfigured()) {
+            cs.innerHTML = '☁️ 云端未配置';
+        } else {
+            var up = JSON.parse(localStorage.getItem('temu_v6_cloud_last_upload') || 'null');
+            var ld = JSON.parse(localStorage.getItem('temu_v6_cloud_last_load') || 'null');
+            var parts = ['☁️ ' + getOssConfig().bucket];
+            if (up && up.time) parts.push('↑' + up.time.slice(0, 16));
+            if (ld && ld.count) parts.push('↓' + ld.count + '条');
+            cs.innerHTML = parts.join(' · ');
+        }
+    }
+}
+
+function toggleSidebar() {
+    var sb = document.querySelector('.sidebar');
+    sb.classList.toggle('collapsed');
+    localStorage.setItem('temu_v6_sidebar', sb.classList.contains('collapsed') ? 'collapsed' : 'expanded');
+    // 折叠后重绘 Plotly 图表适配新宽度
+    setTimeout(function(){
+        if (typeof Plotly !== 'undefined') Plotly.Plots.resize(document.getElementById('scatterPlot'));
+        if (typeof Plotly !== 'undefined') Plotly.Plots.resize(document.getElementById('trendChart'));
+    }, 300);
+}
+
+// ═══════════════════════════════════════════════
+// Toast & Modal
+// ═══════════════════════════════════════════════
+function toast(msg, type) {
+    var bg = {success:'rgba(45,106,79,0.18)',warning:'rgba(139,105,20,0.18)',error:'rgba(139,0,0,0.18)'}[type]||'rgba(226,184,122,0.08)';
+    var bd = {success:'rgba(45,106,79,0.5)',warning:'rgba(139,105,20,0.5)',error:'rgba(139,0,0,0.5)'}[type]||'rgba(226,184,122,0.25)';
+    var cl = {success:'#4ade80',warning:'#fbbf24',error:'#f87171'}[type]||'#f1f0ee';
+    var d = document.createElement('div'); d.className = 'toast-msg';
+    d.style.cssText = 'background:'+bg+';border:1px solid '+bd+';color:'+cl;
+    d.textContent = msg; document.getElementById('toast').appendChild(d);
+    setTimeout(function(){ d.style.opacity='0'; d.style.transition='opacity 0.3s'; setTimeout(function(){ d.remove(); },300); }, 3000);
+}
+
+function showModal(title, bodyHTML, confirmText, onConfirm) {
+    var o = document.createElement('div'); o.className = 'modal-overlay';
+    o.innerHTML = '<div class="modal-box"><h2>'+title+'</h2>'+bodyHTML+'<div style="display:flex;gap:12px;margin-top:16px;justify-content:flex-end;"><button class="btn" onclick="this.closest(\'.modal-overlay\').remove()">取消</button><button class="btn" id="modalOK" style="background:var(--gold);color:var(--bg);">'+confirmText+'</button></div></div>';
+    document.body.appendChild(o);
+    o.addEventListener('click', function(e) { if (e.target === o) o.remove(); });
+    document.getElementById('modalOK').addEventListener('click', function() {
+        if (onConfirm && onConfirm() === false) return;
+        o.remove();
+    });
+}
+
+// ═══════════════════════════════════════════════
+// 第二阶段：阿里云 OSS 团队同步（只传 JSON 摘要，不传原始 Excel）
+// ═══════════════════════════════════════════════
+var OSS_DEFAULT = {
+    region: 'oss-cn-hangzhou',
+    bucket: 'temu-shujufenxi-data',
+    prefix: 'temu/',
+    owner: '',
+    accessKeyId: '',
+    accessKeySecret: ''
+};
+
+var OSS_LEGACY_BUCKET_MAP = {
+    'temu-pod-data': 'temu-shujufenxi-data'
+};
+
+function getOssConfig() {
+    try {
+        var saved = JSON.parse(localStorage.getItem('temu_v6_oss_config') || '{}');
+        var cfg = {};
+        Object.keys(OSS_DEFAULT).forEach(function(k) { cfg[k] = saved[k] !== undefined ? saved[k] : OSS_DEFAULT[k]; });
+        if (OSS_LEGACY_BUCKET_MAP[cfg.bucket]) {
+            cfg.bucket = OSS_LEGACY_BUCKET_MAP[cfg.bucket];
+            saved.bucket = cfg.bucket;
+            localStorage.setItem('temu_v6_oss_config', JSON.stringify(saved));
+        }
+        return cfg;
+    } catch(e) { return Object.assign({}, OSS_DEFAULT); }
+}
+
+function saveOssConfig(cfg) {
+    localStorage.setItem('temu_v6_oss_config', JSON.stringify(cfg));
+}
+
+function normalizeOssRegion(region) {
+    var r = (region || '').trim();
+    if (!r) return '';
+    if (r.indexOf('oss-') === 0) return r;
+    if (r.indexOf('cn-') === 0) return 'oss-' + r;
+    return r;
+}
+
+function isOssConfigured() {
+    var c = getOssConfig();
+    return !!(c.bucket && c.region && c.accessKeyId && c.accessKeySecret);
+}
+
+function extractOwnerFromFilename(name) {
+    if (!name) return '';
+    var m = name.match(/^(.+?)(?:Y2)?店铺(?:利润统计|数据记录)/i);
+    if (m) return m[1].replace(/[\d_\(\)\s]+$/g, '').trim();
+    m = name.match(/^([\u4e00-\u9fa5A-Za-z]{2,8})/);
+    return m ? m[1] : '';
+}
+
+function getCloudOwner() {
+    var cfg = getOssConfig();
+    if (cfg.owner) return cfg.owner;
+    for (var i = 0; i < ST.files.length; i++) {
+        var o = extractOwnerFromFilename(ST.files[i].filename);
+        if (o) return o;
+    }
+    return '匿名';
+}
+
+function ossPublicUrl(cfg, key) {
+    return 'https://' + cfg.bucket + '.' + normalizeOssRegion(cfg.region) + '.aliyuncs.com/' + key;
+}
+
+function ownerPathSlug(name) {
+    var s = String(name || 'user').replace(/[\\/:*?"<>|]/g, '_').trim();
+    if (/^[A-Za-z0-9_\-]+$/.test(s) && s.length > 0) return s;
+    var h = 0;
+    for (var i = 0; i < s.length; i++) h = ((h << 5) - h) + s.charCodeAt(i) | 0;
+    return 'u' + Math.abs(h).toString(36);
+}
+
+function isLocalFilePage() {
+    return location.protocol === 'file:';
+}
+
+function isLocalDevServer() {
+    if (isLocalFilePage()) return false;
+    var h = location.hostname;
+    return (h === 'localhost' || h === '127.0.0.1') && (location.port === '8080' || location.port === '');
+}
+
+var _ossProxyReady = null;
+function checkOssLocalProxy() {
+    if (!isLocalDevServer()) return Promise.resolve(false);
+    if (_ossProxyReady !== null) return _ossProxyReady;
+    _ossProxyReady = fetch('/__temu_oss__', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'ping' })
+    }).then(function(r) { return r.ok; }).catch(function() { return false; });
+    return _ossProxyReady;
+}
+
+function ossUploadViaProxy(cfg, key, bodyStr) {
+    return fetch('/__temu_oss__', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'put', cfg: cfg, key: key, body: bodyStr })
+    }).then(function(r) {
+        return r.json().then(function(data) {
+            if (!r.ok || !data.ok) throw new Error(data.error || ('HTTP ' + r.status));
+            return data;
+        });
+    });
+}
+
+function ossGetViaProxy(cfg, key) {
+    return fetch('/__temu_oss__', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'get', cfg: cfg, key: key })
+    }).then(function(r) {
+        return r.json().then(function(data) {
+            if (!r.ok || !data.ok) throw new Error(data.error || ('HTTP ' + r.status));
+            return data.body;
+        });
+    });
+}
+
+function ossHmacSha1Base64(secret, message) {
+    var enc = new TextEncoder();
+    return crypto.subtle.importKey(
+        'raw', enc.encode(secret),
+        { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']
+    ).then(function(cryptoKey) {
+        return crypto.subtle.sign('HMAC', cryptoKey, enc.encode(message));
+    }).then(function(sig) {
+        var bytes = new Uint8Array(sig), bin = '';
+        for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+        return btoa(bin);
+    });
+}
+
+function ossGetDirect(cfg, key) {
+    var bucket = cfg.bucket;
+    var url = ossPublicUrl(cfg, key);
+    var date = new Date().toUTCString();
+    var resource = '/' + bucket + '/' + key;
+    var stringToSign = 'GET\n\n\n' + date + '\n' + resource;
+    return ossHmacSha1Base64(cfg.accessKeySecret, stringToSign).then(function(sig) {
+        return fetch(url, {
+            method: 'GET',
+            headers: { 'Date': date, 'Authorization': 'OSS ' + cfg.accessKeyId + ':' + sig }
+        });
+    }).then(function(r) {
+        if (!r.ok) {
+            return r.text().then(function(t) {
+                throw new Error('GET HTTP ' + r.status + (t ? ': ' + t.slice(0, 120) : ''));
+            });
+        }
+        return r.text();
+    });
+}
+
+function ossPutDirect(cfg, key, bodyStr) {
+    var region = normalizeOssRegion(cfg.region);
+    var bucket = cfg.bucket;
+    var url = ossPublicUrl(cfg, key);
+    var contentType = 'application/json; charset=utf-8';
+    var date = new Date().toUTCString();
+    var resource = '/' + bucket + '/' + key;
+    var stringToSign = 'PUT\n\n' + contentType + '\n' + date + '\n' + resource;
+    return ossHmacSha1Base64(cfg.accessKeySecret, stringToSign).then(function(sig) {
+        return fetch(url, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': contentType,
+                'Date': date,
+                'Authorization': 'OSS ' + cfg.accessKeyId + ':' + sig
+            },
+            body: bodyStr
+        });
+    }).then(function(r) {
+        if (!r.ok) {
+            return r.text().then(function(t) {
+                throw new Error('HTTP ' + r.status + (t ? ': ' + t.slice(0, 120) : ''));
+            });
+        }
+        return r;
+    });
+}
+
+function formatOssUploadError(e) {
+    var msg = (e && (e.message || e.code)) ? String(e.message || e.code) : String(e);
+    if (/XHR error|connected: false|Failed to fetch|NetworkError/i.test(msg)) {
+        var hint = '网络/CORS 被浏览器拦截。';
+        if (isLocalFilePage()) {
+            hint += ' 请双击「启动本地看板.bat」，用 http://localhost:8080 打开。';
+        } else if (isLocalDevServer()) {
+            hint += ' 请关闭旧窗口，重新双击「启动本地看板.bat」（新版含 OSS 代理，可绕过 CORS）。';
+        } else {
+            hint += ' OSS 跨域需单独建规则，来源填 ' + location.origin + ' ，Methods 含 POST 和 PUT。';
+        }
+        return hint;
+    }
+    if (/403|AccessDenied|InvalidAccessKeyId|SignatureDoesNotMatch|AccessDenied/i.test(msg)) {
+        return msg + ' — 请检查 AccessKey 权限（需 PutObject）和 Region 是否与 Bucket 一致。';
+    }
+    if (/NoSuchBucket/i.test(msg)) {
+        return 'Bucket 不存在：当前配置可能仍是旧名字 temu-pod-data。请 ⚙ OSS 改为 temu-shujufenxi-data 后重新保存。';
+    }
+    return msg;
+}
+
+function ossPostDirect(cfg, key, bodyStr) {
+    var url = 'https://' + cfg.bucket + '.' + normalizeOssRegion(cfg.region) + '.aliyuncs.com/';
+    var expire = new Date(Date.now() + 3600000).toISOString();
+    var maxSize = Math.max((bodyStr || '').length + 4096, 1048576);
+    var policyDoc = {
+        expiration: expire,
+        conditions: [
+            ['content-length-range', 0, maxSize],
+            ['eq', '$bucket', cfg.bucket],
+            ['eq', '$key', key]
+        ]
+    };
+    var policyB64 = btoa(JSON.stringify(policyDoc));
+    return ossHmacSha1Base64(cfg.accessKeySecret, policyB64).then(function(signature) {
+        var fd = new FormData();
+        fd.append('key', key);
+        fd.append('OSSAccessKeyId', cfg.accessKeyId);
+        fd.append('policy', policyB64);
+        fd.append('Signature', signature);
+        fd.append('success_action_status', '200');
+        fd.append('Content-Type', 'application/json; charset=utf-8');
+        fd.append('file', new Blob([bodyStr], { type: 'application/json' }), 'data.json');
+        return fetch(url, { method: 'POST', body: fd, mode: 'cors' });
+    }).then(function(r) {
+        if (!r.ok && r.status !== 204) {
+            return r.text().then(function(t) {
+                throw new Error('POST HTTP ' + r.status + (t ? ': ' + t.slice(0, 150) : ''));
+            });
+        }
+        return r;
+    });
+}
+
+function ossUploadObject(cfg, key, bodyStr) {
+    return checkOssLocalProxy().then(function(hasProxy) {
+        if (hasProxy) {
+            return ossUploadViaProxy(cfg, key, bodyStr);
+        }
+        return ossPostDirect(cfg, key, bodyStr).catch(function(postErr) {
+            console.warn('PostObject 失败，尝试 PUT:', postErr);
+            return ossPutDirect(cfg, key, bodyStr);
+        });
+    });
+}
+
+function readOssFormOrSaved() {
+    var ownerEl = document.getElementById('oss_owner');
+    if (ownerEl) {
+        return {
+            owner: ownerEl.value.trim(),
+            region: normalizeOssRegion(document.getElementById('oss_region').value.trim()),
+            bucket: document.getElementById('oss_bucket').value.trim(),
+            prefix: 'temu/',
+            accessKeyId: document.getElementById('oss_ak').value.trim(),
+            accessKeySecret: document.getElementById('oss_sk').value.trim()
+        };
+    }
+    return getOssConfig();
+}
+
+function ossObjectUrls(cfg, key) {
+    var region = normalizeOssRegion(cfg.region);
+    var bucket = cfg.bucket;
+    return [
+        { label: '虚拟域名', url: 'https://' + bucket + '.' + region + '.aliyuncs.com/' + key },
+        { label: '路径风格', url: 'https://' + region + '.aliyuncs.com/' + bucket + '/' + key }
+    ];
+}
+
+function ossTryCorsGet(url) {
+    return fetch(url, { method: 'GET', mode: 'cors', cache: 'no-store' }).then(function(r) {
+        return { url: url, status: r.status, ok: r.ok, cors: true };
+    });
+}
+
+function diagnoseOssConnection() {
+    var cfg = readOssFormOrSaved();
+    if (!cfg.bucket || !cfg.region || !cfg.accessKeyId || !cfg.accessKeySecret) {
+        toast('请先填完整 OSS 配置', 'warning');
+        return;
+    }
+    toast('OSS 诊断中…', 'info');
+    var region = normalizeOssRegion(cfg.region);
+    var lines = [
+        '当前页面: ' + location.href,
+        'Bucket: ' + cfg.bucket + ' · Region: ' + region,
+        ''
+    ];
+    var manifestKey = cfg.prefix + 'manifest.json';
+    var urlList = ossObjectUrls(cfg, manifestKey);
+    var testKey = cfg.prefix + '_diag/' + Date.now() + '.json';
+    var testBody = '{"ping":1}';
+
+    checkOssLocalProxy().then(function(hasProxy) {
+        if (hasProxy) {
+            lines.push('✅ 本地 OSS 代理已启用（启动本地看板.bat 新版）');
+            lines.push('   ⬆ 同步走代理，不依赖浏览器 CORS');
+            lines.push('');
+            return ossUploadViaProxy(cfg, testKey, testBody).then(function() {
+                lines.push('① 代理 PUT 上传: ✅ 成功');
+                return ossGetViaProxy(cfg, testKey).then(function(body) {
+                    if (body && body.indexOf('"ping"') >= 0) {
+                        lines.push('② 代理签名 GET: ✅ 成功（私有 Bucket 可用）');
+                    } else {
+                        lines.push('② 代理签名 GET: ⚠️ 响应异常');
+                    }
+                    lines.push('');
+                    lines.push('→ 可以 ⬆ 同步；团队拉取用 📥 或 🧪 联调');
+                }).catch(function(ge) {
+                    lines.push('② 代理签名 GET: ❌ ' + ge.message);
+                    lines.push('   → RAM 用户需 oss:GetObject 权限');
+                });
+            }).catch(function(e) {
+                lines.push('① 代理 PUT 上传: ❌ ' + e.message);
+                lines.push('   → 检查 AccessKey 是否有 PutObject 权限');
+                lines.push('   → 检查 Bucket/Region 是否与控制台一致');
+            });
+        }
+
+        lines.push('⚠️ 未检测到本地 OSS 代理');
+        lines.push('   请关闭浏览器，重新双击「启动本地看板.bat」');
+        lines.push('   窗口应显示「含 OSS 代理」，不要用手动 python -m http.server');
+        lines.push('');
+        lines.push('【浏览器直传】需配 CORS。新标签页打开：');
+        urlList.forEach(function(u) { lines.push('  ' + u.label + ': ' + u.url); });
+        lines.push('');
+        lines.push('  • NoSuchKey → Bucket 通、公共读 OK');
+        lines.push('  • AccessDenied → 公共读未开或阻止公共访问未关');
+        lines.push('  • NoSuchBucket → Bucket 名或 Region 填错');
+        lines.push('');
+
+        var stepGet = urlList.reduce(function(chain, item) {
+            return chain.then(function(gotOk) {
+                if (gotOk) return true;
+                return ossTryCorsGet(item.url).then(function(res) {
+                    lines.push('GET+CORS [' + item.label + ']: HTTP ' + res.status + (res.status === 404 ? ' ✅' : res.status === 200 ? ' ✅' : ''));
+                    return res.status === 200 || res.status === 404;
+                }).catch(function(e) {
+                    lines.push('GET+CORS [' + item.label + ']: ❌ ' + e.message);
+                    return false;
+                });
+            });
+        }, Promise.resolve(false));
+
+        return stepGet.then(function(corsOk) {
+            if (!corsOk) {
+                lines.push('');
+                lines.push('CORS 规则（数据安全 → 跨域设置）：');
+                lines.push('  来源: http://localhost:8080 和 http://127.0.0.1:8080');
+                lines.push('  Methods: GET PUT POST HEAD');
+                lines.push('  允许 Headers: *  暴露 Headers: ETag');
+            }
+            return ossPostDirect(cfg, testKey, testBody).then(function() {
+                lines.push('POST 上传: ✅ 成功');
+            }).catch(function(e1) {
+                lines.push('POST 上传: ❌ ' + e1.message);
+                return ossPutDirect(cfg, testKey, testBody).then(function() {
+                    lines.push('PUT 上传: ✅ 成功');
+                }).catch(function(e2) {
+                    lines.push('PUT 上传: ❌ ' + e2.message);
+                });
+            });
+        });
+    }).then(function() {
+        showModal('OSS 诊断结果', '<pre style="white-space:pre-wrap;font-size:0.82rem;color:var(--text-dim);max-height:420px;overflow:auto;line-height:1.55;">' + lines.join('\n') + '</pre>', '关闭', function() {});
+    });
+}
+
+function fetchPublicJson(url) {
+    return fetch(url).then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+    });
+}
+
+function fetchOssJson(cfg, key) {
+    return checkOssLocalProxy().then(function(hasProxy) {
+        if (hasProxy) {
+            return ossGetViaProxy(cfg, key).then(function(text) { return JSON.parse(text); });
+        }
+        return ossGetDirect(cfg, key).then(function(text) { return JSON.parse(text); });
+    });
+}
+
+var TEAM_DRILL_OWNER = '联调虚拟同事';
+
+function buildTeamDrillSummary() {
+    var now = new Date();
+    return {
+        version: 1,
+        owner: TEAM_DRILL_OWNER,
+        date: now.toISOString().slice(0, 10),
+        uploaded_at: now.toLocaleString('zh-CN'),
+        product_stats: { drill: true },
+        products: [{
+            spu_id: 'DRILL-' + now.getTime(),
+            name: '联调测试商品（可忽略）',
+            gross_margin: 88.5,
+            daily_sales: 15.2,
+            weight_g: 280,
+            cost: 16.8,
+            price: 89,
+            cluster_label: '联调簇'
+        }],
+        store_records: []
+    };
+}
+
+function collectTeamEntriesFromManifest(manifest, myOwner) {
+    var entries = (manifest && manifest.entries) ? manifest.entries : [];
+    var latestByOwner = {};
+    entries.forEach(function(e) {
+        if (!e || !e.key) return;
+        if (e.owner === myOwner) return;
+        if (!latestByOwner[e.owner] || String(e.uploaded_at) > String(latestByOwner[e.owner].uploaded_at)) {
+            latestByOwner[e.owner] = e;
+        }
+    });
+    return Object.keys(latestByOwner).map(function(k) { return latestByOwner[k]; });
+}
+
+function applyTeamSummaries(summaries) {
+    ST.teamProducts = [];
+    var people = 0;
+    (summaries || []).forEach(function(s) {
+        if (!s || !s.products) return;
+        people++;
+        ST.teamProducts = ST.teamProducts.concat(s.products);
+    });
+    hasTeam = ST.teamProducts.length > 0;
+    safeSetItem('temu_v6_team', JSON.stringify(ST.teamProducts));
+    safeSetItem('temu_v6_cloud_last_load', JSON.stringify({
+        time: new Date().toLocaleString('zh-CN'),
+        people: people,
+        count: ST.teamProducts.length
+    }));
+    updateSidebar();
+    return { people: people, count: ST.teamProducts.length };
+}
+
+function loadFromCloud() {
+    if (!isOssConfigured()) { showOssConfigModal(loadFromCloud); return; }
+    var cfg = getOssConfig();
+    var myOwner = getCloudOwner();
+    toast('正在拉取团队云端数据...', 'info');
+    fetchOssJson(cfg, cfg.prefix + 'manifest.json').then(function(manifest) {
+        var list = collectTeamEntriesFromManifest(manifest, myOwner);
+        if ((manifest.entries || []).length === 0) {
+            toast('云端暂无团队数据', 'warning');
+            return Promise.reject(new Error('empty'));
+        }
+        if (list.length === 0) {
+            toast('云端只有你自己的数据，暂无其他同事（可点 🧪 联调 自测）', 'warning');
+            return Promise.reject(new Error('solo'));
+        }
+        return Promise.all(list.map(function(entry) {
+            return fetchOssJson(cfg, entry.key);
+        }));
+    }).then(function(summaries) {
+        if (!summaries) return;
+        var r = applyTeamSummaries(summaries);
+        toast('团队数据已加载：' + r.people + ' 人 · ' + r.count + ' 条 SPU', 'success');
+    }).catch(function(e) {
+        if (e && (e.message === 'empty' || e.message === 'solo')) return;
+        console.error('loadFromCloud:', e);
+        toast('拉取失败：' + (e.message || '请确认 AccessKey 有 GetObject 权限'), 'error');
+    });
+}
+
+function runTeamSyncDrill() {
+    if (!isOssConfigured()) { showOssConfigModal(runTeamSyncDrill); return; }
+    if (!isLocalDevServer()) {
+        toast('联调请用「启动本地看板.bat」打开 localhost:8080', 'warning');
+        return;
+    }
+    var cfg = getOssConfig();
+    var myOwner = getCloudOwner();
+    var lines = ['团队联调（模拟第二人上传 + 拉取）', '你的归属人: ' + myOwner, ''];
+    toast('团队联调运行中…', 'info');
+
+    checkOssLocalProxy().then(function(hasProxy) {
+        if (!hasProxy) {
+            lines.push('❌ 未检测到 OSS 本地代理 → 请重启 启动本地看板.bat');
+            return Promise.reject(new Error('no-proxy'));
+        }
+        lines.push('✅ 本地 OSS 代理正常');
+        var summary = buildTeamDrillSummary();
+        var slug = ownerPathSlug(TEAM_DRILL_OWNER);
+        var key = cfg.prefix + 'uploads/' + slug + '/drill/' + Date.now() + '.json';
+        var entry = {
+            owner: TEAM_DRILL_OWNER,
+            date: summary.date,
+            key: key,
+            spuCount: summary.products.length,
+            storeCount: 0,
+            uploaded_at: summary.uploaded_at
+        };
+        return ossUploadViaProxy(cfg, key, JSON.stringify(summary)).then(function() {
+            lines.push('✅ 已上传虚拟同事 JSON: ' + TEAM_DRILL_OWNER);
+            return updateCloudManifest(null, cfg, entry);
+        }).then(function() {
+            lines.push('✅ manifest 索引已更新');
+            return fetchOssJson(cfg, cfg.prefix + 'manifest.json');
+        }).then(function(manifest) {
+            var list = collectTeamEntriesFromManifest(manifest, myOwner);
+            var hasDrill = list.some(function(e) { return e.owner === TEAM_DRILL_OWNER; });
+            if (!hasDrill) {
+                lines.push('❌ manifest 里找不到虚拟同事（归属人过滤可能有问题）');
+                return Promise.reject(new Error('no-drill'));
+            }
+            lines.push('✅ manifest 含其他成员: ' + list.map(function(e) { return e.owner; }).join('、'));
+            return Promise.all(list.map(function(e) { return fetchOssJson(cfg, e.key); }));
+        }).then(function(summaries) {
+            var r = applyTeamSummaries(summaries);
+            lines.push('✅ 团队拉取成功: ' + r.people + ' 人 · ' + r.count + ' 条 SPU');
+            lines.push('');
+            lines.push('下一步: 打开「诊断」页查看「个人 vs 团队」');
+            lines.push('真实同事同步后，📥 团队 会拉取他们的数据（不含你自己）');
+        });
+    }).catch(function(e) {
+        if (e && e.message === 'no-proxy') { /* lines already set */ }
+        else if (e && e.message !== 'no-drill') {
+            lines.push('❌ ' + (e.message || String(e)));
+        }
+    }).then(function() {
+        showModal('🧪 团队联调结果', '<pre style="white-space:pre-wrap;font-size:0.82rem;color:var(--text-dim);max-height:420px;overflow:auto;line-height:1.55;">' + lines.join('\n') + '</pre>', '关闭', function() {});
+    });
+}
+
+function createOssClient(cfg) {
+    if (typeof OSS === 'undefined') throw new Error('OSS SDK 未加载，请检查网络');
+    var region = normalizeOssRegion(cfg.region);
+    return new OSS({
+        region: region,
+        accessKeyId: cfg.accessKeyId,
+        accessKeySecret: cfg.accessKeySecret,
+        bucket: cfg.bucket,
+        secure: true
+    });
+}
+
+function buildCloudSummary() {
+    if (ST.files.length === 0 && (!ST.storeData || ST.storeData.length === 0)) return null;
+    reprocessAll();
+    var clusterMap = {};
+    ST.clusters.forEach(function(p) { clusterMap[p.spu_id] = p.cluster_label; });
+    var owner = getCloudOwner();
+    var products = ST.products.map(function(p) {
+        return {
+            spu_id: p.spu_id,
+            name: p.name,
+            gross_margin: Math.round(p.gross_margin * 10) / 10,
+            daily_sales: Math.round(p.daily_sales * 10) / 10,
+            weight_g: Math.round(p.weight_g),
+            cost: Math.round(p.cost * 100) / 100,
+            price: p.price || 0,
+            cluster_label: clusterMap[p.spu_id] || ''
+        };
+    });
+    return {
+        version: 1,
+        owner: owner,
+        date: new Date().toISOString().slice(0, 10),
+        uploaded_at: new Date().toLocaleString('zh-CN'),
+        product_stats: ST._stats || {},
+        products: products,
+        store_records: (ST.storeData || []).map(function(r) {
+            return {
+                date: r.date, store: r.store, spend: r.spend, revenue: r.revenue,
+                profit: r.profit, sales: r.sales, roas: r.roas
+            };
+        })
+    };
+}
+
+function updateCloudManifest(clientOrCfg, cfg, entry) {
+    var manifestKey = cfg.prefix + 'manifest.json';
+    function mergeAndPut(manifest) {
+        manifest.entries = manifest.entries || [];
+        manifest.entries.push(entry);
+        if (manifest.entries.length > 500) manifest.entries = manifest.entries.slice(-500);
+        manifest.updated = new Date().toISOString();
+        var body = JSON.stringify(manifest);
+        if (clientOrCfg && clientOrCfg.put) {
+            return clientOrCfg.put(manifestKey, new Blob([body], { type: 'application/json' }));
+        }
+        return ossUploadObject(cfg, manifestKey, body);
+    }
+    if (clientOrCfg && clientOrCfg.get) {
+        return clientOrCfg.get(manifestKey).then(function(result) {
+            return mergeAndPut(JSON.parse(result.content.toString()));
+        }).catch(function(err) {
+            if (err.code === 'NoSuchKey' || err.status === 404) {
+                return mergeAndPut({ version: 1, entries: [] });
+            }
+            throw err;
+        });
+    }
+    return fetchOssJson(cfg, manifestKey).then(mergeAndPut).catch(function() {
+        return mergeAndPut({ version: 1, entries: [] });
+    });
+}
+
+function uploadToCloud() {
+    if (!isOssConfigured()) { showOssConfigModal(uploadToCloud); return; }
+    var summary = buildCloudSummary();
+    if (!summary) { toast('请先上传 Excel 再同步到云端', 'warning'); return; }
+    if (isLocalFilePage()) {
+        toast('检测到 file:// 打开，上传极易被拦截。建议用 localhost 打开（导入页有说明）', 'warning');
+    }
+    toast('正在同步 JSON 摘要到 OSS...', 'info');
+    var cfg = getOssConfig();
+    var slug = ownerPathSlug(summary.owner);
+    var key = cfg.prefix + 'uploads/' + slug + '/' + summary.date + '/' + Date.now() + '.json';
+    var entry = {
+        owner: summary.owner,
+        date: summary.date,
+        key: key,
+        spuCount: summary.products.length,
+        storeCount: summary.store_records.length,
+        uploaded_at: summary.uploaded_at
+    };
+    var jsonStr = JSON.stringify(summary);
+    ossUploadObject(cfg, key, jsonStr).then(function() {
+        return updateCloudManifest(null, cfg, entry).catch(function(mErr) {
+            console.warn('manifest 更新失败（数据已上传）:', mErr);
+            return { manifestFailed: true, err: mErr };
+        });
+    }).then(function(manifestResult) {
+        safeSetItem('temu_v6_cloud_last_upload', JSON.stringify({ time: summary.uploaded_at, key: key, owner: summary.owner }));
+        updateSidebar();
+        var msg = '云端同步成功：' + summary.owner + ' · ' + summary.products.length + ' SPU';
+        if (summary.store_records.length) msg += ' · ' + summary.store_records.length + ' 店铺';
+        if (manifestResult && manifestResult.manifestFailed) {
+            msg += '（索引未更新，📥团队 可能暂不可用）';
+        }
+        toast(msg, manifestResult && manifestResult.manifestFailed ? 'warning' : 'success');
+    }).catch(function(e) {
+        console.error('uploadToCloud:', e);
+        toast('云端同步失败：' + formatOssUploadError(e), 'error');
+    });
+}
+
+function showOssConfigModal(onSaved) {
+    var cfg = getOssConfig();
+    var configured = isOssConfigured();
+    var statusLine = configured
+        ? '<div class="alert alert-success" style="margin-bottom:12px;">✅ 已配置：' + cfg.bucket + ' · ' + normalizeOssRegion(cfg.region) + (cfg.owner ? ' · ' + cfg.owner : '') + '</div>'
+        : '<div class="alert alert-warning" style="margin-bottom:12px;">⚠️ 尚未保存有效配置。填完点「保存」后，侧边栏应显示 Bucket 名称（不是「云端未配置」）。</div>';
+    var body = statusLine +
+        '<p style="color:var(--text-dim);font-size:0.85rem;margin-bottom:12px;"><strong>Bucket 名和 Region 必须与阿里云控制台「Bucket 列表」里完全一致。</strong>若浏览器打开 <code>https://你的Bucket.oss-cn-xxx.aliyuncs.com/</code> 出现 <code>NoSuchBucket</code>，说明名字或地域填错了（不是 CORS 问题）。</p>' +
+        '<p style="color:var(--text-dim);font-size:0.85rem;margin-bottom:8px;"><strong>推荐</strong>：双击 <code>启动本地看板.bat</code>（含 OSS 代理，<strong>Bucket 可设私有</strong>，无需公共读/CORS）。</p>' +
+        '<p style="color:var(--text-dim);font-size:0.85rem;margin-bottom:8px;"><strong>安全</strong>：建议 RAM 子账号，仅授予 <code>GetObject</code> + <code>PutObject</code>（详见传话文件夹 OSS 私有配置说明）。</p>' +
+        '<button type="button" class="btn" style="width:100%;margin-bottom:8px;" onclick="diagnoseOssConnection()">🔍 诊断 OSS 连接</button>' +
+        '<button type="button" class="btn" style="width:100%;margin-bottom:12px;" onclick="runTeamSyncDrill()">🧪 团队联调（模拟第二人）</button>' +
+        '<div style="display:grid;gap:10px;">' +
+        '<label>归属人（姓名）<br><input id="oss_owner" value="'+(cfg.owner||'')+'" placeholder="如：胡安康" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
+        '<label>Region（填 oss-cn-hangzhou）<br><input id="oss_region" value="'+cfg.region+'" placeholder="oss-cn-hangzhou" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
+        '<label>Bucket 名称（控制台 Bucket 列表里复制的 exact 名字）<br><input id="oss_bucket" value="'+cfg.bucket+'" placeholder="temu-shujufenxi-data" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
+        '<label>AccessKey ID<br><input id="oss_ak" value="'+cfg.accessKeyId+'" autocomplete="off" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
+        '<label>AccessKey Secret<br><input id="oss_sk" type="password" value="'+cfg.accessKeySecret+'" autocomplete="new-password" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
+        '</div>';
+    showModal('☁ 阿里云 OSS 配置', body, '保存', function() {
+        var next = {
+            owner: document.getElementById('oss_owner').value.trim(),
+            region: normalizeOssRegion(document.getElementById('oss_region').value.trim()),
+            bucket: document.getElementById('oss_bucket').value.trim(),
+            prefix: 'temu/',
+            accessKeyId: document.getElementById('oss_ak').value.trim(),
+            accessKeySecret: document.getElementById('oss_sk').value.trim()
+        };
+        if (!next.bucket || !next.region || !next.accessKeyId || !next.accessKeySecret) {
+            toast('请填完整：Bucket、Region、AccessKey ID 和 Secret', 'warning');
+            return false;
+        }
+        try {
+            saveOssConfig(next);
+        } catch(e) {
+            toast('配置保存失败：' + e.message, 'error');
+            return false;
+        }
+        if (!isOssConfigured()) {
+            toast('保存后校验失败，请重试', 'error');
+            return false;
+        }
+        updateSidebar();
+        toast('OSS 已保存 · ' + next.bucket + ' · ' + next.owner, 'success');
+        if (onSaved) setTimeout(onSaved, 300);
+    });
+}
+
+// ═══════════════════════════════════════════════
+// 页面切换
+// ═══════════════════════════════════════════════
+function switchPage(name) {
+    document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+    var pg = document.getElementById('page-'+name); if(pg) pg.classList.add('active');
+    document.querySelectorAll('.sidebar-nav a').forEach(function(a){a.classList.remove('active');});
+    document.querySelectorAll('.sidebar-nav a').forEach(function(a){
+        var oc = a.getAttribute('onclick')||''; if(oc.indexOf("'"+name+"'")!==-1) a.classList.add('active');
+    });
+    if (name==='products' && ST.products.length>0) renderProducts();
+    if (name==='rules' && ST.products.length>0) renderRules();
+    if (name==='predict') renderPredict();
+    if (name==='blacklist' && ST.products.length>0) renderBlacklist();
+    if (name==='diagnosis') { if(typeof Plotly!=='undefined') try{Plotly.purge('trendChart');}catch(e){} renderDiagnosis(); }
+    if (name==='import') renderImportPage();
+    if (name==='store') renderStorePage();
+    if (name==='pk') renderPKPage();
+}
+
+// ═══════════════════════════════════════════════
+// 保存 / 清除
+// ═══════════════════════════════════════════════
+function doSave() {
+    if (ST.files.length===0) { toast('没有数据可保存','warning'); return; }
+    var now = new Date().toLocaleString('zh-CN');
+    pushSnapshot();
+    safeSetItem('temu_v6_meta', JSON.stringify({count:ST.files.length, saved_at:now}));
+    safeSetItem('temu_v6_data', JSON.stringify(ST.files));
+    updateSidebar();
+    var blob = new Blob([JSON.stringify(ST.files,null,2)],{type:'application/json'});
+    var url = URL.createObjectURL(blob); var a = document.createElement('a');
+    a.href=url; a.download='temu-backup-'+new Date().toISOString().slice(0,10)+'.json'; a.click();
+    URL.revokeObjectURL(url);
+    toast('已保存 '+ST.files.length+' 个文件 | 备份已下载','success');
+}
+
+function doClear() {
+    showModal('确认清除', '<p style="color:var(--text-dim);">将清除 <b style="color:var(--danger-text);">全部</b> 本地数据（商品 '+ST.files.length+' · 店铺 '+(ST.storeData?ST.storeData.length:0)+' · 团队 '+(ST.teamProducts?ST.teamProducts.length:0)+' · 快照 '+ST.snapshots.length+'）</p>', '确认清除', function(){
+        clearAllData();
+        renderImportPage();
+    });
+}
+
+function doLoad() {
+    var raw = localStorage.getItem('temu_v6_data');
+    if (!raw) { toast('没有历史数据','warning'); return; }
+    ST.files = JSON.parse(raw); reprocessAll(); updateSidebar(); renderImportPage(); if(typeof renderPKPage!=="undefined") try{renderPKPage();}catch(e){}
+    toast('已加载 '+ST.files.length+' 个文件','success');
+}
+
+// ═══════════════════════════════════════════════
+// 拖拽绑定
+// ═══════════════════════════════════════════════
+(function bindDrag(){
+    var uz = document.getElementById('uploadZone');
+    if (uz) {
+        uz.addEventListener('dragover', function(e) { e.preventDefault(); uz.style.borderColor='var(--gold)'; });
+        uz.addEventListener('dragleave', function(){ uz.style.borderColor=''; });
+        uz.addEventListener('drop', function(e){ e.preventDefault(); uz.style.borderColor=''; handleFileUpload(e.dataTransfer.files); });
+    }
+})();
+
+// ═══════════════════════════════════════════════
+// Excel 解析
+// ═══════════════════════════════════════════════
+function normalizeCols(headers) {
+    var map = {spuid:'spu_id','spu id':'spu_id','商品spuid':'spu_id',name:'name','名称':'name','品名':'name','商品名称':'name','成本':'cost','克重':'weight_g','重量':'weight_g','weight':'weight_g','weight_g':'weight_g','售价':'price','卖价':'price','实际卖价':'price','同行卖价':'competitor_price','日均销量':'daily_sales','每天销量':'daily_sales','今日销量':'daily_sales','销量':'daily_sales','daily_sales':'daily_sales','sales':'daily_sales','毛利率':'gross_margin','毛利润率':'gross_margin','gross_margin':'gross_margin','日利润':'daily_profit','每天利润':'daily_profit','daily_profit':'daily_profit','品类':'category','累计销量':'total_sales'};
+    return headers.map(function(h){var l=h.toLowerCase().replace(/\s/g,'');return map[l]||map[h]||h;});
+}
+
+// 区分两类 Excel：店铺利润统计(.xls 商品SPU) vs 店铺数据记录(.xlsx 店铺名称+ROAS)
+function detectSheetType(json, filename) {
+    var fn = filename || '';
+    if (/数据记录/.test(fn)) return 'store';
+    if (/利润统计/.test(fn)) return 'product';
+
+    function hasStoreMark(row) {
+        if (!row || !row.length) return false;
+        var cells = row.map(function(h){ return String(h || '').trim(); });
+        var joined = cells.join('|');
+        return cells.indexOf('店铺名称') >= 0 && (/目标ROAS|花费|销售额|预计利润|曝光量/.test(joined));
+    }
+    function hasProductMark(row) {
+        if (!row || !row.length) return false;
+        return row.some(function(h) {
+            var s = String(h || '').trim();
+            return s === '商品SPU ID' || (s.indexOf('商品') >= 0 && s.indexOf('SPU') >= 0);
+        });
+    }
+
+    var h0 = json[0] || [];
+    var h1 = json[1] || [];
+    if (hasStoreMark(h0) || hasStoreMark(h1)) return 'store';
+    if (hasProductMark(h0)) return 'product';
+
+    var a1 = String(h0[0] || '').trim();
+    if ((/\d+月\d+[号日]?/.test(a1)) || (parseFloat(a1) > 40000 && parseFloat(a1) < 50000)) {
+        if (hasStoreMark(h1)) return 'store';
+    }
+    if (/\.xlsx$/i.test(fn) && hasStoreMark(h1)) return 'store';
+    if (/\.xls$/i.test(fn) && hasProductMark(h0)) return 'product';
+    return 'product';
+}
+
+function sheetTypeLabel(type) {
+    return type === 'store' ? '店铺数据记录' : '店铺利润统计';
+}
+
+function handleFileUpload(inputFiles) {
+    if (!inputFiles||inputFiles.length===0) return;
+    var count=0, storeCount=0;
+    Array.from(inputFiles).forEach(function(f){
+        var reader = new FileReader();
+        reader.onload = function(e){
+            try {
+                var wb = XLSX.read(e.target.result,{type:'array'});
+                wb.SheetNames.forEach(function(sn){
+                    if (sn==='计算公式') return;
+                    var ws = wb.Sheets[sn], json = XLSX.utils.sheet_to_json(ws,{header:1});
+                    if (json.length<=1) return;
+
+                    var sheetType = detectSheetType(json, f.name);
+                    if (sheetType === 'store') {
+                        var storeRecs = StoreDataPipeline.analyze([{rows: json, sheet: sn, filename: f.name}]);
+                        ST.storeData = (ST.storeData||[]).concat(storeRecs);
+                        storeCount += storeRecs.length;
+                        safeSetItem('temu_v6_store', JSON.stringify(ST.storeData));
+                        return;
+                    }
+
+                    // 店铺利润统计：第 0 行即表头（商品SPU ID / 每天销量 / 克重…）
+                    var headers = json[0].map(function(h){return String(h).trim();});
+                    var rows = json.slice(1).filter(function(r){return r.some(function(c){return c!==null&&c!=='';});});
+                    if (rows.length===0) return;
+                    var cols = normalizeCols(headers);
+                    var data = rows.map(function(r){var o={};cols.forEach(function(c,i){o[c]=(i<r.length)?r[i]:'';});return o;});
+                    ST.files.push({filename:f.name,sheet:sn,headers:cols,data:data,rowCount:data.length,fileType:'product',time:new Date().toLocaleString('zh-CN')});
+                    count+=data.length;
+                });
+            } catch(err) { toast('解析失败: '+f.name,'error'); return; }
+            // 安全写入 localStorage（自动处理配额溢出和快照清理）
+            safeSetItem('temu_v6_data', JSON.stringify(ST.files));
+            var now = new Date().toLocaleString('zh-CN');
+            if (count > 0) pushSnapshot();
+            safeSetItem('temu_v6_meta', JSON.stringify({count:ST.files.length, saved_at:now}));
+            reprocessAll(); updateSidebar(); renderImportPage(); if(typeof renderPKPage!=="undefined") try{renderPKPage();}catch(e){}
+            var msg = [];
+            if (count > 0) msg.push('利润统计 '+count+' 条商品');
+            if (storeCount > 0) msg.push('数据记录 '+storeCount+' 条店铺');
+            toast(msg.length ? ('上传完成：' + msg.join(' · ')) : '未解析到有效数据', msg.length ? 'success' : 'warning');
+        };
+        reader.readAsArrayBuffer(f);
+    });
+}
+
+// ═══════════════════════════════════════════════
+// 团队数据上传Pipeline
+function handleTeamUpload(inputFiles) {
+    if (!inputFiles || inputFiles.length === 0) return;
+    toast('正在解析团队数据...', 'info');
+    var files = Array.from(inputFiles);
+    var count = 0;
+    files.forEach(function (f) {
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            try {
+                var wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                var sn = wb.SheetNames[0];
+                var json = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1 });
+                if (!json || json.length < 2) { toast('团队文件无数据: ' + f.name, 'warning'); return; }
+                if (detectSheetType(json, f.name) === 'store') {
+                    toast('「' + f.name + '」是店铺数据记录，请拖到主上传区。团队区只收利润统计。', 'warning');
+                    return;
+                }
+                var headers = json[0].map(function(h){ return String(h).trim(); });
+                var rows = json.slice(1).filter(function(r){ return r.some(function(c){ return c !== null && c !== ''; }); });
+                if (rows.length === 0) { toast('团队文件无有效行: ' + f.name, 'warning'); return; }
+                var cols = normalizeCols(headers);
+                var data = rows.map(function (r) {
+                    var o = {};
+                    cols.forEach(function (ci, i) { o[ci] = (i < r.length) ? r[i] : ''; });
+                    return o;
+                });
+                var fileEntry = {filename: f.name, sheet: sn, headers: cols, data: data, rowCount: data.length, time: new Date().toLocaleString('zh-CN')};
+                var result = DataPipeline.analyze([fileEntry]);
+                ST.teamProducts = (ST.teamProducts || []).concat(result.products);
+                count += result.products.length;
+            } catch (err) { toast('团队数据解析失败: ' + f.name, 'error'); return; }
+            hasTeam = ST.teamProducts.length > 0;
+            safeSetItem('temu_v6_team', JSON.stringify(ST.teamProducts));
+            reprocessAll(); updateSidebar(); if (typeof renderPKPage !== "undefined") try { renderPKPage(); } catch (e2) {}
+            toast('团队数据导入完成：' + count + ' 条商品', 'success');
+        };
+        reader.readAsArrayBuffer(f);
+    });
+}
+
+// 数据提取 & 聚类
+// ═══════════════════════════════════════════════
+function extractProducts(files) {
+    var pros=[];
+    files.forEach(function(f){
+        (f.data||[]).forEach(function(r){
+            var cost=parseFloat(r.cost)||0, price=parseFloat(r.price)||0;
+            var ds=parseFloat(r.daily_sales)||parseFloat(r.total_sales)||0;
+            var gm=parseFloat(r.gross_margin);
+            if (isNaN(gm) || gm === 0) gm = price>0?((price-cost)/price*100):0;
+            else if (Math.abs(gm) <= 1.5) gm = gm * 100;
+            var spu=String(r.spu_id||'').replace(/\.0$/,'');
+            pros.push({spu_id:spu||('SPU-'+Math.random().toString(36).slice(2,8)),name:r.name||spu||'?',cost:cost,weight_g:parseFloat(r.weight_g)||0,price:price,daily_sales:ds,gross_margin:gm,daily_profit:parseFloat(r.daily_profit)||(ds*cost*gm/100),category:r.category||''});
+        });
+    }); return pros;
+}
+
+function doClustering(products) {
+    if(products.length<3) return products.map(function(p){p.cluster_label='白银品';return p;});
+    var scored=products.map(function(p,i){return{idx:i,score:(p.gross_margin||0)*0.6+(Math.min(p.daily_sales||0,20)/20*100)*0.4};});
+    scored.sort(function(a,b){return b.score-a.score;});
+    var n=products.length, top=Math.max(1,Math.round(n*0.33)), mid=Math.max(1,Math.round(n*0.33));
+    scored.forEach(function(s,r){if(r<top) products[s.idx].cluster_label='黄金品';else if(r<top+mid) products[s.idx].cluster_label='白银品';else products[s.idx].cluster_label='观察品';});
+    return products;
+}
+
+// ═══════════════════════════════════════════════
+// 规则提取
+// ═══════════════════════════════════════════════
+function extractRules(clusters) {
+    if(clusters.length===0) return [];
+    var golds=clusters.filter(function(p){return p.cluster_label==='黄金品';}), wat=clusters.filter(function(p){return p.cluster_label==='观察品';}), rules=[];
+    if(golds.length>0){
+        var m=golds.map(function(p){return p.gross_margin;}).sort(function(a,b){return a-b;}), c=golds.map(function(p){return p.cost;}).sort(function(a,b){return a-b;}), w=golds.map(function(p){return p.weight_g;}).sort(function(a,b){return a-b;}), s=golds.map(function(p){return p.daily_sales;}).sort(function(a,b){return a-b;});
+        rules.push({type:'铁律',rule:'毛利率 ≥ '+med(m).toFixed(1)+'%',detail:'黄金品中位毛利率 '+med(m).toFixed(1)+'%'});
+        rules.push({type:'铁律',rule:'克重 ≤ '+Math.round(q75(w))+'g',detail:'黄金品75%分位克重 '+Math.round(q75(w))+'g'});
+        rules.push({type:'铁律',rule:'成本 $'+med(c).toFixed(2)+' 附近',detail:'黄金品中位成本 $'+med(c).toFixed(2)});
+        rules.push({type:'铁律',rule:'日销 ≥ '+Math.round(q25(s))+' 单',detail:'黄金品25%分位日销 '+Math.round(q25(s))+' 单'});
+    }
+    var heavy=wat.filter(function(p){return p.weight_g>500&&p.daily_sales<1;}), low=wat.filter(function(p){return p.gross_margin<10;});
+    if(heavy.length>0) rules.push({type:'避坑',rule:'高克重陷阱',detail:'克重>500g且日销<1单：'+heavy.length+'个品'});
+    if(low.length>0) rules.push({type:'避坑',rule:'低毛利陷阱',detail:'毛利率<10%：'+low.length+'个品'});
+    return rules;
+}
+
+function checkAvoidance(products) {
+    var iss=[];
+    products.forEach(function(p){
+        if(p.weight_g>500&&p.daily_sales<1) iss.push({spu_id:p.spu_id,name:p.name,reason:'高克重陷阱',gross_margin:p.gross_margin,daily_sales:p.daily_sales,weight_g:p.weight_g});
+        else if(p.gross_margin<10) iss.push({spu_id:p.spu_id,name:p.name,reason:'低毛利陷阱',gross_margin:p.gross_margin,daily_sales:p.daily_sales,weight_g:p.weight_g});
+        else if(p.daily_sales<0.5&&p.daily_profit<=0) iss.push({spu_id:p.spu_id,name:p.name,reason:'滞销品',gross_margin:p.gross_margin,daily_sales:p.daily_sales,weight_g:p.weight_g});
+    }); return iss;
+}
+
+// ═══════════════════════════════════════════════
+// DataPipeline — thin wrapper (Candidate #1)
+// Preserves all existing global functions.
+// Adds unified analyze() + stats computation.
+// ═══════════════════════════════════════════════
+var DataPipeline = {
+    analyze: function(files) {
+        var products = extractProducts(files);
+        var clusters = doClustering(products);
+        var rules = extractRules(clusters);
+        var avoidance = checkAvoidance(products);
+        var cnt = {}; clusters.forEach(function(p) { cnt[p.cluster_label] = (cnt[p.cluster_label] || 0) + 1; });
+        var stats = {
+            totalSPU: clusters.length,
+            goldCount: cnt['黄金品'] || 0,
+            silverCount: cnt['白银品'] || 0,
+            watchCount: cnt['观察品'] || 0,
+            avgMargin: avg(products.map(function(p) { return p.gross_margin; })),
+            avgSales: avg(products.map(function(p) { return p.daily_sales; })),
+            avgWeight: avg(products.map(function(p) { return p.weight_g; })),
+            avgCost: avg(products.map(function(p) { return p.cost; }))
+        };
+        return { products: products, clusters: clusters, rules: rules, avoidance: avoidance, stats: stats };
+    }
+};
+// ═══════════════════════════════════════════════
+// StoreDataPipeline — 店铺运营数据管线
+// 解析 .xlsx 店铺数据记录（row1=日期, row2=表头, row3+=数据, 4行一块多日堆叠）
+// interface: analyze(rawRows) → [{date, store, roas, ctr, cvr, spend, sales, revenue, profit, impressions, clicks, products}]
+// ═══════════════════════════════════════════════
+function excelSerialToDate(serial) {
+    var d = new Date((serial - 25569) * 86400 * 1000);
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function parseStoreDateCell(cell) {
+    var s = String(cell || '').trim();
+    if (!s) return null;
+    var n = parseFloat(s);
+    if (!isNaN(n) && n > 40000 && n < 50000) return excelSerialToDate(n);
+    var m = s.match(/(\d{1,2})月(\d{1,2})[号日]?/);
+    if (m) {
+        var y = new Date().getFullYear();
+        return y + '-' + String(parseInt(m[1], 10)).padStart(2, '0') + '-' + String(parseInt(m[2], 10)).padStart(2, '0');
+    }
+    return null;
+}
+function buildStoreColMap(headerRow) {
+    var map = {};
+    (headerRow || []).forEach(function(h, idx) {
+        var s = String(h || '').trim();
+        if (s === '目标ROAS') map.roas = idx;
+        else if (s === '曝光数上涨') map.imprGrowth = idx;
+        else if (s === '点击量上涨') map.clickGrowth = idx;
+        else if (s === '点击率') map.ctr = idx;
+        else if (s === '转化率') map.cvr = idx;
+        else if (s === '花费') map.spend = idx;
+        else if (s === '今日销量' && map.sales === undefined) map.sales = idx;
+        else if (s === '销售额') map.revenue = idx;
+        else if (s === '预计利润') map.profit = idx;
+        else if (s === '曝光量') map.impressions = idx;
+        else if (s === '点击量') map.clicks = idx;
+        else if (s === '成交率') map.orderRate = idx;
+        else if (s === '上品数量') map.products = idx;
+    });
+    return map;
+}
+function storeCellNum(row, idx) {
+    if (idx === undefined || idx === null || !row) return 0;
+    var v = row[idx];
+    if (v === null || v === '' || v === '无') return 0;
+    var n = parseFloat(v);
+    return isNaN(n) ? 0 : n;
+}
+var StoreDataPipeline = {
+    analyze: function(sheetsData) {
+        var records = [];
+        sheetsData.forEach(function(sd) {
+            var rows = sd.rows;
+            for (var i = 0; i < rows.length; i++) {
+                var r0 = rows[i];
+                if (!r0 || r0.length === 0) continue;
+                var dateStr = parseStoreDateCell(r0[0]);
+                if (!dateStr) continue;
+                i++;
+                if (i >= rows.length) break;
+                var headerRow = rows[i];
+                var colMap = buildStoreColMap(headerRow);
+                if (colMap.roas === undefined && colMap.spend === undefined) continue;
+                while (i + 1 < rows.length) {
+                    i++;
+                    var dataRow = rows[i];
+                    if (!dataRow || dataRow.length === 0) break;
+                    if (parseStoreDateCell(dataRow[0])) { i--; break; }
+                    if (String(dataRow[0] || '').indexOf('店铺名称') >= 0) continue;
+                    var store = String(dataRow[0] || '').trim();
+                    if (!store || store === '无') continue;
+                    records.push({
+                        date: dateStr,
+                        sheet: sd.sheet,
+                        filename: sd.filename || '',
+                        store: store,
+                        roas: colMap.roas !== undefined ? storeCellNum(dataRow, colMap.roas) : null,
+                        imprGrowth: storeCellNum(dataRow, colMap.imprGrowth),
+                        clickGrowth: storeCellNum(dataRow, colMap.clickGrowth),
+                        ctr: storeCellNum(dataRow, colMap.ctr),
+                        cvr: storeCellNum(dataRow, colMap.cvr),
+                        spend: storeCellNum(dataRow, colMap.spend),
+                        sales: storeCellNum(dataRow, colMap.sales),
+                        revenue: storeCellNum(dataRow, colMap.revenue),
+                        profit: storeCellNum(dataRow, colMap.profit),
+                        impressions: storeCellNum(dataRow, colMap.impressions),
+                        clicks: storeCellNum(dataRow, colMap.clicks),
+                        orderRate: storeCellNum(dataRow, colMap.orderRate),
+                        products: storeCellNum(dataRow, colMap.products)
+                    });
+                }
+            }
+        });
+        return records;
+    }
+};
+// ═══════════════════════════════════════════════
+window.renderImportPage = (function() {
+    function renderImportPage() {
+    var pg=document.getElementById('page-import'); if(!pg) return;
+    var alertEl=pg.querySelector('.alert.alert-info');
+    if(alertEl){
+        var storeN = (ST.storeData && ST.storeData.length) ? ST.storeData.length : 0;
+        if(ST.files.length>0 || storeN>0){
+            var meta=JSON.parse(localStorage.getItem('temu_v6_meta')||'{}');
+            alertEl.innerHTML='<span class="alert-icon">💾</span><span>已加载 利润统计 <strong>'+ST.files.length+'</strong> 个 · 数据记录 <strong>'+storeN+'</strong> 条 · '+ST.products.length+' 个SPU | 上次: '+(meta.saved_at||'--')+'</span>';
+        }else{
+            alertEl.innerHTML='<span class="alert-icon">📂</span><span>请上传 Excel：利润统计 .xls 或 数据记录 .xlsx</span>';
+        }
+    }
+    var old=pg.querySelector('.parsed'); if(old) old.remove();
+    if(ST.files.length===0 && !(ST.storeData && ST.storeData.length)) return;
+    var div=document.createElement('div'); div.className='parsed';
+    var total=ST.files.reduce(function(s,f){return s+f.rowCount;},0);
+    var storeN=(ST.storeData&&ST.storeData.length)||0;
+    div.innerHTML='<hr><h3 style="color:var(--gold);margin:16px 0 8px;">📋 解析结果</h3><div class="btn-row"><div class="step"><div class="title">利润统计</div><div class="desc" style="font-size:1.2rem;font-weight:700;color:var(--gold);">'+ST.files.length+' 文件</div></div><div class="step"><div class="title">商品行</div><div class="desc" style="font-size:1.2rem;font-weight:700;">'+total+'</div></div><div class="step"><div class="title">数据记录</div><div class="desc" style="font-size:1.2rem;font-weight:700;color:#5b9bd5;">'+storeN+' 条</div></div><div class="step"><div class="title">SPU</div><div class="desc" style="font-size:1.2rem;font-weight:700;">'+ST.products.length+'</div></div></div>';
+    ST.files.slice(0,10).forEach(function(f,i){
+        var exp=document.createElement('details'); exp.className='expander';
+        exp.innerHTML='<summary>📊 利润统计 · '+f.filename+' → '+f.sheet+' ('+f.rowCount+' 行)</summary><div class="expander-content" id="prev-'+i+'"></div>';
+        div.appendChild(exp);
+        setTimeout(function(){var c=document.getElementById('prev-'+i);if(!c)return;var t='<table><thead><tr>'+f.headers.map(function(h){return'<th>'+h+'</th>';}).join('')+'</tr></thead><tbody>';f.data.slice(0,10).forEach(function(r){t+='<tr>'+f.headers.map(function(h){return'<td>'+(r[h]||'')+'</td>';}).join('')+'</tr>';});t+='</tbody></table>';c.innerHTML=t+(f.data.length>10?'<p style="color:var(--text-dim);font-size:0.82rem;margin-top:8px;">... 共 '+f.data.length+' 行</p>':'');},50);
+    });
+    if (storeN > 0) {
+        var storeExp = document.createElement('details'); storeExp.className = 'expander'; storeExp.open = true;
+        var storeNames = {};
+        ST.storeData.forEach(function(r){ storeNames[r.store] = (storeNames[r.store]||0)+1; });
+        storeExp.innerHTML = '<summary>🏪 店铺数据记录 · '+storeN+' 条（'+Object.keys(storeNames).length+' 个店铺）</summary><div class="expander-content"><div class="scroll-box"><table><thead><tr><th>日期</th><th>店铺</th><th>花费</th><th>销售额</th><th>预计利润</th><th>今日销量</th></tr></thead><tbody>'+
+            ST.storeData.slice(0,20).map(function(r){
+                return '<tr><td>'+r.date+'</td><td>'+r.store+'</td><td>'+r.spend+'</td><td>'+r.revenue+'</td><td>'+r.profit+'</td><td>'+r.sales+'</td></tr>';
+            }).join('')+'</tbody></table></div>'+(storeN>20?'<p style="color:var(--text-dim);font-size:0.82rem;margin-top:8px;">... 共 '+storeN+' 条</p>':'')+'</div>';
+        div.appendChild(storeExp);
+    }
+    pg.appendChild(div);
+}
+    return renderImportPage;
+})();
+
+// ═══════════════════════════════════════════════
+// 页面 ② 商品画像
+// ═══════════════════════════════════════════════
+window.renderProducts = (function() {
+    function renderProducts() {
+    var pg=document.getElementById('page-products'); if(!pg) return;
+    var alertEl=pg.querySelector('.alert.alert-info'); if(alertEl) alertEl.style.display='none';
+    var old=pg.querySelector('.pc'); if(old) old.remove();
+    var div=document.createElement('div'); div.className='pc';
+    var cnt={}; ST.clusters.forEach(function(p){cnt[p.cluster_label]=(cnt[p.cluster_label]||0)+1;});
+    div.innerHTML='<div class="btn-row"><div class="step"><div class="emoji">🟡</div><div class="title">黄金品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--gold);">'+(cnt['黄金品']||0)+'</div></div><div class="step"><div class="emoji">⚪</div><div class="title">白银品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:#a0a0a0;">'+(cnt['白银品']||0)+'</div></div><div class="step"><div class="emoji">🔵</div><div class="title">观察品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:#5b9bd5;">'+(cnt['观察品']||0)+'</div></div><div class="step"><div class="title">📦 总计</div><div class="desc" style="font-size:1.5rem;font-weight:700;">'+ST.clusters.length+'</div></div></div>';
+    pg.appendChild(div);
+    [{l:'黄金品',c:'var(--gold)',bc:'badge badge-gold'},{l:'白银品',c:'#a0a0a0',bc:'badge badge-silver'},{l:'观察品',c:'#5b9bd5',bc:'badge badge-watch'}].forEach(function(g){var s=ST.clusters.filter(function(p){return p.cluster_label===g.l;});if(s.length>0){var exp=document.createElement('details');exp.className='expander';exp.open=true;exp.innerHTML='<summary><span class="'+g.bc+'">'+g.l+'</span> 概况（'+s.length+' 个SPU）</summary><div class="expander-content"><div class="alert alert-info" style="border-left:3px solid '+g.c+'"><div><strong style="color:'+g.c+'">'+g.l+'</strong><br>毛利率: '+avg(s.map(function(p){return p.gross_margin;})).toFixed(1)+'% | 日销: '+avg(s.map(function(p){return p.daily_sales;})).toFixed(1)+' | 克重: '+Math.round(avg(s.map(function(p){return p.weight_g;})))+'g | 成本: $'+avg(s.map(function(p){return p.cost;})).toFixed(2)+'</div></div></div>';div.appendChild(exp);}});
+    var expPlot=document.createElement('details');expPlot.className='expander';expPlot.open=true;
+    expPlot.innerHTML='<summary>📈 毛利率 vs 日销量 散点图</summary><div class="expander-content"><div id="scatterPlot" style="height:400px;"></div></div>';
+    div.appendChild(expPlot);
+    var expTbl=document.createElement('details');expTbl.className='expander';
+    expTbl.innerHTML='<summary>📋 全部商品数据表（'+ST.clusters.length+' 条）</summary><div class="expander-content"><div class="scroll-box"><div id="productsTable"></div></div></div>';
+    div.appendChild(expTbl);
+    var traces=['黄金品','白银品','观察品'].map(function(l){var s=ST.clusters.filter(function(p){return p.cluster_label===l;});return{x:s.map(function(p){return p.gross_margin;}),y:s.map(function(p){return p.daily_sales;}),mode:'markers',type:'scatter',name:l,text:s.map(function(p){return p.spu_id;}),marker:{size:10,color:l==='黄金品'?'#e2b87a':l==='白银品'?'#a0a0a0':'#5b9bd5'}};}).filter(function(t){return t.x.length>0;});
+    Plotly.newPlot('scatterPlot',traces,{plot_bgcolor:'#0f0f17',paper_bgcolor:'#0f0f17',font:{color:'#f1f0ee'},xaxis:{title:'毛利率 %',gridcolor:'#2a2a3a'},yaxis:{title:'日均销量',gridcolor:'#2a2a3a'},legend:{font:{color:'#f1f0ee'}},margin:{l:50,r:30,t:20,b:50}},{displayModeBar:true,modeBarButtonsToAdd:['zoom2d','pan2d','downloadImage']});
+    setTimeout(function(){var t=document.getElementById('productsTable');if(!t)return;var h='<table><thead><tr><th>SPU ID</th><th>名称</th><th>分类</th><th>毛利率</th><th>日销</th><th>克重</th><th>成本</th><th>售价</th></tr></thead><tbody>';ST.clusters.sort(function(a,b){return a.cluster_label.localeCompare(b.cluster_label)||b.gross_margin-a.gross_margin;}).forEach(function(p){var bc=p.cluster_label==='黄金品'?'badge badge-gold':p.cluster_label==='白银品'?'badge badge-silver':'badge badge-watch';h+='<tr><td>'+p.spu_id+'</td><td>'+p.name+'</td><td><span class="'+bc+'">'+p.cluster_label+'</span></td><td>'+p.gross_margin.toFixed(1)+'%</td><td>'+p.daily_sales.toFixed(1)+'</td><td>'+Math.round(p.weight_g)+'g</td><td>$'+p.cost.toFixed(2)+'</td><td>$'+(p.price||0).toFixed(2)+'</td></tr>';});h+='</tbody></table>';t.innerHTML=h;},200);
+}
+    return renderProducts;
+})();
+window.renderRules = (function() {
+    function renderRules() {
+    var pg=document.getElementById('page-rules'); if(!pg) return;
+    var alertEl=pg.querySelector('.alert.alert-info'); if(alertEl) alertEl.style.display='none';
+    var old=pg.querySelector('.rc'); if(old) old.remove();
+    var div=document.createElement('div'); div.className='rc';
+    var iron=ST.rules.filter(function(r){return r.type==='铁律';}), avoid=ST.rules.filter(function(r){return r.type==='避坑';});
+    div.innerHTML='<div class="btn-row"><div class="step"><div class="title">🔨 铁律</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--gold);">'+iron.length+'</div></div><div class="step"><div class="title">🛡️ 避坑</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--danger-text);">'+avoid.length+'</div></div></div>';
+    pg.appendChild(div);
+    var expIron=document.createElement('details');expIron.className='expander';expIron.open=true;
+    if(iron.length>0){var ih='<summary>🔨 铁律（'+iron.length+' 条）</summary><div class="expander-content"><div class="scroll-box">';iron.forEach(function(r){ih+='<div class="alert alert-info" style="margin-bottom:8px;"><div><strong style="color:var(--gold);">✨ '+r.rule+'</strong><br><span style="color:var(--text-dim);font-size:0.85rem;">'+r.detail+'</span></div></div>';});ih+='</div></div>';expIron.innerHTML=ih;}else{expIron.innerHTML='<summary>🔨 铁律（0 条）</summary><div class="expander-content"><div class="alert alert-info">暂无铁律，需要更多黄金品数据</div></div>';}
+    div.appendChild(expIron);
+    var expAvoid=document.createElement('details');expAvoid.className='expander';
+    if(avoid.length>0){var ah='<summary>🛡️ 避坑规则（'+avoid.length+' 条）</summary><div class="expander-content"><div class="scroll-box">';avoid.forEach(function(r){ah+='<div class="alert alert-warning" style="margin-bottom:8px;"><div><strong>⚠️ '+r.rule+'</strong><br><span style="color:var(--text-dim);font-size:0.85rem;">'+r.detail+'</span></div></div>';});ah+='</div></div>';expAvoid.innerHTML=ah;}else{expAvoid.innerHTML='<summary>🛡️ 避坑规则（0 条）</summary><div class="expander-content"><div class="alert alert-success">🎉 未检测到避坑信号</div></div>';}
+    div.appendChild(expAvoid);
+    var expRange=document.createElement('details');expRange.className='expander';
+    var golds=ST.clusters.filter(function(p){return p.cluster_label==='黄金品';});
+    if(golds.length>0){var rh='<summary>📐 黄金品基准区间（基于'+golds.length+'个黄金品）</summary><div class="expander-content"><div class="btn-row">';[{k:'gross_margin',n:'毛利率'},{k:'daily_sales',n:'日均销量'},{k:'cost',n:'成本($)'},{k:'weight_g',n:'克重(g)'}].forEach(function(fd){var v=golds.map(function(p){return p[fd.k];}).sort(function(a,b){return a-b;});rh+='<div class="step" style="border-left:3px solid var(--gold);"><div class="title" style="font-size:0.8rem;color:var(--text-dim);">'+fd.n+'</div><div class="desc" style="font-size:1.1rem;font-weight:700;color:var(--gold);">'+(Math.round(q25(v)*10)/10)+' — '+(Math.round(q75(v)*10)/10)+'</div><div style="font-size:0.7rem;color:var(--text-dim);">中位: '+(Math.round(med(v)*10)/10)+'</div></div>';});rh+='</div></div>';expRange.innerHTML=rh;}else{expRange.innerHTML='<summary>📐 黄金品基准区间</summary><div class="expander-content"><div class="alert alert-info">需要至少1个黄金品</div></div>';}
+    div.appendChild(expRange);
+}
+    return renderRules;
+})();
+window.renderPredict = (function() {
+    function renderPredict() {
+    var pg=document.getElementById('page-predict'); if(!pg) return;
+    var alertEl=pg.querySelector('.alert.alert-info');
+    var old=pg.querySelector('.prc'); if(old) old.remove();
+    var div=document.createElement('div'); div.className='prc';
+    div.innerHTML='<hr><h3 style="color:var(--gold);margin:16px 0;">🎯 输入新品参数</h3><div class="btn-row"><div><label>采购价($)</label><br><input type="number" id="pred_purchase" value="3" min="0" step="0.5" style="width:120px;"></div><div><label>克重(g)</label><br><input type="number" id="pred_weight" value="200" min="0" step="10" style="width:120px;"></div><div><label>售价($)</label><br><input type="number" id="pred_price" value="15" min="0" step="0.5" style="width:120px;"></div><div><label>日销</label><br><input type="number" id="pred_sales" value="5" min="0" step="0.5" style="width:120px;"></div></div><div class="alert alert-info" style="margin:16px 0;"><span>📐 成本 = 克重 x 0.06 + 采购价（运输+商品成本）</span></div><button class="btn" style="background:var(--gold);color:var(--bg);font-weight:700;margin-bottom:16px;" onclick="doPrediction()">🔍 匹配相似品</button><div id="predResult"></div>';
+    pg.appendChild(div);
+    if(alertEl){if(ST.products.length===0){alertEl.style.display='block';}else{alertEl.style.display='none';}}
+}
+    return renderPredict;
+})();
+function doPrediction(){
+    var purchase=parseFloat(document.getElementById('pred_purchase').value)||0, w=parseFloat(document.getElementById('pred_weight').value)||0, price=parseFloat(document.getElementById('pred_price').value)||0, sales=parseFloat(document.getElementById('pred_sales').value)||0;
+    var cost=w*0.06+purchase, margin=price>0?((price-cost)/price*100):0;
+    var res=document.getElementById('predResult'); if(!res) return;
+    if(ST.products.length===0){res.innerHTML='<div class="alert alert-warning">需要历史数据</div>';return;}
+    var scored=ST.products.map(function(p,i){return{idx:i,diff:Math.abs(p.gross_margin-margin)/100+Math.abs(p.weight_g-w)/1000+Math.abs(p.cost-cost)/50+Math.abs(p.daily_sales-sales)/50};}).sort(function(a,b){return a.diff-b.diff;});
+    var top15=scored.slice(0,Math.min(15,scored.length)).map(function(s){return ST.products[s.idx];}), avgM=avg(top15.map(function(p){return p.gross_margin;}));
+    var ri=margin>=30?'低':margin>=15?'中':'高', rc=ri==='低'?'var(--success-text)':ri==='中'?'var(--warning-text)':'var(--danger-text)', re=ri==='低'?'🟢':ri==='中'?'🟡':'🔴';
+    var html='<details class="expander" open><summary>📊 预测摘要 — '+re+' '+ri+'风险</summary><div class="expander-content">';
+    html+='<div class="btn-row"><div class="step"><div class="title">计算成本</div><div class="desc" style="font-size:1.3rem;font-weight:700;">$'+cost.toFixed(2)+'</div><div style="font-size:0.7rem;color:var(--text-dim);">='+w+'gx0.06+$'+purchase+'</div></div><div class="step"><div class="title">毛利率</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:'+rc+';">'+margin.toFixed(1)+'%</div></div><div class="step"><div class="title">匹配</div><div class="desc" style="font-size:1.3rem;font-weight:700;">'+top15.length+'</div><div style="font-size:0.7rem;color:var(--text-dim);">均毛利率 '+avgM.toFixed(1)+'%</div></div></div>';
+    html+='<div class="alert" style="border:2px solid '+rc+';background:rgba(226,184,122,0.04);margin:16px 0;"><div><strong style="font-size:1.2rem;">'+re+' '+ri+'风险</strong><br>相似品均值毛利率 '+avgM.toFixed(1)+'%</div></div>';
+    html+='</div></details>';
+    html+='<details class="expander"><summary>📋 最相似 '+top15.length+' 个历史品</summary><div class="expander-content"><div class="scroll-box"><table><thead><tr><th>SPU ID</th><th>名称</th><th>毛利率</th><th>日销</th><th>克重</th><th>成本</th></tr></thead><tbody>';
+    top15.forEach(function(p){html+='<tr><td>'+p.spu_id+'</td><td>'+p.name+'</td><td>'+p.gross_margin.toFixed(1)+'%</td><td>'+p.daily_sales.toFixed(1)+'</td><td>'+Math.round(p.weight_g)+'g</td><td>$'+(p.cost||0).toFixed(2)+'</td></tr>';});
+    html+='</tbody></table></div></div></details>';
+    res.innerHTML=html;
+}
+window.renderBlacklist = (function() {
+    function renderBlacklist() {
+    var pg=document.getElementById('page-blacklist'); if(!pg) return;
+    var alertEl=pg.querySelector('.alert.alert-info'); if(alertEl) alertEl.style.display='none';
+    var old=pg.querySelector('.blc'); if(old) old.remove(); var div=document.createElement('div'); div.className='blc';
+    var issues = ST._avoidance || checkAvoidance(ST.products);
+    div.innerHTML='<div class="btn-row"><div class="step"><div class="title">🟢 健康品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--success-text);">'+(ST.products.length-issues.length)+'</div></div><div class="step"><div class="title">🔴 问题品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--danger-text);">'+issues.length+'</div></div></div>';
+    if(issues.length===0){div.innerHTML+='<div class="alert alert-success">🎉 没有问题品</div>';}else{
+        var grp={}; var order=['高克重陷阱','低毛利陷阱','滞销品'];
+        issues.forEach(function(i){grp[i.reason]=grp[i.reason]||[];grp[i.reason].push(i);});
+        order.forEach(function(r){
+            if(!grp[r]) return;
+            var exp=document.createElement('details'); exp.className='expander'; exp.open=true;
+            exp.innerHTML='<summary>⚠️ <span class="badge badge-danger">'+r+'</span>（'+grp[r].length+' 个问题品）</summary><div class="expander-content"><div class="scroll-box">'+
+                grp[r].map(function(i){
+                    var sev=(i.gross_margin<5||i.weight_g>1000)?'<span class="badge badge-danger">🔴 严重</span>':'<span class="badge badge-watch">🟡 注意</span>';
+                    return '<div class="warn-card" style="padding:14px 20px;margin:8px 0;text-align:left;border-width:1px;"><strong>'+sev+' — '+i.spu_id+'</strong><br><span style="color:var(--text-dim);">'+i.name+' | 毛利率:'+i.gross_margin.toFixed(1)+'% | 日销:'+i.daily_sales.toFixed(1)+' | 克重:'+Math.round(i.weight_g)+'g</span></div>';
+                }).join('')+'</div></div>';
+            div.appendChild(exp);
+        });
+        var allExp=document.createElement('details'); allExp.className='expander';
+        allExp.innerHTML='<summary>📋 全量问题品数据表（'+issues.length+' 条）</summary><div class="expander-content"><div class="scroll-box"><table><thead><tr><th>SPU ID</th><th>名称</th><th>问题类型</th><th>毛利率</th><th>日销</th><th>克重</th><th>严重度</th></tr></thead><tbody>'+
+            issues.map(function(i){var sev=(i.gross_margin<5||i.weight_g>1000)?'🔴 严重':'🟡 注意';return '<tr><td>'+i.spu_id+'</td><td>'+i.name+'</td><td>'+i.reason+'</td><td>'+i.gross_margin.toFixed(1)+'%</td><td>'+i.daily_sales.toFixed(1)+'</td><td>'+Math.round(i.weight_g)+'g</td><td>'+sev+'</td></tr>';}).join('')+
+            '</tbody></table></div></div>';
+        div.appendChild(allExp);
+    }
+    pg.appendChild(div);
+}
+    return renderBlacklist;
+})();
+
+// ═══════════════════════════════════════════════
+// 快照对比 & 剔除建议（诊断页辅助）
+// ═══════════════════════════════════════════════
+window.renderDiagnosis = (function() {
+    function compareSnapshots() {
+    if (ST.snapshots.length < 2) return null;
+    var prevData = getPreviousSnapshotFiles();
+    if (!prevData) return null;
+    var prevResult = DataPipeline.analyze(prevData);
+    var prevProducts = prevResult.products;
+    var prevClusters = prevResult.clusters;
+    var res = {
+        old_count: prevProducts.length, new_count: ST.products.length,
+        old_gold: prevClusters.filter(function(p){return p.cluster_label==='黄金品';}).length,
+        new_gold: ST.clusters.filter(function(p){return p.cluster_label==='黄金品';}).length,
+        old_silver: prevClusters.filter(function(p){return p.cluster_label==='白银品';}).length,
+        new_silver: ST.clusters.filter(function(p){return p.cluster_label==='白银品';}).length,
+        old_watch: prevClusters.filter(function(p){return p.cluster_label==='观察品';}).length,
+        new_watch: ST.clusters.filter(function(p){return p.cluster_label==='观察品';}).length,
+        old_margin: avg(prevProducts.map(function(p){return p.gross_margin;})),
+        new_margin: avg(ST.products.map(function(p){return p.gross_margin;})),
+        old_sales: avg(prevProducts.map(function(p){return p.daily_sales;})),
+        new_sales: avg(ST.products.map(function(p){return p.daily_sales;})),
+        new_prods: [], gone_prods: [], degraded: []
+    };
+    res.margin_delta = res.new_margin - res.old_margin;
+    res.sales_delta = res.new_sales - res.old_sales;
+    var oldIds = {}, newIds = {};
+    prevProducts.forEach(function(p){oldIds[p.spu_id]=p;});
+    ST.products.forEach(function(p){newIds[p.spu_id]=p;});
+    Object.keys(newIds).forEach(function(id){if(!oldIds[id]) res.new_prods.push(newIds[id]);});
+    Object.keys(oldIds).forEach(function(id){if(!newIds[id]) res.gone_prods.push(oldIds[id]);});
+    var prevLabels = {};
+    prevClusters.forEach(function(p){prevLabels[p.spu_id]=p.cluster_label;});
+    ST.clusters.forEach(function(p){
+        var oldL = prevLabels[p.spu_id];
+        if (oldL === '黄金品' && (p.cluster_label === '白银品' || p.cluster_label === '观察品')) {
+            res.degraded.push({spu_id:p.spu_id, name:p.name, old_label:oldL, new_label:p.cluster_label, old_margin:(oldIds[p.spu_id]||{}).gross_margin||0, new_margin:p.gross_margin, margin_drop:((oldIds[p.spu_id]||{}).gross_margin||0)-p.gross_margin, severity:p.cluster_label==='观察品'?'严重':'注意', suggestion:p.cluster_label==='观察品'?'下架/提价':'观察'});
+        } else if (oldL === '白银品' && p.cluster_label === '观察品') {
+            res.degraded.push({spu_id:p.spu_id, name:p.name, old_label:oldL, new_label:p.cluster_label, old_margin:(oldIds[p.spu_id]||{}).gross_margin||0, new_margin:p.gross_margin, margin_drop:((oldIds[p.spu_id]||{}).gross_margin||0)-p.gross_margin, severity:'注意', suggestion:'观察/下架'});
+        } else if (oldL && p.cluster_label && (oldIds[p.spu_id]||{}).gross_margin - p.gross_margin > 10) {
+            res.degraded.push({spu_id:p.spu_id, name:p.name, old_label:oldL, new_label:p.cluster_label, old_margin:(oldIds[p.spu_id]||{}).gross_margin||0, new_margin:p.gross_margin, margin_drop:((oldIds[p.spu_id]||{}).gross_margin||0)-p.gross_margin, severity:'注意', suggestion:'提价'});
+        }
+    });
+    res.degraded.sort(function(a,b){return b.margin_drop-a.margin_drop;});
+    return res;
+}
+
+function suggestPruning(products, oldProducts) {
+    if (!products || products.length===0) return [];
+    var suggestions = [], seen = {};
+    products.forEach(function(p){
+        if (p.gross_margin < 10 && p.daily_profit <= 0) {
+            suggestions.push({spu_id:p.spu_id, name:p.name, reason:'连续亏损：毛利率低于10%且日利润<=0', data:'毛利率:'+p.gross_margin.toFixed(1)+'% | 日利润:$'+p.daily_profit.toFixed(2)+' | 日销:'+p.daily_sales.toFixed(1)+'单', severity:p.gross_margin<5?'严重':'注意'});
+            seen[p.spu_id]=true;
+        } else if (p.weight_g>500 && p.daily_sales<1) {
+            suggestions.push({spu_id:p.spu_id, name:p.name, reason:'高克重陷阱：克重'+Math.round(p.weight_g)+'g>500g且日销<1单', data:'克重:'+Math.round(p.weight_g)+'g | 日销:'+p.daily_sales.toFixed(1)+'单 | 毛利率:'+p.gross_margin.toFixed(1)+'%', severity:p.weight_g>1000?'严重':'注意'});
+            seen[p.spu_id]=true;
+        }
+    });
+    if (oldProducts && oldProducts.length>0) {
+        var oldMap = {};
+        oldProducts.forEach(function(p){oldMap[p.spu_id]=p.gross_margin;});
+        products.forEach(function(p){
+            if (seen[p.spu_id]) return;
+            var oldM = oldMap[p.spu_id];
+            if (oldM !== undefined && oldM - p.gross_margin > 10) {
+                suggestions.push({spu_id:p.spu_id, name:p.name, reason:'毛利率持续下降：从'+oldM.toFixed(1)+'%降至'+p.gross_margin.toFixed(1)+'%（降幅'+(oldM-p.gross_margin).toFixed(1)+'pp）', data:'旧毛利率:'+oldM.toFixed(1)+'% -> 新毛利率:'+p.gross_margin.toFixed(1)+'% | 日销:'+p.daily_sales.toFixed(1)+'单 | 克重:'+Math.round(p.weight_g)+'g', severity:(oldM-p.gross_margin)>20?'严重':'注意'});
+            }
+        });
+    }
+    return suggestions.sort(function(a,b){return a.severity==='严重'?-1:b.severity==='严重'?1:0;});
+}
+
+// ═══════════════════════════════════════════════
+// 方向建议生成器
+// ═══════════════════════════════════════════════
+function generateDirectionAdvice(cmp) {
+    if (!cmp) return null;
+    var advice = [];
+    var goldPct = (cmp.new_gold / Math.max(cmp.new_count,1) * 100);
+    if (goldPct < 30) {
+        advice.push({priority:'🔴 高',title:'黄金品占比偏低（'+goldPct.toFixed(0)+'%）',detail:'当前黄金品占比不足30%，建议重点筛选高毛利率（≥25%）+ 低克重（≤300g）的新品，减少盲目铺货。',action:'提高选品标准，优先上架毛利率≥25%的轻小件'});
+    } else if (goldPct >= 50) {
+        advice.push({priority:'🟢 好',title:'黄金品占比健康（'+goldPct.toFixed(0)+'%）',detail:'选品结构良好，继续保持现有策略。可适度增加高利润品类投入。',action:'维持现有选品节奏，扩大优势品类'});
+    } else {
+        advice.push({priority:'🟡 中',title:'黄金品占比中等（'+goldPct.toFixed(0)+'%）',detail:'选品结构有提升空间，重点关注毛利率和克重的平衡。',action:'优化选品结构，向轻小高毛利靠拢'});
+    }
+    if (cmp.margin_delta < -5) {
+        advice.push({priority:'🔴 高',title:'均毛利率下降 '+Math.abs(cmp.margin_delta).toFixed(1)+'pp',detail:'整体毛利率在走低，需排查是否新上架了过多低毛利品，或原有产品被迫降价。',action:'暂停低毛利新品上架，优先处理亏损品'});
+    } else if (cmp.margin_delta > 3) {
+        advice.push({priority:'🟢 好',title:'均毛利率提升 '+cmp.margin_delta.toFixed(1)+'pp',detail:'整体毛利率在改善，说明选品和定价策略效果良好。',action:'继续保持，记录有效策略为铁律'});
+    }
+    if (cmp.new_watch > cmp.new_count * 0.3) {
+        advice.push({priority:'🔴 高',title:'观察品占比过高（'+cmp.new_watch+'个）',detail:'超过30%的商品处于观察区，大量低效品拉低整体表现。',action:'批量清理日销<1单且毛利率<15%的滞销品'});
+    }
+    var heavyIssues = (ST.products||[]).filter(function(p){return p.weight_g>500&&p.daily_sales<1;});
+    if (heavyIssues.length > 0) {
+        advice.push({priority:'🟡 中',title:'高克重陷阱：'+heavyIssues.length+'个品',detail:'克重>500g且日销<1单，运费成本高、转化低，建议尽快清理。',action:'高克重品设置库存警戒线，达线后自动下架'});
+    }
+    if (cmp.new_prods.length > 0) {
+        var newGold = cmp.new_prods.filter(function(p){return (p.gross_margin||0)>=25;}).length;
+        var newBad = cmp.new_prods.filter(function(p){return (p.gross_margin||0)<10;}).length;
+        if (newBad > newGold) {
+            advice.push({priority:'🔴 高',title:'新增品质量堪忧',detail:'新上架的'+cmp.new_prods.length+'个品中，低毛利（<10%）品（'+newBad+'个）多于高毛利（≥25%）品（'+newGold+'个）。',action:'暂停铺货，重新审核选品标准'});
+        }
+    }
+    if (advice.length===0) {
+        advice.push({priority:'🟢',title:'当前表现良好',detail:'各项指标稳定，继续保持现有运营节奏。',action:'定期复盘，保持选品纪律'});
+    }
+    return advice.sort(function(a,b){var o={'🔴 高':0,'🟡 中':1,'🟢 好':2,'🟢':2};return (o[a.priority]||9)-(o[b.priority]||9);});
+}
+
+// ═══════════════════════════════════════════════
+// 页面 ⑥ 个人诊断（7个expander模块）
+// ═══════════════════════════════════════════════
+function renderDiagnosis() {
+    var pg=document.getElementById('page-diagnosis'); if(!pg) return;
+    var msg=pg.querySelector('.warn-card'); var old=pg.querySelector('.dc'); if(old) old.remove();
+    if(ST.snapshots.length<2){if(msg) msg.style.display='block';return;}
+    if(msg) msg.style.display='none';
+    var div=document.createElement('div'); div.className='dc';
+    var cmp = compareSnapshots();
+    if (!cmp) { pg.appendChild(div); return; }
+
+    var goldPct = (cmp.new_gold / Math.max(cmp.new_count,1) * 100);
+    var oldGoldPct = (cmp.old_gold / Math.max(cmp.old_count,1) * 100);
+
+    /* ── ① 概览对比（默认展开）── */
+    var exp1=document.createElement('details'); exp1.className='expander'; exp1.open=true;
+    var ovHTML='<summary>📊 概览对比 — 最新 vs 上一份</summary><div class="expander-content">';
+    ovHTML+='<div class="btn-row">';
+    ovHTML+='<div class="step"><div class="title">商品总数</div><div class="desc" style="font-size:1.3rem;font-weight:700;">'+cmp.old_count+' → '+cmp.new_count+'</div></div>';
+    ovHTML+='<div class="step"><div class="title">黄金品占比</div><div class="desc" style="font-size:1.3rem;font-weight:700;color:var(--gold);">'+(oldGoldPct).toFixed(0)+'% → '+(goldPct).toFixed(0)+'%</div></div>';
+    ovHTML+='<div class="step"><div class="title">均毛利率</div><div class="desc" style="font-size:1.3rem;font-weight:700;color:var(--success-text);">'+(cmp.old_margin).toFixed(1)+'% → '+(cmp.new_margin).toFixed(1)+'%</div></div>';
+    ovHTML+='<div class="step"><div class="title">均日销</div><div class="desc" style="font-size:1.3rem;font-weight:700;">'+(cmp.old_sales).toFixed(1)+' → '+(cmp.new_sales).toFixed(1)+' 单</div></div>';
+    ovHTML+='</div><div class="btn-row">';
+    ovHTML+='<div class="step" style="border-left:3px solid var(--gold);"><div class="title">黄金品</div><div class="desc" style="font-size:1.1rem;font-weight:700;color:var(--gold);">'+cmp.old_gold+' → '+cmp.new_gold+'</div></div>';
+    ovHTML+='<div class="step" style="border-left:3px solid #a0a0a0;"><div class="title">白银品</div><div class="desc" style="font-size:1.1rem;font-weight:700;color:#a0a0a0;">'+cmp.old_silver+' → '+cmp.new_silver+'</div></div>';
+    ovHTML+='<div class="step" style="border-left:3px solid #5b9bd5;"><div class="title">观察品</div><div class="desc" style="font-size:1.1rem;font-weight:700;color:#5b9bd5;">'+cmp.old_watch+' → '+cmp.new_watch+'</div></div>';
+    ovHTML+='</div></div>';
+    exp1.innerHTML=ovHTML; div.appendChild(exp1);
+
+    /* ── ② 趋势图 ── */
+    if (ST.snapshots.length >= 3) {
+        var expTrend=document.createElement('details'); expTrend.className='expander';
+        expTrend.innerHTML='<summary>📈 趋势折线图</summary><div class="expander-content"><div id="trendChart" style="height:350px;"></div></div>';
+        div.appendChild(expTrend);
+    }
+
+    /* ── ③ 在变差的品 ── */
+    if (cmp.degraded.length > 0) {
+        var expDeg=document.createElement('details'); expDeg.className='expander';
+        var degHTML='<summary>📉 在变差的品（'+cmp.degraded.length+'）</summary><div class="expander-content"><div class="scroll-box"><table><thead><tr><th>SPU ID</th><th>旧标签</th><th>新标签</th><th>旧毛利率</th><th>新毛利率</th><th>降幅</th><th>建议</th></tr></thead><tbody>';
+        cmp.degraded.forEach(function(d){
+            var sevStyle = d.severity==='严重'?' style="color:var(--danger-text);font-weight:700;"':'';
+            degHTML+='<tr'+sevStyle+'><td>'+d.spu_id+'</td><td>'+d.old_label+'</td><td>'+d.new_label+'</td><td>'+d.old_margin.toFixed(1)+'%</td><td>'+d.new_margin.toFixed(1)+'%</td><td>'+d.margin_drop.toFixed(1)+'pp</td><td>'+d.suggestion+'</td></tr>';
+        });
+        degHTML+='</tbody></table></div></div>';
+        expDeg.innerHTML=degHTML; div.appendChild(expDeg);
+    } else {
+        var expDeg2=document.createElement('details'); expDeg2.className='expander';
+        expDeg2.innerHTML='<summary>📉 在变差的品（0）</summary><div class="expander-content"><div class="alert alert-success">所有商品保持稳定</div></div>';
+        div.appendChild(expDeg2);
+    }
+
+    /* ── ④ 建议剔除 ── */
+    var prevFiles = getPreviousSnapshotFiles();
+    var prevProds = prevFiles ? DataPipeline.analyze(prevFiles).products : [];
+    var pruned = suggestPruning(ST.products, prevProds);
+    var expPrune=document.createElement('details'); expPrune.className='expander';
+    if (pruned.length > 0) {
+        var pruneHTML='<summary>🗑️ 建议剔除（'+pruned.length+'）</summary><div class="expander-content"><div class="scroll-box">';
+        pruned.forEach(function(p){
+            var sevEmoji = p.severity==='严重'?'🔴':'🟡';
+            pruneHTML+='<div class="warn-card" style="padding:14px 20px;margin:8px 0;text-align:left;border-width:1px;"><strong>'+sevEmoji+' '+p.severity+' — '+p.spu_id+' — '+p.name+'</strong><br><span style="color:var(--text-dim);">'+p.reason+'</span><br><span style="color:var(--text-dim);font-size:0.82rem;">'+p.data+'</span></div>';
+        });
+        pruneHTML+='</div></div>'; expPrune.innerHTML=pruneHTML;
+    } else {
+        expPrune.innerHTML='<summary>🗑️ 建议剔除（0）</summary><div class="expander-content"><div class="alert alert-success">当前没有明显需要剔除的品</div></div>';
+    }
+    div.appendChild(expPrune);
+
+    /* ── ⑤ 个人 vs 团队 ── */
+    var expVs=document.createElement('details'); expVs.className='expander';
+    var tmGoldPct = 40, tmMargin = 25, tmSales = 3, tmP = [];
+    if (hasTeam && ST.teamProducts && ST.teamProducts.length > 0) {
+        try {
+            ST.teamProducts.forEach(function(r){
+                var spu = String(r.spu_id||'').replace(/\.0$/, '');
+                var cost = parseFloat(r.cost)||0, price = parseFloat(r.price)||0;
+                var ds = parseFloat(r.daily_sales)||0;
+                var gm = parseFloat(r.gross_margin)||(price>0?((price-cost)/price*100):0);
+                tmP.push({spu_id:spu, cost:cost, weight_g:parseFloat(r.weight_g)||0, price:price, daily_sales:ds, gross_margin:gm});
+            });
+            var tmC = doClustering(tmP);
+            var tg = tmC.filter(function(p){return p.cluster_label==='黄金品';});
+            tmGoldPct = tmC.length > 0 ? tg.length / tmC.length * 100 : 40;
+            tmMargin = avg(tmP.map(function(p){return p.gross_margin;})) || 25;
+            tmSales = avg(tmP.map(function(p){return p.daily_sales;})) || 3;
+        } catch(e) { console.error('team calc:', e); }
+    }
+    var vsHTML='<summary>👥 个人 vs 团队</summary><div class="expander-content">';
+    var teamHint = hasTeam ? ('团队基准来自导入的 '+ST.teamProducts.length+' 条真实数据') : '团队基准数据需导入团队 Excel 后自动计算。当前仅展示个人数据，虚线为估算团队中位。';
+    vsHTML+='<div class="alert alert-info"><span class="alert-icon">ℹ</span><span>'+teamHint+'</span></div>';
+    vsHTML+='<table><thead><tr><th>指标</th><th>个人（最新）</th><th>团队中位（估算）</th><th>差距</th></tr></thead><tbody>';
+    var metrics = [
+        {label:'商品总数', my:cmp.new_count, tm:hasTeam?Math.round(tmP.length):Math.max(15,cmp.new_count*0.8|0), unit:' 个'},
+        {label:'黄金品占比', my:goldPct, tm:Math.round(tmGoldPct), unit:'%'},
+        {label:'均毛利率', my:cmp.new_margin, tm:Math.round(tmMargin), unit:'%'},
+        {label:'均日销量', my:cmp.new_sales, tm:Math.round(tmSales), unit:' 单'},
+    ];
+    metrics.forEach(function(m){
+        var gap = m.my - m.tm;
+        var gapColor = gap >= 0 ? 'var(--success-text)' : 'var(--danger-text)';
+        var gapSign = gap >= 0 ? '+' : '';
+        vsHTML+='<tr><td>'+m.label+'</td><td>'+m.my.toFixed(1)+m.unit+'</td><td>~'+m.tm+m.unit+'</td><td style="color:'+gapColor+';font-weight:700;">'+gapSign+gap.toFixed(1)+m.unit+'</td></tr>';
+    });
+    vsHTML+='</tbody></table></div>';
+    expVs.innerHTML=vsHTML; div.appendChild(expVs);
+
+    /* ── ⑥ 方向建议 ── */
+    var advice = generateDirectionAdvice(cmp);
+    if (advice) {
+        var expAdv=document.createElement('details'); expAdv.className='expander';
+        var advHTML='<summary>🧭 方向建议（'+advice.length+' 条）</summary><div class="expander-content"><div class="scroll-box">';
+        advice.forEach(function(a){
+            var pc = a.priority.indexOf('高')>=0?'var(--danger-text)':a.priority.indexOf('中')>=0?'var(--warning-text)':'var(--success-text)';
+            advHTML+='<div class="alert alert-info" style="border-left:3px solid '+pc+';margin-bottom:10px;">';
+            advHTML+='<div><strong style="color:'+pc+';">'+a.priority+' '+a.title+'</strong><br><span style="color:var(--text-dim);font-size:0.85rem;">'+a.detail+'</span>';
+            advHTML+='<br><span style="color:var(--gold);font-size:0.82rem;">→ '+a.action+'</span></div></div>';
+        });
+        advHTML+='</div></div>'; expAdv.innerHTML=advHTML; div.appendChild(expAdv);
+    }
+
+    /* ── ⑦ 商品变动 ── */
+    if (cmp.new_prods.length > 0 || cmp.gone_prods.length > 0) {
+        var expChg=document.createElement('details'); expChg.className='expander';
+        var chgHTML='<summary>🔄 商品变动 — 新增 '+cmp.new_prods.length+' · 下架 '+cmp.gone_prods.length+'</summary><div class="expander-content">';
+        chgHTML+='<div class="btn-row"><div class="step" style="border-left:3px solid var(--success-text);"><div class="title">新增品</div><div class="desc" style="font-size:1.2rem;font-weight:700;">'+cmp.new_prods.length+'</div></div><div class="step" style="border-left:3px solid var(--danger-text);"><div class="title">消失品</div><div class="desc" style="font-size:1.2rem;font-weight:700;">'+cmp.gone_prods.length+'</div></div></div>';
+        if (cmp.new_prods.length > 0) {
+            chgHTML+='<div class="scroll-box" style="max-height:300px;"><table><thead><tr><th>新增 SPU</th><th>名称</th><th>毛利率</th><th>日销</th><th>克重</th></tr></thead><tbody>';
+            cmp.new_prods.forEach(function(p){chgHTML+='<tr><td>'+p.spu_id+'</td><td>'+p.name+'</td><td>'+(p.gross_margin||0).toFixed(1)+'%</td><td>'+(p.daily_sales||0).toFixed(1)+'</td><td>'+Math.round(p.weight_g||0)+'g</td></tr>';});
+            chgHTML+='</tbody></table></div>';
+        }
+        if (cmp.gone_prods.length > 0) {
+            chgHTML+='<div class="scroll-box" style="max-height:300px;margin-top:12px;"><table><thead><tr><th>下架 SPU</th><th>名称</th><th>原毛利率</th><th>原日销</th><th>克重</th></tr></thead><tbody>';
+            cmp.gone_prods.forEach(function(p){chgHTML+='<tr><td>'+p.spu_id+'</td><td>'+p.name+'</td><td>'+(p.gross_margin||0).toFixed(1)+'%</td><td>'+(p.daily_sales||0).toFixed(1)+'</td><td>'+Math.round(p.weight_g||0)+'g</td></tr>';});
+            chgHTML+='</tbody></table></div>';
+        }
+        chgHTML+='</div>'; expChg.innerHTML=chgHTML; div.appendChild(expChg);
+    }
+
+    pg.appendChild(div);
+
+    /* 趋势图渲染 */
+    if (ST.snapshots.length >= 3) {
+        setTimeout(function(){
+            var el=document.getElementById('trendChart'); if(!el) return;
+            var times=[], golds=[], margins=[], sales=[];
+            for (var i=0; i<Math.min(ST.snapshots.length,10); i++) {
+                var sd = loadSnapshotFiles(ST.snapshots[i].key);
+                if (!sd) continue;
+                var snapResult = DataPipeline.analyze(sd);
+                var prods = snapResult.products;
+                var clust = snapResult.clusters;
+                times.push(ST.snapshots[i].time);
+                golds.push(clust.filter(function(p){return p.cluster_label==='黄金品';}).length);
+                margins.push(avg(prods.map(function(p){return p.gross_margin;})));
+                sales.push(avg(prods.map(function(p){return p.daily_sales;})));
+            }
+            Plotly.newPlot('trendChart', [
+                {x:times,y:golds,type:'scatter',mode:'lines+markers',name:'黄金品数量',line:{color:'#e2b87a',width:2.5}},
+                {x:times,y:margins,type:'scatter',mode:'lines+markers',name:'均毛利率(%)',line:{color:'#4ade80',width:2.5}},
+                {x:times,y:sales,type:'scatter',mode:'lines+markers',name:'均日销',line:{color:'#5b9bd5',width:2,dash:'dot'},yaxis:'y2'}
+            ], {plot_bgcolor:'#0f0f17',paper_bgcolor:'#0f0f17',font:{color:'#f1f0ee'},xaxis:{title:'时间',gridcolor:'#2a2a3a'},yaxis:{title:'数量/毛利率(%)',gridcolor:'#2a2a3a'},yaxis2:{title:'日销',overlaying:'y',side:'right',gridcolor:'#2a2a3a'},legend:{font:{color:'#f1f0ee'}},hovermode:'x unified',margin:{l:50,r:50,t:20,b:60}},{displayModeBar:true,modeBarButtonsToAdd:['zoom2d','pan2d','downloadImage']});
+        }, 300);
+    }
+}
+    return renderDiagnosis;
+})();
+
+// ═══════════════════════════════════════════════
+// 页面 ⑦ 店铺运营
+// ═══════════════════════════════════════════════
+window.renderStorePage = (function() {
+    function renderStorePage() {
+    var pg = document.getElementById('page-store'); if (!pg) return;
+    var old = pg.querySelector('.sc'); if (old) old.remove();
+    var data = ST.storeData || [];
+    if (data.length === 0) {
+        var alertEl = pg.querySelector('.alert.alert-info');
+        if (alertEl) alertEl.style.display = 'block';
+        return;
+    }
+    var alertEl = pg.querySelector('.alert.alert-info');
+    if (alertEl) alertEl.style.display = 'none';
+
+    var div = document.createElement('div'); div.className = 'sc';
+
+    // 汇总卡片
+    var stores = {}, dates = {};
+    data.forEach(function(r) {
+        stores[r.store] = (stores[r.store] || 0) + 1;
+        dates[r.date] = true;
+    });
+    var totalSpend = data.reduce(function(s, r) { return s + (r.spend || 0); }, 0);
+    var totalRevenue = data.reduce(function(s, r) { return s + (r.revenue || 0); }, 0);
+    var totalProfit = data.reduce(function(s, r) { return s + (r.profit || 0); }, 0);
+
+    div.innerHTML = '<div class="btn-row">' +
+        '<div class="step"><div class="title">🏪 店铺</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--gold);">' + Object.keys(stores).length + '</div></div>' +
+        '<div class="step"><div class="title">📅 天数</div><div class="desc" style="font-size:1.5rem;font-weight:700;">' + Object.keys(dates).length + '</div></div>' +
+        '<div class="step"><div class="title">💰 总花费</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--warning-text);">$' + totalSpend.toFixed(0) + '</div></div>' +
+        '<div class="step"><div class="title">💵 总营收</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--success-text);">$' + totalRevenue.toFixed(0) + '</div></div>' +
+        '<div class="step"><div class="title">📈 总利润</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--gold);">$' + totalProfit.toFixed(0) + '</div></div>' +
+    '</div>';
+
+    // 各店铺概况表
+    var storeSummary = {};
+    data.forEach(function(r) {
+        if (!storeSummary[r.store]) storeSummary[r.store] = { days: 0, spend: 0, revenue: 0, profit: 0, sales: 0, ctrs: [], cvrs: [] };
+        var s = storeSummary[r.store];
+        s.days++; s.spend += r.spend || 0; s.revenue += r.revenue || 0; s.profit += r.profit || 0; s.sales += r.sales || 0;
+        if (r.ctr > 0) s.ctrs.push(r.ctr);
+        if (r.cvr > 0) s.cvrs.push(r.cvr);
+    });
+
+    var tblHTML = '<details class="expander" open><summary>📊 店铺概况</summary><div class="expander-content"><div class="scroll-box"><table><thead><tr><th>店铺</th><th>天数</th><th>总销量</th><th>总营收</th><th>总利润</th><th>总花费</th><th>ROAS</th><th>均CTR</th><th>均CVR</th></tr></thead><tbody>';
+    Object.keys(storeSummary).sort().forEach(function(store) {
+        var s = storeSummary[store];
+        var roas = s.spend > 0 ? (s.revenue / s.spend).toFixed(1) : '—';
+        var avgCtr = s.ctrs.length > 0 ? (avg(s.ctrs) * 100).toFixed(2) + '%' : '—';
+        var avgCvr = s.cvrs.length > 0 ? (avg(s.cvrs) * 100).toFixed(2) + '%' : '—';
+        tblHTML += '<tr><td><strong>' + store + '</strong></td><td>' + s.days + '</td><td>' + s.sales + '</td><td>$' + s.revenue.toFixed(0) + '</td><td>$' + s.profit.toFixed(0) + '</td><td>$' + s.spend.toFixed(0) + '</td><td>' + roas + '</td><td>' + avgCtr + '</td><td>' + avgCvr + '</td></tr>';
+    });
+    tblHTML += '</tbody></table></div></div></details>';
+    div.innerHTML += tblHTML;
+
+    // 每日明细
+    var sortedDates = Object.keys(dates).sort();
+    var detailHTML = '<details class="expander"><summary>📋 每日明细（' + sortedDates.length + ' 天）</summary><div class="expander-content"><div class="scroll-box" style="max-height:500px;"><table><thead><tr><th>日期</th><th>店铺</th><th>销量</th><th>营收</th><th>利润</th><th>花费</th><th>ROAS</th><th>曝光</th><th>点击</th><th>CTR</th><th>CVR</th></tr></thead><tbody>';
+    data.sort(function(a, b) { return a.date.localeCompare(b.date) || a.store.localeCompare(b.store); }).forEach(function(r) {
+        var roas = r.spend > 0 ? (r.revenue / r.spend).toFixed(1) : '—';
+        detailHTML += '<tr><td>' + r.date + '</td><td>' + r.store + '</td><td>' + r.sales + '</td><td>$' + (r.revenue||0).toFixed(0) + '</td><td>$' + (r.profit||0).toFixed(0) + '</td><td>$' + (r.spend||0).toFixed(0) + '</td><td>' + roas + '</td><td>' + (r.impressions||0) + '</td><td>' + (r.clicks||0) + '</td><td>' + ((r.ctr||0)*100).toFixed(2) + '%</td><td>' + ((r.cvr||0)*100).toFixed(2) + '%</td></tr>';
+    });
+    detailHTML += '</tbody></table></div></div></details>';
+    div.innerHTML += detailHTML;
+
+    pg.appendChild(div);
+}
+    return renderStorePage;
+})();
+// ═══════════════════════════════════════════════
+// 页面 ⑧ 个人vs店铺 对比
+// ═══════════════════════════════════════════════
+window.renderPKPage = (function() {
+    function renderPKPage() {
+    var pg = document.getElementById("page-pk"); if (!pg) return;
+    var old = pg.querySelector(".pc"); if (old) old.remove();
+    console.log("[PK DIAG] products:", ST.products?ST.products.length:0, "store:", ST.storeData?ST.storeData.length:0, "clusters:", ST.clusters?ST.clusters.length:0);
+    var hasProducts = ST.products && ST.products.length > 0;
+    console.log("[PK]", "products:", ST.products ? ST.products.length : 0, "store:", ST.storeData ? ST.storeData.length : 0, "clusters:", ST.clusters ? ST.clusters.length : 0);
+    var hasStore = ST.storeData && ST.storeData.length > 0;
+    if (hasProducts && hasStore) {
+        renderPKWithBoth(pg);
+    } else if (hasProducts) {
+        renderPKNoStore(pg);
+    } else if (hasStore) {
+        renderPKNoProducts(pg);
+    } else {
+        renderPKNoData(pg);
+    }
+}
+
+function renderPKWithBoth(pg) {
+    if (!ST.clusters || ST.clusters.length === 0) { ST.clusters = (ST.products || []).slice(); }
+    var div = document.createElement("div"); div.className = "pc";
+    // === 选品数据指标 ===
+    var golds = ST.clusters.filter(function(p){return p.cluster_label==="黄金品";});
+    var goldPct = ST.clusters.length > 0 ? golds.length / ST.clusters.length * 100 : 0;
+    var avgMargin = avg(ST.products.map(function(p){return p.gross_margin;}));
+    var avgSales = avg(ST.products.map(function(p){return p.daily_sales;}));
+    var avgWeight = avg(ST.products.map(function(p){return p.weight_g;}));
+    // === 店铺运营指标 ===
+    var storeData = ST.storeData || [];
+    var days = {}, stores = {};
+    storeData.forEach(function(r){days[r.date]=true;stores[r.store]=true;});
+    var dayCount = Object.keys(days).length;
+    var totalRev = storeData.reduce(function(s,r){return s+(Number(r.revenue)||0);},0);
+    var totalProfit = storeData.reduce(function(s,r){return s+(Number(r.profit)||0);},0);
+    var totalSpend = storeData.reduce(function(s,r){return s+(Number(r.spend)||0);},0);
+    var totalSales = storeData.reduce(function(s,r){return s+(Number(r.sales)||0);},0);
+    var avgDaySales = dayCount > 0 ? totalSales / dayCount : 0;
+    var roas = totalSpend > 0 ? totalRev / totalSpend : 0;
+    var avgProfitRate = totalRev > 0 ? totalProfit / totalRev * 100 : 0;
+    var ctrs = [], cvrs = [];
+    storeData.forEach(function(r){if(Number(r.ctr)>0) ctrs.push(Number(r.ctr)); if(Number(r.cvr)>0) cvrs.push(Number(r.cvr));});
+    var avgCTR = ctrs.length > 0 ? avg(ctrs)*100 : 0;
+    var avgCVR = cvrs.length > 0 ? avg(cvrs)*100 : 0;
+    // === 对齐评分（百分制） ===
+    var score = 0, scoreTotal = 0;
+    var pts = function(cond, weight) { scoreTotal += weight; return cond ? weight : 0; };
+    score += pts(goldPct >= 30, 20);
+    score += pts(avgMargin >= 20, 15);
+    score += pts(avgSales >= 2, 15);
+    score += pts(roas >= 2, 20);
+    score += pts(avgDaySales >= 3, 15);
+    score += pts(avgCTR >= 1, 15);
+    var alignScore = scoreTotal > 0 ? Math.round(score / scoreTotal * 100) : 0;
+    var scoreLabel = alignScore >= 80 ? '对齐良好' : alignScore >= 50 ? '部分偏差' : '差距较大';
+    var scoreColor = alignScore >= 80 ? 'var(--success-text)' : alignScore >= 50 ? 'var(--warning-text)' : 'var(--danger-text)';
+    // === 差距分析 ===
+    var gaps = [];
+    gaps.push({label:'黄金品占比 vs ROAS', pVal:goldPct, sVal:roas, fmtP:sf(goldPct, 0)+'%', fmtS:'ROAS '+sf(roas, 1), gap:Math.abs(goldPct - roas*15), unit:'pt'});
+    gaps.push({label:'毛利率 vs 利润率', pVal:avgMargin, sVal:avgProfitRate, fmtP:sf(avgMargin, 1)+'%', fmtS:sf(avgProfitRate, 1)+'%', gap:Math.abs(avgMargin - avgProfitRate), unit:'pp'});
+    gaps.push({label:'商品日销 vs 店铺日销', pVal:avgSales, sVal:avgDaySales, fmtP:sf(avgSales, 1)+'单/日', fmtS:sf(avgDaySales, 1)+'单/日', gap:Math.abs(avgSales - avgDaySales), unit:'单'});
+    var maxGap = Math.max.apply(null, gaps.map(function(g){return g.gap;}));
+    // === 运营建议 ===
+    var tips = [];
+    if (avgMargin > 20 && roas < 2) tips.push({emoji:'🎯', text:'毛利率 '+sf(avgMargin, 1)+'% 较高但 ROAS 仅 '+sf(roas, 1)+'，说明选品方向不错但投流效率有待提升。建议优化广告素材/人群定向/落地页体验。'});
+    if (goldPct > 40 && avgDaySales < 3) tips.push({emoji:'📦', text:'黄金品占比 '+sf(goldPct, 0)+'% 偏高，但店铺日均销量仅 '+sf(avgDaySales, 1)+' 单，说明选品能力不错但运营承接不足。建议加大推广力度或优化商品页转化。'});
+    if (avgDaySales > 5 && goldPct < 20) tips.push({emoji:'⚡', text:'店铺日均销量 '+sf(avgDaySales, 1)+' 单较高但黄金品占比仅 '+sf(goldPct, 0)+'%，可能是走"黑马品"路线（日销>5但毛利率<15%）。注意控制损耗率。'});
+    if (avgMargin < avgProfitRate) tips.push({emoji:'📐', text:'选品毛利率 '+sf(avgMargin, 1)+'% 低于运营利润率 '+sf(avgProfitRate, 1)+'%，可能是采购成本核算口径不同，或运营端有提价/组合销售策略。建议核对两个数据源口径是否一致。'});
+    if (avgSales > avgDaySales * 1.5) tips.push({emoji:'📏', text:'商品日均销量 '+sf(avgSales, 1)+' 单远高于店铺日均销量 '+sf(avgDaySales, 1)+' 单，数据口径可能存在差异（选品统计 vs 实销统计）。建议确认两个数据源的样本范围和计算方式。'});
+    if (tips.length === 0) tips.push({emoji:'📊', text: '当前 '+(ST.products?ST.products.length:0)+' 个选品 vs '+(ST.storeData?ST.storeData.length:0)+' 个运营记录，各项指标偏差不大。<br><br>建议持续积累更多数据以获得更精准的对齐分析。'});
+    tips.push({emoji:'💡', text:'以上建议基于当前数据自动生成，请结合实际运营情况综合判断。建议定期做 PK 对比，追踪改善效果。'});
+    var tipsHTML = tips.map(function(t){return '<div class="alert alert-info" style="margin-bottom:8px;border-left:3px solid var(--gold);"><strong>'+t.emoji+'</strong> '+t.text+'</div>';}).join("");
+    // === 构建 HTML（标题由 page-pk 静态 hero 提供，此处不再重复）===
+    var h = '';
+    // 评分卡片
+    h += '<div class="btn-row" style="margin-bottom:14px;"><div class="step" style="flex:2;text-align:left;padding:16px 20px;border:2px solid '+scoreColor+';">';
+    h += '<div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:4px;">选品 vs 运营对齐度</div>';
+    h += '<div style="font-size:2.2rem;font-weight:800;color:'+scoreColor+';">'+alignScore+'<span style="font-size:0.9rem;font-weight:600;"> 分</span></div>';
+    h += '<div style="font-size:0.82rem;color:var(--text-dim);margin-top:2px;">'+scoreLabel+'</div></div>';
+    h += '<div class="step" style="flex:3;text-align:left;padding:16px 20px;"><div style="font-size:0.75rem;color:var(--text-dim);">评分说明</div>';
+    h += '<div style="font-size:0.8rem;color:var(--text-dim);line-height:1.6;margin-top:4px;">';
+    h += '6 个选品指标 vs 6 个运营指标交叉评分<br>';
+    h += '≥80 分 = 选品与运营对齐良好<br>';
+    h += '≥50 分 = 部分偏差，有改进空间</div></div></div>';
+    // 差距分析表（带 scroll-box）
+    h += '<details class="expander" open><summary>📊 差距分析表</summary><div class="expander-content"><div class="scroll-box"><table><thead><tr><th style="width:22%;">维度</th><th style="width:30%;border-left:3px solid var(--gold);">选品</th><th style="width:18%;">差距</th><th style="width:30%;border-left:3px solid var(--success-text);">运营</th></tr></thead><tbody>';
+    gaps.forEach(function(g){
+        var gapDir = g.pVal > g.sVal ? '选品↑' : g.pVal < g.sVal ? '运营↑' : '持平';
+        var gapCls = g.gap === maxGap ? 'color:var(--danger-text);font-weight:700;' : 'color:var(--text-dim);';
+        h += '<tr><td><strong>'+g.label+'</strong></td><td style="border-left:3px solid var(--gold);">'+g.fmtP+'</td><td style="font-size:0.82rem;'+gapCls+'">'+gapDir+'<br>'+sf(g.gap, 1)+g.unit+'</td><td style="border-left:3px solid var(--success-text);">'+g.fmtS+'</td></tr>';
+    });
+    h += '</tbody></table></div></div></details>';
+    // 运营建议 expander
+    h += '<details class="expander" open><summary>💡 运营建议（'+tips.length+' 条）</summary><div class="expander-content"><div class="scroll-box">'+tipsHTML+'</div></div></details>';
+    div.innerHTML = h;
+    pg.appendChild(div);
+}
+function renderPKNoStore(pg) {
+    var div = document.createElement("div"); div.className = "pc";
+    div.innerHTML = '<div class="alert alert-info"><span class="alert-icon">📂</span><span>有 '+ST.products.length+' 条选品数据，但未导入店铺运营数据。<strong>导入店铺数据记录 Excel 后可查看对比。</strong></span></div><details class="expander" open><summary>📊 当前个人数据一览</summary><div class="expander-content"><div class="btn-row"><div class="step"><div class="title">商品总数</div><div class="desc" style="font-size:1.3rem;font-weight:700;">'+ST.clusters.length+'</div></div><div class="step" style="border-left:3px solid var(--gold);"><div class="title">黄金品占比</div><div class="desc" style="font-size:1.3rem;font-weight:700;color:var(--gold);">'+(ST.clusters.filter(function(p){return p.cluster_label==="黄金品";}).length/ST.clusters.length*100).toFixed(0)+'%</div></div><div class="step" style="border-left:3px solid var(--success-text);"><div class="title">均毛利率</div><div class="desc" style="font-size:1.3rem;font-weight:700;color:var(--success-text);">'+avg(ST.products.map(function(p){return p.gross_margin;})).toFixed(1)+'%</div></div></div></div></details>';
+    pg.appendChild(div);
+}
+
+function renderPKNoProducts(pg) {
+    var div = document.createElement("div"); div.className = "pc";
+    div.innerHTML = '<div class="alert alert-info"><span class="alert-icon">📂</span><span>有 '+ST.storeData.length+' 条店铺运营记录，但未导入选品利润数据。<strong>导入利润统计 Excel 后可查看对比。</strong></span></div>';
+    pg.appendChild(div);
+}
+
+function renderPKNoData(pg) {
+    var div = document.createElement("div"); div.className = "pc";
+    div.innerHTML = '<div class="warn-card"><div class="title">📂</div><div class="desc">还没数据呢。导入利润统计（选品数据）和店铺运营（店铺数据）后，这里会显示两条管线的对比分析。</div></div>';
+    pg.appendChild(div);
+}
+    return renderPKPage;
+})();
+
+</script>
+</body>
+</html>

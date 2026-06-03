@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temu 运营看板 — 组员使用说明</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        :root {
+            --bg: #0f0f17;
+            --card: #1a1a24;
+            --gold: #e2b87a;
+            --text: #f1f0ee;
+            --text-dim: #a1a09c;
+            --border: rgba(226,184,122,0.14);
+            --shadow: 0 4px 20px rgba(0,0,0,0.35);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', 'Microsoft YaHei', sans-serif;
+            line-height: 1.7;
+            padding: 40px 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 { font-size: 1.8rem; color: var(--gold); margin-bottom: 8px; }
+        h2 { font-size: 1.2rem; color: var(--gold); margin: 32px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+        h3 { font-size: 1rem; color: var(--text); margin: 16px 0 8px; }
+        p, li { font-size: 0.92rem; color: var(--text-dim); margin-bottom: 8px; }
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin: 16px 0;
+        }
+        .step {
+            display: flex;
+            gap: 12px;
+            margin: 12px 0;
+            padding: 12px 16px;
+            background: rgba(226,184,122,0.04);
+            border-left: 3px solid var(--gold);
+            border-radius: 0 8px 8px 0;
+        }
+        .step-num {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--gold);
+            min-width: 28px;
+        }
+        .code {
+            background: rgba(226,184,122,0.08);
+            color: var(--gold);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.85rem;
+        }
+        .warn {
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.3);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin: 12px 0;
+            color: #fca5a5;
+            font-size: 0.88rem;
+        }
+        .warn strong { color: #f87171; }
+        ul { padding-left: 20px; }
+        li { margin-bottom: 4px; }
+        a { color: var(--gold); }
+        table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+        td, th { padding: 8px 12px; text-align: left; font-size: 0.88rem; border-bottom: 1px solid var(--border); }
+        th { color: var(--gold); font-weight: 600; }
+    </style>
+</head>
+<body>
+
+<h1>📊 Temu 运营看板 — 组员使用说明</h1>
+<p>跟着做，5 分钟上手。有问题找玉成。</p>
+
+<div class="card">
+    <h3>📂 你拿到的文件夹里应该有</h3>
+    <ul>
+        <li><span class="code">temu-dashboard.html</span> — 主看板</li>
+        <li><span class="code">local_server.py</span> — 本地代理（不直接打开）</li>
+        <li><span class="code">启动本地看板.bat</span> — 双击这个启动</li>
+    </ul>
+</div>
+
+<h2>一、怎么打开</h2>
+
+<div class="step">
+    <span class="step-num">1</span>
+    <div>双击 <span class="code">启动本地看板.bat</span></div>
+</div>
+<div class="step">
+    <span class="step-num">2</span>
+    <div>浏览器自动打开 <span class="code">http://localhost:8080/temu-dashboard.html</span></div>
+</div>
+
+<div class="warn">
+    <strong>⚠ 不要直接双击 HTML 文件。</strong> 必须走 bat 启动，否则云端同步会报错（CORS）。
+</div>
+
+<h2>二、第一次配置 OSS（每人做一次）</h2>
+
+<div class="step">
+    <span class="step-num">1</span>
+    <div>看板左侧 → 点 <span class="code">⚙ OSS 配置</span></div>
+</div>
+<div class="step">
+    <span class="step-num">2</span>
+    <div>填写以下信息：</div>
+</div>
+
+<table>
+    <tr><th>字段</th><th>填什么</th></tr>
+    <tr><td>Bucket</td><td><span class="code">temu-shujufenxi-data</span></td></tr>
+    <tr><td>Region</td><td><span class="code">oss-cn-hangzhou</span></td></tr>
+    <tr><td>AccessKey</td><td>找玉成要（每人不同）</td></tr>
+    <tr><td>归属人</td><td><strong>你自己的名字</strong>（如 林祥旭、石磊）</td></tr>
+</table>
+
+<div class="step">
+    <span class="step-num">3</span>
+    <div>点 <strong>保存</strong></div>
+</div>
+
+<div class="warn">
+    <strong>⚠ 不要把 AccessKey 发到微信群。</strong>有问题私聊玉成。
+</div>
+
+<h2>三、日常流程</h2>
+
+<div class="step">
+    <span class="step-num">①</span>
+    <div><strong>拖入数据</strong>：把「店铺利润统计」.xls 拖进看板上传区</div>
+</div>
+<div class="step">
+    <span class="step-num">②</span>
+    <div><strong>（可选）拖入店铺数据</strong>：把「店铺数据记录」.xlsx 也拖进去（自动分开解析）</div>
+</div>
+<div class="step">
+    <span class="step-num">③</span>
+    <div>点 <span class="code">⬆ 同步</span> — 把你的数据上传到云端</div>
+</div>
+<div class="step">
+    <span class="step-num">④</span>
+    <div>点 <span class="code">📥 团队</span> — 拉取其他同事的数据</div>
+</div>
+<div class="step">
+    <span class="step-num">⑤</span>
+    <div>切到 <strong>诊断</strong> 页面，看「个人 vs 团队」对比</div>
+</div>
+
+<h2>四、常见错误</h2>
+
+<table>
+    <tr><th>报错</th><th>原因</th><th>解决</th></tr>
+    <tr>
+        <td>CORS / 网络拦截</td>
+        <td>没用 bat 启动</td>
+        <td>双击 <span class="code">启动本地看板.bat</span></td>
+    </tr>
+    <tr>
+        <td>NoSuchBucket</td>
+        <td>Bucket 名填错了</td>
+        <td>应为 <span class="code">temu-shujufenxi-data</span></td>
+    </tr>
+    <tr>
+        <td>云端只有你自己</td>
+        <td>其他同事还没同步</td>
+        <td>等同事也同步，或点 <span class="code">🧪 联调</span> 自测</td>
+    </tr>
+    <tr>
+        <td>AccessKey 报错</td>
+        <td>Key 填错或没保存</td>
+        <td>找玉成重新要 Key</td>
+    </tr>
+</table>
+
+<h2>五、安全提醒</h2>
+<ul>
+    <li>AccessKey 是私密信息，<strong>不要发到任何群里</strong></li>
+    <li>每人用自己名字当「归属人」，数据不会混</li>
+    <li>你的 Excel 原始文件 <strong>不会上传到云端</strong>，只上传处理后的数据摘要</li>
+</ul>
+
+<p style="margin-top:40px;color:var(--text-dim);font-size:0.8rem;text-align:center;">
+    有问题找玉成 · 2026-06-03
+</p>
+
+</body>
+</html>
