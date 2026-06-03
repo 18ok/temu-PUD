@@ -610,6 +610,7 @@ function switchPage(name) {
     if (name==='predict') renderPredict();
     if (name==='blacklist' && ST.products.length>0) renderBlacklist();
     if (name==='diagnosis') { if(typeof Plotly!=='undefined') try{Plotly.purge('trendChart');}catch(e){} renderDiagnosis(); }
+    if (name==='import') renderImportPage();
     if (name==='store') renderStorePage();
     if (name==='pk') renderPKPage();
 }
@@ -902,7 +903,9 @@ var StoreDataPipeline = {
     }
 };
 // ═══════════════════════════════════════════════
-function renderImportPage() {
+window.renderImportPage = (function() {
+    window.renderImportPage = (function() {
+    function renderImportPage() {
     var pg=document.getElementById('page-import'); if(!pg) return;
     var alertEl=pg.querySelector('.alert.alert-info');
     if(alertEl){if(ST.files.length>0){var meta=JSON.parse(localStorage.getItem('temu_v6_meta')||'{}');alertEl.innerHTML='<span class="alert-icon">💾</span><span>已加载 <strong>'+ST.files.length+'</strong> 个文件 | '+ST.products.length+' 个SPU | 上次: '+(meta.saved_at||'--')+'</span>';}else{alertEl.innerHTML='<span class="alert-icon">📂</span><span>请上传 Excel 文件开始分析</span>';}}
@@ -919,6 +922,8 @@ function renderImportPage() {
     });
     pg.appendChild(div);
 }
+    return renderImportPage;
+})();
 
 // ═══════════════════════════════════════════════
 // 页面 ② 商品画像
@@ -1295,7 +1300,10 @@ function renderDiagnosis() {
 // ═══════════════════════════════════════════════
 // 页面 ⑦ 店铺运营
 // ═══════════════════════════════════════════════
-function renderStorePage() {
+window.renderStorePage = (function() {
+    function
+window.renderStorePage = (function() {
+    function renderStorePage() {
     var pg = document.getElementById('page-store'); if (!pg) return;
     var old = pg.querySelector('.sc'); if (old) old.remove();
     var data = ST.storeData || [];
@@ -1360,6 +1368,9 @@ function renderStorePage() {
 
     pg.appendChild(div);
 }
+    return renderStorePage;
+)();
+
 // ═══════════════════════════════════════════════
 // 页面 ⑧ 个人vs店铺 对比
 // ═══════════════════════════════════════════════
