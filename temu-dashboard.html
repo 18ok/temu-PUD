@@ -610,7 +610,6 @@ function switchPage(name) {
     if (name==='predict') renderPredict();
     if (name==='blacklist' && ST.products.length>0) renderBlacklist();
     if (name==='diagnosis') { if(typeof Plotly!=='undefined') try{Plotly.purge('trendChart');}catch(e){} renderDiagnosis(); }
-    if (name==='import') renderImportPage();
     if (name==='store') renderStorePage();
     if (name==='pk') renderPKPage();
 }
@@ -903,8 +902,7 @@ var StoreDataPipeline = {
     }
 };
 // ═══════════════════════════════════════════════
-    window.renderImportPage = (function() {
-    function renderImportPage() {
+function renderImportPage() {
     var pg=document.getElementById('page-import'); if(!pg) return;
     var alertEl=pg.querySelector('.alert.alert-info');
     if(alertEl){if(ST.files.length>0){var meta=JSON.parse(localStorage.getItem('temu_v6_meta')||'{}');alertEl.innerHTML='<span class="alert-icon">💾</span><span>已加载 <strong>'+ST.files.length+'</strong> 个文件 | '+ST.products.length+' 个SPU | 上次: '+(meta.saved_at||'--')+'</span>';}else{alertEl.innerHTML='<span class="alert-icon">📂</span><span>请上传 Excel 文件开始分析</span>';}}
@@ -921,19 +919,17 @@ var StoreDataPipeline = {
     });
     pg.appendChild(div);
 }
-    return renderImportPage;
-})();
 
 // ═══════════════════════════════════════════════
 // 页面 ② 商品画像
 // ═══════════════════════════════════════════════
-window.renderProducts = (function() {
-    function renderProducts() {
+function renderProducts() {
     var pg=document.getElementById('page-products'); if(!pg) return;
     var alertEl=pg.querySelector('.alert.alert-info'); if(alertEl) alertEl.style.display='none';
     var old=pg.querySelector('.pc'); if(old) old.remove();
     var div=document.createElement('div'); div.className='pc';
-    var cnt={}; ST.clusters.forEach(function(p){cnt[p.cluster_label]=(cnt[p.cluster_label]||0)+1;});
+window.renderProducts = (function() {
+    function renderProducts() {
     div.innerHTML='<div class="btn-row"><div class="step"><div class="emoji">🟡</div><div class="title">黄金品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--gold);">'+(cnt['黄金品']||0)+'</div></div><div class="step"><div class="emoji">⚪</div><div class="title">白银品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:#a0a0a0;">'+(cnt['白银品']||0)+'</div></div><div class="step"><div class="emoji">🔵</div><div class="title">观察品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:#5b9bd5;">'+(cnt['观察品']||0)+'</div></div><div class="step"><div class="title">📦 总计</div><div class="desc" style="font-size:1.5rem;font-weight:700;">'+ST.clusters.length+'</div></div></div>';
     pg.appendChild(div);
     [{l:'黄金品',c:'var(--gold)',bc:'badge badge-gold'},{l:'白银品',c:'#a0a0a0',bc:'badge badge-silver'},{l:'观察品',c:'#5b9bd5',bc:'badge badge-watch'}].forEach(function(g){var s=ST.clusters.filter(function(p){return p.cluster_label===g.l;});if(s.length>0){var exp=document.createElement('details');exp.className='expander';exp.open=true;exp.innerHTML='<summary><span class="'+g.bc+'">'+g.l+'</span> 概况（'+s.length+' 个SPU）</summary><div class="expander-content"><div class="alert alert-info" style="border-left:3px solid '+g.c+'"><div><strong style="color:'+g.c+'">'+g.l+'</strong><br>毛利率: '+avg(s.map(function(p){return p.gross_margin;})).toFixed(1)+'% | 日销: '+avg(s.map(function(p){return p.daily_sales;})).toFixed(1)+' | 克重: '+Math.round(avg(s.map(function(p){return p.weight_g;})))+'g | 成本: $'+avg(s.map(function(p){return p.cost;})).toFixed(2)+'</div></div></div>';div.appendChild(exp);}});
@@ -947,15 +943,14 @@ window.renderProducts = (function() {
     Plotly.newPlot('scatterPlot',traces,{plot_bgcolor:'#0f0f17',paper_bgcolor:'#0f0f17',font:{color:'#f1f0ee'},xaxis:{title:'毛利率 %',gridcolor:'#2a2a3a'},yaxis:{title:'日均销量',gridcolor:'#2a2a3a'},legend:{font:{color:'#f1f0ee'}},margin:{l:50,r:30,t:20,b:50}},{displayModeBar:true,modeBarButtonsToAdd:['zoom2d','pan2d','downloadImage']});
     setTimeout(function(){var t=document.getElementById('productsTable');if(!t)return;var h='<table><thead><tr><th>SPU ID</th><th>名称</th><th>分类</th><th>毛利率</th><th>日销</th><th>克重</th><th>成本</th><th>售价</th></tr></thead><tbody>';ST.clusters.sort(function(a,b){return a.cluster_label.localeCompare(b.cluster_label)||b.gross_margin-a.gross_margin;}).forEach(function(p){var bc=p.cluster_label==='黄金品'?'badge badge-gold':p.cluster_label==='白银品'?'badge badge-silver':'badge badge-watch';h+='<tr><td>'+p.spu_id+'</td><td>'+p.name+'</td><td><span class="'+bc+'">'+p.cluster_label+'</span></td><td>'+p.gross_margin.toFixed(1)+'%</td><td>'+p.daily_sales.toFixed(1)+'</td><td>'+Math.round(p.weight_g)+'g</td><td>$'+p.cost.toFixed(2)+'</td><td>$'+(p.price||0).toFixed(2)+'</td></tr>';});h+='</tbody></table>';t.innerHTML=h;},200);
 }
-window.renderRules = (function() {
-    function renderRules() {
+function renderRules() {
     var pg=document.getElementById('page-rules'); if(!pg) return;
     var alertEl=pg.querySelector('.alert.alert-info'); if(alertEl) alertEl.style.display='none';
     var old=pg.querySelector('.rc'); if(old) old.remove();
-    var div=document.createElement('div'); div.className='rc';
-    var iron=ST.rules.filter(function(r){return r.type==='铁律';}), avoid=ST.rules.filter(function(r){return r.type==='避坑';});
+}
     return renderProducts;
 })();
+    var iron=ST.rules.filter(function(r){return r.type==='铁律';}), avoid=ST.rules.filter(function(r){return r.type==='避坑';});
     div.innerHTML='<div class="btn-row"><div class="step"><div class="title">🔨 铁律</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--gold);">'+iron.length+'</div></div><div class="step"><div class="title">🛡️ 避坑</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--danger-text);">'+avoid.length+'</div></div></div>';
     pg.appendChild(div);
     var expIron=document.createElement('details');expIron.className='expander';expIron.open=true;
@@ -969,15 +964,12 @@ window.renderRules = (function() {
     if(golds.length>0){var rh='<summary>📐 黄金品基准区间（基于'+golds.length+'个黄金品）</summary><div class="expander-content"><div class="btn-row">';[{k:'gross_margin',n:'毛利率'},{k:'daily_sales',n:'日均销量'},{k:'cost',n:'成本($)'},{k:'weight_g',n:'克重(g)'}].forEach(function(fd){var v=golds.map(function(p){return p[fd.k];}).sort(function(a,b){return a-b;});rh+='<div class="step" style="border-left:3px solid var(--gold);"><div class="title" style="font-size:0.8rem;color:var(--text-dim);">'+fd.n+'</div><div class="desc" style="font-size:1.1rem;font-weight:700;color:var(--gold);">'+(Math.round(q25(v)*10)/10)+' — '+(Math.round(q75(v)*10)/10)+'</div><div style="font-size:0.7rem;color:var(--text-dim);">中位: '+(Math.round(med(v)*10)/10)+'</div></div>';});rh+='</div></div>';expRange.innerHTML=rh;}else{expRange.innerHTML='<summary>📐 黄金品基准区间</summary><div class="expander-content"><div class="alert alert-info">需要至少1个黄金品</div></div>';}
     div.appendChild(expRange);
 }
-window.renderPredict = (function() {
-    function renderPredict() {
+function renderPredict() {
     var pg=document.getElementById('page-predict'); if(!pg) return;
     var alertEl=pg.querySelector('.alert.alert-info');
     var old=pg.querySelector('.prc'); if(old) old.remove();
     var div=document.createElement('div'); div.className='prc';
     div.innerHTML='<hr><h3 style="color:var(--gold);margin:16px 0;">🎯 输入新品参数</h3><div class="btn-row"><div><label>采购价($)</label><br><input type="number" id="pred_purchase" value="3" min="0" step="0.5" style="width:120px;"></div><div><label>克重(g)</label><br><input type="number" id="pred_weight" value="200" min="0" step="10" style="width:120px;"></div><div><label>售价($)</label><br><input type="number" id="pred_price" value="15" min="0" step="0.5" style="width:120px;"></div><div><label>日销</label><br><input type="number" id="pred_sales" value="5" min="0" step="0.5" style="width:120px;"></div></div><div class="alert alert-info" style="margin:16px 0;"><span>📐 成本 = 克重 x 0.06 + 采购价（运输+商品成本）</span></div><button class="btn" style="background:var(--gold);color:var(--bg);font-weight:700;margin-bottom:16px;" onclick="doPrediction()">🔍 匹配相似品</button><div id="predResult"></div>';
-    return renderRules;
-})();
     pg.appendChild(div);
     if(alertEl){if(ST.products.length===0){alertEl.style.display='block';}else{alertEl.style.display='none';}}
 }
@@ -990,8 +982,6 @@ function doPrediction(){
     var top15=scored.slice(0,Math.min(15,scored.length)).map(function(s){return ST.products[s.idx];}), avgM=avg(top15.map(function(p){return p.gross_margin;}));
     var ri=margin>=30?'低':margin>=15?'中':'高', rc=ri==='低'?'var(--success-text)':ri==='中'?'var(--warning-text)':'var(--danger-text)', re=ri==='低'?'🟢':ri==='中'?'🟡':'🔴';
     var html='<details class="expander" open><summary>📊 预测摘要 — '+re+' '+ri+'风险</summary><div class="expander-content">';
-    return renderPredict;
-})();
     html+='<div class="btn-row"><div class="step"><div class="title">计算成本</div><div class="desc" style="font-size:1.3rem;font-weight:700;">$'+cost.toFixed(2)+'</div><div style="font-size:0.7rem;color:var(--text-dim);">='+w+'gx0.06+$'+purchase+'</div></div><div class="step"><div class="title">毛利率</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:'+rc+';">'+margin.toFixed(1)+'%</div></div><div class="step"><div class="title">匹配</div><div class="desc" style="font-size:1.3rem;font-weight:700;">'+top15.length+'</div><div style="font-size:0.7rem;color:var(--text-dim);">均毛利率 '+avgM.toFixed(1)+'%</div></div></div>';
     html+='<div class="alert" style="border:2px solid '+rc+';background:rgba(226,184,122,0.04);margin:16px 0;"><div><strong style="font-size:1.2rem;">'+re+' '+ri+'风险</strong><br>相似品均值毛利率 '+avgM.toFixed(1)+'%</div></div>';
     html+='</div></details>';
@@ -1000,8 +990,7 @@ function doPrediction(){
     html+='</tbody></table></div></div></details>';
     res.innerHTML=html;
 }
-window.renderBlacklist = (function() {
-    function renderBlacklist() {
+function renderBlacklist() {
     var pg=document.getElementById('page-blacklist'); if(!pg) return;
     var alertEl=pg.querySelector('.alert.alert-info'); if(alertEl) alertEl.style.display='none';
     var old=pg.querySelector('.blc'); if(old) old.remove(); var div=document.createElement('div'); div.className='blc';
@@ -1032,13 +1021,10 @@ window.renderBlacklist = (function() {
 // ═══════════════════════════════════════════════
 // 快照对比 & 剔除建议（诊断页辅助）
 // ═══════════════════════════════════════════════
-window.renderDiagnosis = (function() {
 function compareSnapshots() {
     if (ST.snapshots.length < 2) return null;
     var prevSnap = ST.snapshots[ST.snapshots.length - 2];
     var prevData = JSON.parse(localStorage.getItem(prevSnap.key) || '[]');
-    return renderBlacklist;
-})();
     var prevResult = DataPipeline.analyze(prevData);
     var prevProducts = prevResult.products;
     var prevClusters = prevResult.clusters;
@@ -1311,12 +1297,8 @@ function renderDiagnosis() {
 
 // ═══════════════════════════════════════════════
 // 页面 ⑦ 店铺运营
-    return renderDiagnosis;
-})();
 // ═══════════════════════════════════════════════
-    function
-window.renderStorePage = (function() {
-    function renderStorePage() {
+function renderStorePage() {
     var pg = document.getElementById('page-store'); if (!pg) return;
     var old = pg.querySelector('.sc'); if (old) old.remove();
     var data = ST.storeData || [];
@@ -1381,14 +1363,10 @@ window.renderStorePage = (function() {
 
     pg.appendChild(div);
 }
-    return renderStorePage;
-)();
-
 // ═══════════════════════════════════════════════
 // 页面 ⑧ 个人vs店铺 对比
 // ═══════════════════════════════════════════════
-window.renderPKPage = (function() {
-    function renderPKPage() {
+function renderPKPage() {
     var pg = document.getElementById("page-pk"); if (!pg) return;
     var old = pg.querySelector(".pc"); if (old) old.remove();
     console.log("[PK DIAG] products:", ST.products?ST.products.length:0, "store:", ST.storeData?ST.storeData.length:0, "clusters:", ST.clusters?ST.clusters.length:0);
@@ -1503,7 +1481,5 @@ function renderPKNoData(pg) {
 }
 
 </script>
-    return renderPKPage;
-})();
 </body>
 </html>
