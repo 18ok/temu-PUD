@@ -1,0 +1,45 @@
+# Changelog — Temu 运营数据看板
+
+## V10 — 2026-06-03
+
+团队 OSS 同步上线 + 数据解析全面修复。UI 版本号统一为 **V10**（localStorage 仍用 `temu_v6_*` 前缀，兼容旧数据）。
+
+### 新增
+
+- **阿里云 OSS 团队同步**：⬆ 同步 / 📥 团队 / ⚙ OSS 配置
+- **本地 OSS 代理**（`local_server.py` + `启动本地看板.bat`）：绕过浏览器 CORS，Bucket 可私有
+- **🧪 团队联调**：模拟第二人上传并验证拉取链路
+- **RAM 子账号 + 签名读写**：GetObject / PutObject，不依赖公共读
+- 双管线文件类型自动识别（利润统计 `.xls` / 数据记录 `.xlsx`）
+- 8 页面完整链路：导入 / 商品画像 / 选品规则 / 预测 / 避坑 / 诊断 / 店铺运营 / 个人 PK
+
+### 修复
+
+- Excel 表头自动定位（`商品SPU ID` 行）
+- 列名映射：`毛利润率`、`实际卖价`、`每天销量` 等真实表头
+- 毛利率小数 `0.93` → `93%` 统一换算
+- 店铺 CTR/CVR 格式识别，无数据显示 `—` 而非 `0.00%`
+- 团队数据 OSS 拉取后标准化，诊断页「个人 vs 团队」不再假数据
+- OSS Bucket 旧名 `temu-pod-data` 自动迁移至 `temu-shujufenxi-data`
+- IIFE 页面隔离、快照格式、PK 页、团队上传等多项 P0/P1 Bug
+
+### 文件
+
+| 文件 | 说明 |
+|------|------|
+| `temu-dashboard.html` | 主看板 V10 |
+| `local_server.py` | 本地静态服务 + OSS 代理 |
+| `启动本地看板.bat` | 一键启动（必须用此打开才能 OSS 同步） |
+
+### Git
+
+- 仓库：https://github.com/18ok/temu-PUD
+- 分支：`master`
+
+---
+
+## V6 及更早（历史）
+
+- 单文件 HTML + localStorage
+- Streamlit 迁移至纯前端
+- 六页基础分析（无 OSS / 无店铺 PK）
