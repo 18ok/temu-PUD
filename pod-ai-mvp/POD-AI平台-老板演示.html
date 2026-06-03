@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POD AI 平台 · 商业提案</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif; background: #0f0f17; color: #e8e6e3; }
+    .page { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 4rem 2rem; }
+    .card { background: #1a1a26; border: 1px solid #2a2a3a; border-radius: 16px; padding: 2rem; }
+    .amber { color: #e2b87a; }
+    .amber-bg { background: #e2b87a; color: #0f0f17; }
+    .amber-border { border-color: #e2b87a; }
+    .tag { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+    .tag-warn { background: rgba(226,184,122,0.15); color: #e2b87a; }
+    .tag-red { background: rgba(239,68,68,0.15); color: #ef4444; }
+    .tag-green { background: rgba(34,197,94,0.15); color: #22c55e; }
+    .big-number { font-size: 3.5rem; font-weight: 800; line-height: 1; }
+  </style>
+</head>
+<body>
+
+<!-- ====== 封面 ====== -->
+<div class="page" style="background: linear-gradient(135deg, #0f0f17 0%, #1a1520 50%, #0f0f17 100%);">
+  <div class="text-center max-w-2xl">
+    <div class="text-7xl mb-8">🏭</div>
+    <h1 class="text-5xl font-bold mb-4">POD AI 平台</h1>
+    <p class="text-2xl text-gray-400 mb-4">让我们的POD业务追上竞争对手</p>
+    <div class="flex justify-center gap-3 mt-6">
+      <span class="tag tag-warn">Temu POD 半托管红利期</span>
+      <span class="tag tag-red">竞争窗口正在缩小</span>
+    </div>
+    <p class="text-gray-600 text-sm mt-12">旻量电子 · Temu跨境电商部 · 内部提案</p>
+  </div>
+</div>
+
+<!-- ====== 页1：问题——我们落后了多少 ====== -->
+<div class="page">
+  <div class="max-w-4xl w-full space-y-10">
+
+    <!-- 标题区 -->
+    <div class="text-center">
+      <p class="text-gray-500 text-sm mb-2">第一部分</p>
+      <h2 class="text-3xl font-bold">竞争对手已经在用AI了，我们还在手工做图</h2>
+    </div>
+
+    <!-- 对比卡片 -->
+    <div class="grid grid-cols-2 gap-6">
+      <div class="card border-red-900/30" style="background: #1a1015;">
+        <div class="tag tag-red mb-4">我们现在的流程</div>
+        <div class="space-y-4 text-sm">
+          <div class="flex items-center gap-3">
+            <span class="text-2xl">🧑‍🎨</span>
+            <div><div class="font-medium">设计师构思</div><div class="text-gray-500 text-xs">每张图 30 分钟</div></div>
+          </div>
+          <div class="text-gray-600">↓</div>
+          <div class="flex items-center gap-3">
+            <span class="text-2xl">🖌️</span>
+            <div><div class="font-medium">PS 做图 + 来回改</div><div class="text-gray-500 text-xs">又 2 小时</div></div>
+          </div>
+          <div class="text-gray-600">↓</div>
+          <div class="flex items-center gap-3">
+            <span class="text-2xl">📦</span>
+            <div><div class="font-medium">上架 Temu</div><div class="text-gray-500 text-xs">10 分钟</div></div>
+          </div>
+        </div>
+        <div class="mt-6 pt-4 border-t border-red-900/20">
+          <div class="text-red-400 text-sm">每 SKU 耗时约 <span class="font-bold text-xl">3 小时</span></div>
+          <div class="text-red-400 text-sm">每天产出约 <span class="font-bold text-xl">3 个</span> SKU</div>
+        </div>
+      </div>
+
+      <div class="card border-green-900/30" style="background: #101a15;">
+        <div class="tag tag-green mb-4">AI 工具后的流程</div>
+        <div class="space-y-4 text-sm">
+          <div class="flex items-center gap-3">
+            <span class="text-2xl">⌨️</span>
+            <div><div class="font-medium">输入产品描述</div><div class="text-gray-500 text-xs">10 秒</div></div>
+          </div>
+          <div class="text-gray-600">↓</div>
+          <div class="flex items-center gap-3">
+            <span class="text-2xl">🤖</span>
+            <div><div class="font-medium">AI 同时出图 + 出标题</div><div class="text-gray-500 text-xs">30 秒</div></div>
+          </div>
+          <div class="text-gray-600">↓</div>
+          <div class="flex items-center gap-3">
+            <span class="text-2xl">📦</span>
+            <div><div class="font-medium">选择 → 下载 → 上架</div><div class="text-gray-500 text-xs">10 秒</div></div>
+          </div>
+        </div>
+        <div class="mt-6 pt-4 border-t border-green-900/20">
+          <div class="text-green-400 text-sm">每 SKU 耗时约 <span class="font-bold text-xl">1 分钟</span></div>
+          <div class="text-green-400 text-sm">每天产出约 <span class="font-bold text-xl">500 个</span> SKU</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 冲击数字 -->
+    <div class="grid grid-cols-3 gap-4 text-center">
+      <div class="card">
+        <div class="big-number amber">166x</div>
+        <div class="text-gray-500 text-sm mt-2">上架速度差距</div>
+      </div>
+      <div class="card">
+        <div class="big-number amber">99%</div>
+        <div class="text-gray-500 text-sm mt-2">设计成本下降</div>
+        <div class="text-xs text-gray-600 mt-1">¥50/张 → ¥0.5/张</div>
+      </div>
+      <div class="card">
+        <div class="big-number amber">180x</div>
+        <div class="text-gray-500 text-sm mt-2">效率提升</div>
+        <div class="text-xs text-gray-600 mt-1">3 小时 → 1 分钟</div>
+      </div>
+    </div>
+
+    <!-- 平台红利 -->
+    <div class="card border-l-4 amber-border" style="border-left-width: 4px;">
+      <div class="flex items-start gap-4">
+        <span class="text-2xl">📢</span>
+        <div>
+          <div class="font-bold amber mb-1">Temu 正在主动推 POD 品类</div>
+          <div class="text-sm text-gray-400">
+            2024 年 Temu 专门上线 POD 半托管通道 — 专属标签、专题页、流量扶持、八日履约。<br>
+            全球 POD 市场 2024 年 $98 亿，年增长 25%+。这是平台在推的赛道，不是我们在追的风口。<br>
+            <span class="amber">谁先上去，谁吃红利。</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ====== 页2：方案——这个东西长什么样 ====== -->
+<div class="page">
+  <div class="max-w-4xl w-full space-y-10">
+
+    <div class="text-center">
+      <p class="text-gray-500 text-sm mb-2">第二部分</p>
+      <h2 class="text-3xl font-bold">这就是我要搭建的工具</h2>
+    </div>
+
+    <!-- 产品演示流程 -->
+    <div class="card">
+      <div class="text-center mb-8">
+        <div class="tag tag-warn mb-3">网页工具 · 浏览器打开就能用 · 无需安装</div>
+        <p class="text-gray-400 text-sm">员工操作三步，30 秒拿到可上架的内容</p>
+      </div>
+
+      <div class="grid grid-cols-3 gap-6">
+        <div class="text-center">
+          <div class="w-16 h-16 rounded-2xl mx-auto mb-3 flex items-center justify-center text-2xl" style="background: rgba(226,184,122,0.1);">1</div>
+          <div class="font-bold mb-2">输入描述</div>
+          <div class="text-sm text-gray-500">"可爱柴犬戴墨镜在夏威夷冲浪"</div>
+          <div class="text-xs text-gray-600 mt-1">10 秒</div>
+        </div>
+        <div class="text-center">
+          <div class="w-16 h-16 rounded-2xl mx-auto mb-3 flex items-center justify-center text-2xl" style="background: rgba(226,184,122,0.1);">2</div>
+          <div class="font-bold mb-2">AI 生成</div>
+          <div class="text-sm text-gray-500">同时产出 10 个标题 + 4 张配图</div>
+          <div class="text-xs text-gray-600 mt-1">30 秒</div>
+        </div>
+        <div class="text-center">
+          <div class="w-16 h-16 rounded-2xl mx-auto mb-3 flex items-center justify-center text-2xl" style="background: rgba(226,184,122,0.1);">3</div>
+          <div class="font-bold mb-2">选择下载</div>
+          <div class="text-sm text-gray-500">选满意的 → 一键下载 → 上架 Temu</div>
+          <div class="text-xs text-gray-600 mt-1">10 秒</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 三大模块卡片 -->
+    <div class="grid grid-cols-3 gap-4">
+      <div class="card text-center">
+        <div class="text-3xl mb-3">🎨</div>
+        <div class="font-bold mb-1">图片引擎</div>
+        <div class="text-xs text-gray-500">输入文字描述<br>AI 自动出四张图<br>选最优的直接用</div>
+      </div>
+      <div class="card text-center">
+        <div class="text-3xl mb-3">📝</div>
+        <div class="font-bold mb-1">标题引擎</div>
+        <div class="text-xs text-gray-500">输入产品卖点<br>AI 出十个标题备选<br>适配 Temu 搜索规则</div>
+      </div>
+      <div class="card text-center">
+        <div class="text-3xl mb-3">📚</div>
+        <div class="font-bold mb-1">素材库</div>
+        <div class="text-xs text-gray-500">好图好标题存起来<br>下次类似产品直接复用<br>越用越聪明</div>
+      </div>
+    </div>
+
+    <!-- 成本对比 -->
+    <div class="card">
+      <h3 class="font-bold mb-4">一张图能省多少钱</h3>
+      <div class="grid grid-cols-2 gap-4 text-center">
+        <div>
+          <div class="text-gray-500 text-xs mb-1">现在（设计师做）</div>
+          <div class="text-2xl font-bold text-red-400">¥50</div>
+          <div class="text-xs text-gray-600 mt-1">+ 来回改 3 次</div>
+        </div>
+        <div>
+          <div class="text-gray-500 text-xs mb-1">AI 工具后</div>
+          <div class="text-2xl font-bold amber">¥0.5</div>
+          <div class="text-xs text-gray-600 mt-1">+ 一次出四张任选</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ====== 页3：请求——我需要什么支持 ====== -->
+<div class="page">
+  <div class="max-w-4xl w-full space-y-10">
+
+    <div class="text-center">
+      <p class="text-gray-500 text-sm mb-2">第三部分</p>
+      <h2 class="text-3xl font-bold">分三步走，每一步都可以喊停</h2>
+    </div>
+
+    <!-- 三步路线图 -->
+    <div class="space-y-4">
+      <!-- 步骤1 -->
+      <div class="card border-l-4" style="border-left-color: #22c55e; border-left-width: 4px;">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-3">
+            <span class="tag tag-green">步骤 1</span>
+            <span class="font-bold">原型验证</span>
+          </div>
+        </div>
+        <div class="grid grid-cols-4 gap-4 text-sm">
+          <div><span class="text-gray-500">时间</span><br><span class="font-bold">2 周</span></div>
+          <div><span class="text-gray-500">投入</span><br><span class="font-bold amber">¥0</span></div>
+          <div><span class="text-gray-500">交付</span><br>原型 + 100 个样品</div>
+          <div><span class="text-gray-500">停的条件</span><br><span class="text-red-400">质量不行就停</span></div>
+        </div>
+      </div>
+
+      <!-- 步骤2 -->
+      <div class="card border-l-4" style="border-left-color: #e2b87a; border-left-width: 4px;">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-3">
+            <span class="tag tag-warn">步骤 2</span>
+            <span class="font-bold">小规模试用</span>
+          </div>
+        </div>
+        <div class="grid grid-cols-4 gap-4 text-sm">
+          <div><span class="text-gray-500">时间</span><br><span class="font-bold">1 个月</span></div>
+          <div><span class="text-gray-500">投入</span><br><span class="font-bold amber">¥2,000</span></div>
+          <div><span class="text-gray-500">交付</span><br>5 人试用 + 1000 个 SKU</div>
+          <div><span class="text-gray-500">停的条件</span><br><span class="text-red-400">ROI 不行就停</span></div>
+        </div>
+      </div>
+
+      <!-- 步骤3 -->
+      <div class="card border-l-4" style="border-left-color: #6366f1; border-left-width: 4px;">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-3">
+            <span class="tag" style="background: rgba(99,102,241,0.15); color: #818cf8;">步骤 3</span>
+            <span class="font-bold">全面推广</span>
+          </div>
+        </div>
+        <div class="grid grid-cols-4 gap-4 text-sm">
+          <div><span class="text-gray-500">时间</span><br><span class="font-bold">2 个月</span></div>
+          <div><span class="text-gray-500">投入</span><br><span class="font-bold amber">¥20,000</span></div>
+          <div><span class="text-gray-500">交付</span><br>40 人使用 + 本地部署</div>
+          <div><span class="text-gray-500">前提</span><br><span class="text-green-400">前两步都成功再投</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 风险控制 -->
+    <div class="card">
+      <h3 class="font-bold mb-4">风险控制——最坏会怎样</h3>
+      <div class="grid grid-cols-3 gap-4 text-center">
+        <div>
+          <div class="text-2xl font-bold text-red-400 mb-1">2 周</div>
+          <div class="text-xs text-gray-500">最坏：浪费我的两周时间<br>公司支出：¥0</div>
+        </div>
+        <div>
+          <div class="text-2xl font-bold text-red-400 mb-1">¥2,000</div>
+          <div class="text-xs text-gray-500">最坏：AI 接口费用打水漂<br>可接受的一次性试错成本</div>
+        </div>
+        <div>
+          <div class="text-2xl font-bold amber mb-1">随时喊停</div>
+          <div class="text-xs text-gray-500">每一步都有明确的停止条件<br>不等三个月才知道结果</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 请求卡片 -->
+    <div class="card amber-bg text-center">
+      <h3 class="text-xl font-bold mb-2">我需要的支持</h3>
+      <div class="grid grid-cols-2 gap-4 text-sm mt-4">
+        <div>
+          <div class="font-bold">步骤 1 需要</div>
+          <div class="mt-1 opacity-80">2 周全职开发时间<br>¥0 预算<br>设计团队配合测试（每周 1 小时）</div>
+        </div>
+        <div>
+          <div class="font-bold">我的承诺</div>
+          <div class="mt-1 opacity-80">2 周交付可用的原型 + 100 个样品<br>效果你先看，再决定要不要继续<br>做不出来我自己承担学习成本</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ====== 页4：FAQ——老板可能会问的问题 ====== -->
+<div class="page">
+  <div class="max-w-4xl w-full space-y-8">
+
+    <div class="text-center">
+      <p class="text-gray-500 text-sm mb-2">你可能想问</p>
+      <h2 class="text-3xl font-bold">常见问题</h2>
+    </div>
+
+    <div class="space-y-4">
+      <div class="card">
+        <div class="font-bold amber mb-2">Q: 数据安全怎么保证？</div>
+        <div class="text-sm text-gray-400">
+          步骤 1-2 只传产品描述（不传销售数据、利润率、供应商信息）。步骤 3 迁到公司本地服务器，数据完全不出公司。
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="font-bold amber mb-2">Q: AI 生成的图片有版权问题吗？</div>
+        <div class="text-sm text-gray-400">
+          坦诚地说，用外部 AI 接口的阶段存在灰色地带。这正是步骤 3 要迁移到本地开源模型的原因之一——不只是为了省钱，更是为了合规。步骤 1 就会提醒团队避开高风险图案。
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="font-bold amber mb-2">Q: 你一个人搞得定吗？</div>
+        <div class="text-sm text-gray-400">
+          前端没问题。数据库和部署我需要学习，预估各一周。有 AI 辅助开发工具，效率是我自己写的三倍。如果卡住了，花 500 块找外部专家咨询一小时。实在做不出来——外包给专业团队，5 万以内能搞定，我已经询过价。
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="font-bold amber mb-2">Q: 跟买现成的 POD 工具有什么区别？</div>
+        <div class="text-sm text-gray-400">
+          现成工具数据在别人服务器上，不能定制，按月付费越用越贵。我们自己做：数据在自己手上，功能可以按 Temu 规则调，长期成本更低。而且——我就在部门里，出问题立刻能修，不用等客服排队。
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="font-bold amber mb-2">Q: 你之前说的数据面板呢？</div>
+        <div class="text-sm text-gray-400">
+          数据面板已经做到 v8，选品团队在用。它证明了两件事：① 我能把东西做出来并产生实际价值 ② 同样的技术路线用在 POD 平台上，风险更低。POD 平台是数据面板的升级版——从"分析数据"到"生成内容"。
+        </div>
+      </div>
+    </div>
+
+    <div class="text-center">
+      <p class="text-gray-600 text-sm">先给我 2 周，¥0 成本，做原型。你看了效果再决定。</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ====== 尾页 ====== -->
+<div class="page" style="background: linear-gradient(135deg, #0f0f17 0%, #1a1520 50%, #0f0f17 100%);">
+  <div class="text-center max-w-xl">
+    <div class="text-6xl mb-6">🏭</div>
+    <h2 class="text-3xl font-bold mb-4">POD AI 平台</h2>
+    <p class="text-xl text-gray-400 mb-8">追上竞争对手的唯一窗口，就是现在。</p>
+
+    <div class="grid grid-cols-3 gap-4 mb-12">
+      <div class="card">
+        <div class="big-number amber text-2xl">2 周</div>
+        <div class="text-xs text-gray-500 mt-1">原型交付</div>
+      </div>
+      <div class="card">
+        <div class="big-number amber text-2xl">¥0</div>
+        <div class="text-xs text-gray-500 mt-1">首步投入</div>
+      </div>
+      <div class="card">
+        <div class="big-number amber text-2xl">随时停</div>
+        <div class="text-xs text-gray-500 mt-1">风险可控</div>
+      </div>
+    </div>
+
+    <p class="text-gray-600 text-sm">
+      旻量电子 · Temu 跨境电商部<br>
+      玉成 · 2026
+    </p>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temu 运营数据分析面板 — 完整版</title>
+    <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+
+    <!-- ============================================================
+    Temu 运营数据分析面板 v5 · shadcn/ui Maia 风格微调
+    来源: http://localhost:8501 (Streamlit → 纯 HTML + SheetJS + Plotly)
+    设计: Inter 字体 · 圆润大圆角 · 柔和阴影 · 琥珀金色调
+    存储: localStorage + 快照系统 · 可导出 JSON 备份
+    ============================================================ -->
+
+    <style>
+        /* ── shadcn/ui Maia-inspired 设计系统 ── */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+        :root {
+            /* 底色 & 卡片 — 更柔和的层次 */
+            --bg: #0f0f17;
+            --card: #1a1a24;
+            --card-hover: #20202c;
+            --card-alt: #262634;
+
+            /* 品牌金色 — 更温暖的琥珀调 */
+            --gold: #e2b87a;
+            --gold-dark: #c99e5e;
+            --gold-glow: rgba(226, 184, 122, 0.22);
+            --gold-bg: rgba(226, 184, 122, 0.06);
+
+            /* 文字层级 */
+            --text: #f1f0ee;
+            --text-dim: #a1a09c;
+            --text-faded: rgba(241, 240, 238, 0.38);
+
+            /* 边框 — 更细、更柔和 */
+            --border: rgba(226, 184, 122, 0.14);
+            --border-hover: rgba(226, 184, 122, 0.35);
+            --border-light: rgba(226, 184, 122, 0.08);
+
+            /* 语义色 */
+            --success: rgba(34, 197, 94, 0.12);
+            --success-border: rgba(34, 197, 94, 0.35);
+            --success-text: #4ade80;
+            --warning-bg: rgba(250, 204, 21, 0.12);
+            --warning-border: rgba(250, 204, 21, 0.35);
+            --warning-text: #fde047;
+            --danger-bg: rgba(239, 68, 68, 0.12);
+            --danger-border: rgba(239, 68, 68, 0.35);
+            --danger-text: #fca5a5;
+            --info-bg: rgba(226, 184, 122, 0.06);
+            --info-border: rgba(226, 184, 122, 0.18);
+
+            /* 阴影 — 更柔和深邃 */
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+            --shadow: 0 4px 20px rgba(0,0,0,0.35);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,0.45);
+
+            /* 圆角 — Maia 风格：更大、更圆润 */
+            --radius-sm: 10px;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --radius-2xl: 24px;
+
+            /* 布局 & 间距 */
+            --sidebar-w: 260px;
+            --font: 'Inter', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: var(--font); background: var(--bg); color: var(--text);
+            line-height: 1.65; min-height: 100vh; -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .app { display: flex; min-height: 100vh; }
+
+        /* ── 侧边栏 ── */
+        .sidebar {
+            width: var(--sidebar-w); min-width: var(--sidebar-w); flex-shrink: 0;
+            background: linear-gradient(180deg, #0d0d15 0%, #14141e 100%);
+            border-right: 1px solid var(--border-light);
+            display: flex; flex-direction: column;
+        }
+        .sidebar-brand {
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+            border-radius: var(--radius-xl); padding: 20px 16px; margin: 16px 14px 12px;
+            text-align: center; box-shadow: 0 2px 12px var(--gold-glow);
+        }
+        .sidebar-brand .title { font-size: 1.2rem; font-weight: 800; color: var(--bg); letter-spacing: -0.01em; }
+        .sidebar-brand .sub   { font-size: 0.7rem; color: rgba(15,15,23,0.55); margin-top: 3px; letter-spacing: 0.03em; }
+
+        .sidebar-nav { list-style: none; padding: 6px 12px; flex: 1; }
+        .sidebar-nav li { margin-bottom: 3px; }
+        .sidebar-nav a {
+            display: flex; align-items: center; gap: 12px; padding: 10px 16px;
+            border-radius: var(--radius-sm); text-decoration: none;
+            color: var(--text-dim); font-size: 0.89rem; font-weight: 500;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer;
+            letter-spacing: -0.005em;
+        }
+        .sidebar-nav a:hover { background: var(--gold-bg); color: var(--text); transform: translateX(2px); }
+        .sidebar-nav a.active { background: var(--gold-bg); color: var(--gold); font-weight: 600; }
+        .nav-icon { font-size: 1.15rem; flex-shrink: 0; }
+
+        .sidebar-info {
+            padding: 14px 14px 16px; border-top: 1px solid var(--border-light);
+            font-size: 0.82rem; color: var(--text-dim);
+        }
+        .sidebar-info .stat-card {
+            background: var(--success); border: 1px solid var(--success-border);
+            border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 10px;
+            font-weight: 500;
+        }
+        .sidebar-info .stat-card .time { font-size: 0.7rem; margin-top: 3px; opacity: 0.7; }
+        .sidebar-info .snapshot {
+            background: var(--info-bg); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 10px;
+        }
+        .sidebar-actions { display: flex; gap: 8px; margin-top: 10px; }
+        .sidebar-actions button {
+            flex: 1; padding: 9px 8px; border-radius: var(--radius-sm);
+            border: 1px solid var(--border); background: var(--card);
+            color: var(--text-dim); font-weight: 600; cursor: pointer;
+            font-size: 0.82rem; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            letter-spacing: -0.005em;
+        }
+        .sidebar-actions button:hover {
+            background: var(--card-hover); border-color: var(--border-hover);
+            color: var(--text); transform: translateY(-1px); box-shadow: var(--shadow-sm);
+        }
+
+        /* ── 主区 ── */
+        .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+        .topbar {
+            display: flex; align-items: center; justify-content: flex-end;
+            padding: 14px 28px; gap: 12px;
+            background: linear-gradient(180deg, rgba(15,15,23,0.98) 60%, transparent 100%);
+        }
+        .topbar .btn-deploy {
+            padding: 8px 20px; border-radius: var(--radius-sm); border: none;
+            background: var(--gold); color: var(--bg); font-weight: 700; font-size: 0.84rem;
+            cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            letter-spacing: -0.005em; box-shadow: 0 2px 8px var(--gold-glow);
+        }
+        .topbar .btn-deploy:hover { transform: translateY(-1px); box-shadow: 0 4px 16px var(--gold-glow); }
+        .topbar .btn-menu {
+            background: none; border: none; cursor: pointer; padding: 4px 8px;
+            color: var(--text-dim); transition: color 0.15s;
+        }
+        .topbar .btn-menu:hover { color: var(--text); }
+        .topbar .btn-menu svg { fill: currentColor; width: 20px; height: 20px; }
+
+        .content { padding: 28px 36px; max-width: 1120px; }
+
+        .page { display: none; animation: fadeIn 0.2s ease; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ── Hero Banner ── */
+        .hero {
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+            border-radius: var(--radius-2xl); padding: 32px 38px; margin-bottom: 28px;
+            box-shadow: 0 4px 24px var(--gold-glow);
+        }
+        .hero h1 { font-size: 1.9rem; font-weight: 800; color: var(--bg); margin-bottom: 8px; letter-spacing: -0.02em; }
+        .hero p  { font-size: 0.93rem; color: rgba(15,15,23,0.72); line-height: 1.6; max-width: 680px; }
+
+        /* ── 按钮 ── */
+        .btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 11px 22px; border-radius: var(--radius-sm); font-weight: 600;
+            cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 0.88rem; letter-spacing: -0.005em;
+            border: 1px solid var(--border); background: var(--card); color: var(--text);
+        }
+        .btn:hover {
+            transform: translateY(-1px); box-shadow: var(--shadow);
+            border-color: var(--border-hover); background: var(--card-hover);
+        }
+        .btn:active { transform: translateY(0); }
+        .btn-row { display: flex; gap: 12px; margin: 18px 0; flex-wrap: wrap; }
+
+        /* ── Alert 提示条 ── */
+        .alert {
+            padding: 16px 20px; border-radius: var(--radius); font-size: 0.9rem;
+            display: flex; align-items: flex-start; gap: 12px; margin-bottom: 18px;
+            line-height: 1.55;
+        }
+        .alert-info    { background: var(--info-bg); border: 1px solid var(--info-border); }
+        .alert-success { background: var(--success); border: 1px solid var(--success-border); color: var(--success-text); }
+        .alert-warning { background: var(--warning-bg); border: 1px solid var(--warning-border); color: var(--warning-text); }
+        .alert-icon { font-size: 1.2rem; flex-shrink: 0; }
+
+        /* ── 上传区 ── */
+        .upload-zone {
+            background: var(--card); border: 2px dashed rgba(226,184,122,0.18);
+            border-radius: var(--radius-lg); padding: 52px 44px; text-align: center;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; margin-bottom: 18px;
+        }
+        .upload-zone:hover { border-color: var(--border-hover); background: var(--card-hover); box-shadow: var(--shadow-sm); }
+        .upload-zone .icon { font-size: 2.8rem; margin-bottom: 10px; }
+        .upload-zone .hint { font-size: 0.84rem; color: var(--text-dim); margin-top: 10px; }
+
+        /* ── 折叠面板 ── */
+        .expander {
+            border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border); background: var(--card);
+            margin-bottom: 18px; overflow: hidden;
+        }
+        .expander summary {
+            padding: 16px 20px; cursor: pointer; font-weight: 600; font-size: 0.93rem;
+            list-style: none; display: flex; align-items: center; gap: 10px;
+            transition: background 0.15s;
+        }
+        .expander summary:hover { background: var(--card-hover); }
+        .expander summary::-webkit-details-marker { display: none; }
+        .expander-content { padding: 0 20px 20px; }
+
+        /* ── Steps 步骤条 ── */
+        .steps { display: flex; gap: 18px; flex-wrap: wrap; }
+        .step {
+            flex: 1; min-width: 160px;
+            background: var(--info-bg); border: 1px solid var(--border);
+            border-radius: var(--radius-lg); padding: 20px 16px; text-align: center;
+            transition: all 0.2s;
+        }
+        .step:hover { border-color: var(--border-hover); transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+        .step .emoji { font-size: 2.2rem; margin-bottom: 4px; }
+        .step .title { font-weight: 700; margin: 8px 0 4px; font-size: 0.95rem; }
+        .step .desc  { font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+
+        /* ── 警告卡片 ── */
+        .warn-card {
+            background: rgba(250,204,21,0.08); border: 2px solid var(--warning-text);
+            border-radius: var(--radius-2xl); padding: 28px 32px; margin: 18px 0; text-align: center;
+        }
+        .warn-card .title { font-size: 1.7rem; font-weight: 700; color: var(--warning-text); letter-spacing: -0.01em; }
+        .warn-card .desc  { font-size: 0.95rem; color: var(--text); margin-top: 8px; }
+
+        hr { border: none; border-top: 1px solid var(--border-light); margin: 28px 0; }
+
+        /* ── 表格 ── */
+        table {
+            width: 100%; border-collapse: separate; border-spacing: 0;
+            border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border);
+        }
+        thead th {
+            background: var(--card); color: var(--gold); font-weight: 600;
+            border-bottom: 1px solid var(--border); padding: 12px 14px; text-align: left;
+            font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.03em;
+        }
+        tbody tr { transition: background 0.12s; }
+        tbody tr:nth-child(even) { background: rgba(26,26,36,0.5); }
+        tbody tr:nth-child(odd)  { background: transparent; }
+        tbody tr:hover { background: var(--gold-bg); }
+        tbody td { padding: 10px 14px; font-size: 0.88rem; }
+
+        /* ── 滚动条 ── */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #2a2a38; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3a3a4c; }
+
+        /* ── 表单元素 ── */
+        input[type="text"], input[type="number"], select, textarea {
+            background: var(--card); border: 1px solid var(--border); color: var(--text);
+            border-radius: var(--radius-sm); padding: 10px 14px; font-size: 0.9rem;
+            font-family: var(--font); transition: all 0.15s;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--gold); outline: none;
+            box-shadow: 0 0 0 3px rgba(226,184,122,0.1);
+        }
+
+        /* ── 选择框 ── */
+        select { cursor: pointer; appearance: none; padding-right: 32px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' fill='none' stroke='%23a1a09c' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 12px center;
+        }
+
+        /* ── Toast ── */
+        #toast { position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 420px; }
+        .toast-msg { padding: 12px 20px; border-radius: var(--radius); margin-bottom: 8px; font-size: 0.9rem; animation: slideIn 0.3s ease; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* ── Modal ── */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+        .modal-box { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 28px; max-width: 480px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+        .modal-box h2 { margin-bottom: 16px; color: var(--gold); font-size: 1.3rem; }
+    </style>
+</head>
+<body>
+<div id="toast"></div>
+
+<div class="app">
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="title">🛒 Temu 数据看板</div>
+            <div class="sub">运营数据分析 v4</div>
+        </div>
+
+        <ul class="sidebar-nav">
+            <li><a class="active" onclick="switchPage('import')"><span class="nav-icon">📥</span> 数据导入</a></li>
+            <li><a onclick="switchPage('products')"><span class="nav-icon">📊</span> 商品画像</a></li>
+            <li><a onclick="switchPage('rules')"><span class="nav-icon">📋</span> 选品规则</a></li>
+            <li><a onclick="switchPage('predict')"><span class="nav-icon">🔮</span> 智能预测</a></li>
+            <li><a onclick="switchPage('blacklist')"><span class="nav-icon">🚨</span> 避坑清单</a></li>
+            <li><a onclick="switchPage('diagnosis')"><span class="nav-icon">📈</span> 个人诊断</a></li>
+        </ul>
+
+        <div class="sidebar-info">
+            <label style="display:block; margin-bottom:4px;">👤 当前用户</label>
+            <div class="current-user-badge" style="background:var(--gold-bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 14px; margin-bottom:12px; display:flex; align-items:center; gap:10px;">
+                <span style="font-size:1.2rem;">👤</span>
+                <div>
+                    <div style="font-weight:700; color:var(--gold); font-size:0.95rem;">胡玉成</div>
+                    <div style="font-size:0.7rem; color:var(--text-dim);">当前用户</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                💾 已保存 <b>0</b> 个文件<br>
+                <span class="time">2026-05-29 14:07</span>
+            </div>
+
+            <div class="snapshot">📸 <b>1</b> 份历史快照</div>
+
+            <div class="sidebar-actions">
+                <button>💾 保存</button>
+                <button>🗑️ 清除</button>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main">
+        <header class="topbar">
+            <button class="btn-deploy">Deploy</button>
+            <button class="btn-menu" title="菜单">
+                <svg viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+            </button>
+        </header>
+
+        <div class="content">
+
+            <!-- ═══ 页面 1: 数据导入 ═══ -->
+            <div class="page active" id="page-import">
+                <div class="hero">
+                    <h1>📥 数据导入</h1>
+                    <p>批量上传利润统计 Excel 文件（.xls / .xlsx），系统自动识别文件类型和归属人并解析数据。导入后自动保存，下次打开无需重新上传。</p>
+                </div>
+
+                <div class="alert alert-info">
+                    <span class="alert-icon">💾</span>
+                    <span>检测到历史数据：<strong>0</strong> 个文件，上次导入于 <strong>2026-05-29 14:07</strong>。点击下方「📂 加载历史数据」恢复。</span>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn">📂 加载历史数据</button>
+                    <button class="btn">🔄 刷新页面</button>
+                </div>
+
+                <details class="expander" open>
+                    <summary>🚀 第一次使用？看这里</summary>
+                    <div class="expander-content">
+                        <div class="steps">
+                            <div class="step">
+                                <div class="emoji">📤</div>
+                                <div class="title">1. 上传文件</div>
+                                <div class="desc">拖拽利润统计 Excel 文件</div>
+                            </div>
+                            <div class="step">
+                                <div class="emoji">🔍</div>
+                                <div class="title">2. 开始解析</div>
+                                <div class="desc">自动识别类型和归属人</div>
+                            </div>
+                            <div class="step">
+                                <div class="emoji">📊</div>
+                                <div class="title">3. 查看分析</div>
+                                <div class="desc">切换到其他页面查看聚类和选品建议</div>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+
+                <hr>
+
+                <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+                    <div class="icon">📁</div>
+                    <div style="font-size:1.1rem; margin-bottom:8px;">拖拽文件到此处或点击选择</div>
+                    <div class="hint">200MB per file · XLS, XLSX</div>
+                    <button class="btn" style="margin-top:14px;" onclick="event.stopPropagation(); document.getElementById('fileInput').click();">⬆ Upload</button>
+                </div>
+                <input type="file" id="fileInput" accept=".xls,.xlsx" multiple style="display:none" onchange="handleFileUpload(this.files)">
+
+                <div class="alert alert-info">
+                    <span class="alert-icon">📂</span>
+                    <span>请上传 Excel 文件开始分析</span>
+                </div>
+            </div>
+
+            <!-- ═══ 页面 2: 商品画像 ═══ -->
+            <div class="page" id="page-products">
+                <div class="hero">
+                    <h1>📊 商品画像 — 聚类分析</h1>
+                    <p>基于 K-Means 聚类算法，按克重、成本、毛利率、日销量对商品自动分组，快速识别好品与差品的特征分布。</p>
+                </div>
+
+                <div class="alert alert-info">
+                    <span class="alert-icon">ℹ</span>
+                    <span>📂 暂无数据，请先前往「数据导入」页面上传 Excel 文件。</span>
+                </div>
+            </div>
+
+            <!-- ═══ 页面 3: 选品规则 ═══ -->
+            <div class="page" id="page-rules">
+                <div class="hero">
+                    <h1>📋 选品规则 — 从数据中提取铁律</h1>
+                    <p>基于聚类分组结果，用纯统计方法自动提取可操作的选品规则。每条规则包含条件、验证指标和置信度，选品时优先匹配 🟢 铁律，遇到 🔴 避坑特征直接 pass。</p>
+                </div>
+
+                <div class="alert alert-info">
+                    <span class="alert-icon">ℹ</span>
+                    <span>📂 暂无数据，请先前往「数据导入」页面上传 Excel 文件。</span>
+                </div>
+            </div>
+
+            <!-- ═══ 页面 4: 智能预测 ═══ -->
+            <div class="page" id="page-predict">
+                <div class="hero">
+                    <h1>🔮 智能预测 — 利润推算</h1>
+                    <p>输入新品的成本、克重和预计卖价，系统自动匹对历史相似品数据，给出毛利率与日销预估、风险评级和选品建议。</p>
+                </div>
+
+                <div class="alert alert-info">
+                    <span class="alert-icon">ℹ</span>
+                    <span>📂 暂无数据，请先前往「数据导入」页面上传 Excel 文件。</span>
+                </div>
+            </div>
+
+            <!-- ═══ 页面 5: 避坑清单 ═══ -->
+            <div class="page" id="page-blacklist">
+                <div class="hero">
+                    <h1>🚫 避坑清单 — 亏损品异常检测</h1>
+                    <p>自动筛选历史亏损品，按特征分组分析亏损原因，提炼可操作的避坑规则，避免重复踩坑。</p>
+                </div>
+
+                <div class="alert alert-info">
+                    <span class="alert-icon">ℹ</span>
+                    <span>📂 暂无数据，请先前往「数据导入」页面上传 Excel 文件。</span>
+                </div>
+            </div>
+
+            <!-- ═══ 页面 6: 个人诊断 ═══ -->
+            <div class="page" id="page-diagnosis">
+                <div class="hero">
+                    <h1>📈 个人诊断</h1>
+                    <p>基于历史快照对比，追踪你的选品质量变化，给出个性化优化建议。</p>
+                </div>
+
+                <div class="warn-card">
+                    <div class="title">📂 需要至少 2 次数据上传</div>
+                    <div class="desc">请回到「数据导入」页上传本周的利润统计 Excel，再回来看趋势分析。</div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+</div>
+
+<script>
+// ---- Toast 提示 ----
+function toast(msg, type) {
+    var t = document.getElementById('toast');
+    var bg = type==='success' ? 'rgba(45,106,79,0.18)' : type==='warning' ? 'rgba(139,105,20,0.18)' : type==='error' ? 'rgba(139,0,0,0.18)' : 'rgba(212,163,115,0.08)';
+    var bd = type==='success' ? 'rgba(45,106,79,0.5)' : type==='warning' ? 'rgba(139,105,20,0.5)' : type==='error' ? 'rgba(139,0,0,0.5)' : 'rgba(212,163,115,0.25)';
+    var cl = type==='success' ? '#4ade80' : type==='warning' ? '#fbbf24' : type==='error' ? '#f87171' : '#e8e6e3';
+    var d = document.createElement('div');
+    d.className = 'toast-msg';
+    d.style.cssText = 'background:'+bg+';border:1px solid '+bd+';color:'+cl;
+    d.textContent = msg;
+    t.appendChild(d);
+    setTimeout(function(){ d.style.opacity='0'; d.style.transition='opacity 0.3s'; setTimeout(function(){ d.remove(); },300); }, 3000);
+}
+
+// ---- Modal 弹窗 ----
+function showModal(title, bodyHTML, confirmText, onConfirm) {
+    var overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = '<div class="modal-box"><h2>'+title+'</h2>'+bodyHTML+'<div class="btn-row" style="margin-top:16px;justify-content:flex-end;"><button class="btn" onclick="this.closest(\'.modal-overlay\').remove()">取消</button><button class="btn btn-primary" id="modalConfirmBtn">'+confirmText+'</button></div></div>';
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+    document.getElementById('modalConfirmBtn').addEventListener('click', function() {
+        overlay.remove();
+        if (onConfirm) onConfirm();
+    });
+}
+
+// ---- 保存按钮 ----
+function doSave() {
+    var files = JSON.parse(localStorage.getItem('temu_v4_data') || '[]');
+    if (files.length === 0) {
+        toast('当前没有已解析的数据，请先上传 Excel 文件', 'warning');
+        return;
+    }
+
+    // 保存快照到 localStorage
+    var now = new Date().toLocaleString('zh-CN');
+    var snapKey = 'temu_v4_snap_' + Date.now();
+    localStorage.setItem(snapKey, JSON.stringify(files));
+    var snapIdx = JSON.parse(localStorage.getItem('temu_v4_snap_idx') || '[]');
+    snapIdx.push({key: snapKey, time: now});
+    if (snapIdx.length > 50) snapIdx.shift();
+    localStorage.setItem('temu_v4_snap_idx', JSON.stringify(snapIdx));
+    localStorage.setItem('temu_v4_meta', JSON.stringify({count: files.length, saved_at: now}));
+
+    // 自动触发 JSON 备份下载到本地磁盘（D盘/任意目录）
+    var blob = new Blob([JSON.stringify(files, null, 2)], {type: 'application/json'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'temu-backup-' + new Date().toISOString().slice(0,10) + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+
+    // 更新侧边栏统计
+    var statCard = document.querySelector('.stat-card');
+    if (statCard) {
+        statCard.innerHTML = '💾 已保存 <b>' + files.length + '</b> 个文件<br><span class="time">' + now + '</span>';
+    }
+
+    toast('已保存！' + files.length + ' 个文件 | 备份文件已下载到本地', 'success');
+}
+
+// ---- 清除按钮 ----
+function doClear() {
+    var files = JSON.parse(localStorage.getItem('temu_v4_data') || '[]');
+    var fileCount = files.length;
+    showModal(
+        '确认清除',
+        '<p style="color:var(--text-dim);margin-bottom:8px;">将清除 <b style="color:var(--danger-text);">全部</b> 数据。</p><p style="color:var(--text-dim);">当前有 <b style="color:var(--gold);">'+fileCount+'</b> 个文件在内存中。</p><p style="color:var(--warning-text);font-size:0.85rem;margin-top:8px;">建议先点击「保存」导出备份。</p>',
+        '确认清除',
+        function() {
+            localStorage.removeItem('temu_v4_data');
+            localStorage.removeItem('temu_v4_meta');
+            toast('已清除所有数据', 'info');
+            var statCard = document.querySelector('.stat-card');
+            if (statCard) statCard.innerHTML = '已保存 <b>0</b> 个文件<br><span class="time">---</span>';
+        }
+    );
+}
+
+// ---- Tab 切换 ----
+function switchPage(name) {
+    document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+    document.getElementById('page-' + name).classList.add('active');
+    document.querySelectorAll('.sidebar-nav a').forEach(function(a) { a.classList.remove('active'); });
+    document.querySelectorAll('.sidebar-nav a').forEach(function(a) {
+        if (a.getAttribute('onclick').indexOf("'" + name + "'") !== -1) a.classList.add('active');
+    });
+}
+</script>
+
+</body>
+</html>

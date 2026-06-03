@@ -4,7 +4,7 @@ on:
   push:
     branches: [main, master]
     paths:
-      - 'temu-dashboard.html'
+      - 'temu-dashboard/temu-dashboard.html'
 
 jobs:
   deploy:
@@ -17,7 +17,7 @@ jobs:
       - name: Copy dashboard to docs
         run: |
           mkdir -p docs
-          cp temu-dashboard.html docs/index.html
+          cp temu-dashboard/temu-dashboard.html docs/index.html
       - uses: actions/upload-pages-artifact@v3
         with:
           path: docs

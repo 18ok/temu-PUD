@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>Architecture review — temu-dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+    mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
+  </script>
+  <style>
+    .seam { stroke-dasharray: 4 4; }
+    .leak { stroke: #dc2626; }
+    .deep-bg { background: linear-gradient(135deg, #0f172a, #1e293b); }
+    body { font-family: 'Inter', system-ui, sans-serif; }
+  </style>
+</head>
+<body class="bg-stone-50 text-stone-900">
+
+<main class="max-w-4xl mx-auto px-6 py-12 space-y-12">
+
+  <header class="space-y-2">
+    <h1 class="text-3xl font-serif font-bold tracking-tight">temu-dashboard 架构分析</h1>
+    <p class="text-stone-500 text-sm">单文件 SPA · 1029行 · HTML+CSS+JS · 2026-05-31</p>
+    <div class="flex gap-4 text-xs text-stone-400 pt-2">
+      <span>━ solid = module</span>
+      <span class="border-dashed border-b-2 border-red-400">- - - = leakage</span>
+      <span class="border-b-2 border-emerald-500">━ thick = deep</span>
+    </div>
+  </header>
+
+  <!-- ═══ Candidate 1: ST Data Pipeline ═══ -->
+  <article class="rounded-xl border border-stone-200 bg-white p-6 space-y-4">
+    <div class="flex items-center gap-3">
+      <h2 class="text-xl font-serif font-bold">1. 收束数据管线</h2>
+      <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">Strong</span>
+      <span class="px-2 py-0.5 rounded-full text-xs text-stone-500 bg-stone-100">local-substitutable</span>
+    </div>
+
+    <p class="text-xs font-mono text-stone-400">extractProducts() · doClustering() · extractRules() · checkAvoidance() · normalizeCols()</p>
+
+    <!-- Before/After — Mass diagram -->
+    <div class="grid grid-cols-2 gap-6">
+      <div>
+        <p class="text-xs uppercase tracking-wider text-stone-400 mb-2">Before — 5 shallow modules</p>
+        <div class="space-y-1 font-mono text-[10px]">
+          <div class="border border-stone-300 rounded px-2 py-0.5 bg-stone-50">extractProducts ← interface = ST.files → products (1:1)</div>
+          <div class="border border-stone-300 rounded px-2 py-0.5 bg-stone-50">doClustering ← interface = products → clusters (1:1)</div>
+          <div class="border border-stone-300 rounded px-2 py-0.5 bg-stone-50">extractRules ← interface = clusters → rules (1:1)</div>
+          <div class="border border-stone-300 rounded px-2 py-0.5 bg-stone-50">checkAvoidance ← interface = products → issues (1:1)</div>
+          <div class="border border-stone-300 rounded px-2 py-0.5 bg-stone-50">normalizeCols ← hardcoded map, 1 adapter</div>
+        </div>
+      </div>
+      <div>
+        <p class="text-xs uppercase tracking-wider text-emerald-600 mb-2">After — 1 deep module</p>
+        <div class="border-2 border-emerald-500 rounded p-3 deep-bg text-white font-mono text-[10px] space-y-2">
+          <div class="text-emerald-300 font-semibold text-xs mb-2">DataPipeline</div>
+          <div class="border border-emerald-700 rounded px-2 py-0.5 text-emerald-200">analyze(files) → { products, clusters, rules, avoidance }</div>
+          <div class="text-stone-400 text-[9px] mt-2">─ normalizeCols ─ scoring ─ threshold calc ─</div>
+          <div class="text-stone-400 text-[9px]">internal seams, private to module</div>
+          <div class="text-emerald-400 text-[9px] mt-1">interface: 1 call · implementation: 5 passes</div>
+        </div>
+      </div>
+    </div>
+
+    <p class="text-sm text-stone-600"><strong>Problem:</strong> 5个函数逐个调用全局ST，interface 和 implementation 几乎 1:1 对应。每加一个分析维度就多一个 function signature。</p>
+    <p class="text-sm text-stone-600"><strong>Solution:</strong> 收束为一个 <code>DataPipeline</code> module，单一入口 <code>analyze(files)</code> 返回结构化结果。</p>
+
+    <ul class="text-xs text-stone-500 space-y-1 pl-4 list-disc">
+      <li>leverage: 5 call sites → 1 interface</li>
+      <li>locality: bugs in scoring concentrate in one module</li>
+      <li>interface shrinks; implementation absorbs normalization + clustering</li>
+    </ul>
+  </article>
+
+  <!-- ═══ Candidate 2: Render Monolith ═══ -->
+  <article class="rounded-xl border border-stone-200 bg-white p-6 space-y-4">
+    <div class="flex items-center gap-3">
+      <h2 class="text-xl font-serif font-bold">2. 拆分渲染巨块</h2>
+      <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">Strong</span>
+      <span class="px-2 py-0.5 rounded-full text-xs text-stone-500 bg-stone-100">in-process</span>
+    </div>
+
+    <p class="text-xs font-mono text-stone-400">renderProducts() · renderRules() · renderBlacklist() · renderDiagnosis() · renderPredict()</p>
+
+    <div class="grid grid-cols-2 gap-6">
+      <div>
+        <p class="text-xs uppercase tracking-wider text-stone-400 mb-2">Before — 5 shallow renderers</p>
+        <pre class="mermaid">
+          flowchart TD
+            RP[renderProducts - 120 lines] --> P[Plotly]
+            RR[renderRules - 70 lines] --> ST
+            RB[renderBlacklist - 80 lines] --> ST
+            RD[renderDiagnosis - 200 lines] --> P
+            RD --> ST
+            RP2[renderPredict - 60 lines] --> ST
+            classDef shallow fill:#f5f5f4,stroke:#d6d3d1,stroke-width:1px;
+            class RP,RR,RB,RD,RP2 shallow
+        </pre>
+      </div>
+      <div>
+        <p class="text-xs uppercase tracking-wider text-emerald-600 mb-2">After — template functions + deep render</p>
+        <pre class="mermaid">
+          flowchart TD
+            T[cardTemplate, tableTemplate, expanderTemplate]
+            R[renderPage - 40 lines] --> T
+            R --> P[Plotly adapter]
+            classDef deep fill:#0f172a,stroke:#10b981,stroke-width:2px,color:#e2e8f0;
+            class R deep
+            classDef util fill:#ecfdf5,stroke:#6ee7b7,stroke-width:1px;
+            class T util
+        </pre>
+      </div>
+    </div>
+
+    <p class="text-sm text-stone-600"><strong>Problem:</strong> 每个页面都是独立的~100行 innerHTML 拼接函数。Plotly 调用散布在 renderProducts 和 renderDiagnosis 中，跨模块泄漏。</p>
+    <p class="text-sm text-stone-600"><strong>Solution:</strong> 提取 template 工具函数（card、table、expander），每个页面退化为 20-40 行的数据→模板映射。Plotly 抽成 adapter。</p>
+
+    <ul class="text-xs text-stone-500 space-y-1 pl-4 list-disc">
+      <li>leverage: cardTemplate serves 6 pages from 1 interface</li>
+      <li>locality: Plotly config lives in one adapter, not two renderers</li>
+      <li>two adapters justify the Plotly seam: scatter + trend</li>
+    </ul>
+  </article>
+
+  <!-- ═══ Candidate 3: Snapshot compare monolith ═══ -->
+  <article class="rounded-xl border border-stone-200 bg-white p-6 space-y-4">
+    <div class="flex items-center gap-3">
+      <h2 class="text-xl font-serif font-bold">3. 快照对比模块化</h2>
+      <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">Worth exploring</span>
+      <span class="px-2 py-0.5 rounded-full text-xs text-stone-500 bg-stone-100">local-substitutable</span>
+    </div>
+
+    <p class="text-xs font-mono text-stone-400">compareSnapshots() · suggestPruning() · generateDirectionAdvice()</p>
+
+    <!-- Cross-section -->
+    <div class="space-y-0">
+      <p class="text-xs uppercase tracking-wider text-stone-400 mb-2">Before — 3 calls, each loads localStorage independently</p>
+      <div class="grid grid-cols-3 gap-2">
+        <div class="border-l-4 border-stone-300 pl-3 py-2 text-xs">
+          <span class="font-mono font-semibold">compareSnapshots</span>
+          <div class="text-stone-400">17-property return<br>4 localStorage reads<br>mixed concern</div>
+        </div>
+        <div class="border-l-4 border-stone-300 pl-3 py-2 text-xs">
+          <span class="font-mono font-semibold">suggestPruning</span>
+          <div class="text-stone-400">3 rule checks<br>re-extracts old products<br>re-scores</div>
+        </div>
+        <div class="border-l-4 border-stone-300 pl-3 py-2 text-xs">
+          <span class="font-mono font-semibold">generateAdvice</span>
+          <div class="text-stone-400">6 if-branches<br>hardcoded thresholds<br>mixes data + prose</div>
+        </div>
+      </div>
+
+      <p class="text-xs uppercase tracking-wider text-emerald-600 mb-2 mt-4">After — 1 deep module, 1 interface</p>
+      <div class="border-l-4 border-emerald-500 pl-3 py-2 text-xs bg-emerald-50 rounded-r">
+        <span class="font-mono font-semibold">DiagnosisEngine</span>
+        <div class="text-stone-500 mt-1">
+          <code>analyze(snapshots, products) → { comparison, pruned, advice }</code>
+        </div>
+        <div class="text-stone-400 text-[10px] mt-1">
+          ─ compareSnapshots ─ suggestPruning ─ generateAdvice ─<br>
+          internal seams · one localStorage read at entry · pure functions inside
+        </div>
+      </div>
+    </div>
+
+    <p class="text-sm text-stone-600"><strong>Problem:</strong> compareSnapshots 返回 17 个属性的巨对象。suggestPruning 重新调用 extractProducts + localStorage。三个函数各自独立但共享输入。</p>
+    <p class="text-sm text-stone-600"><strong>Solution:</strong> 收束为 <code>DiagnosisEngine.analyze(snapshots, products)</code>，内部 pure functions，不再碰 localStorage。</p>
+
+    <ul class="text-xs text-stone-500 space-y-1 pl-4 list-disc">
+      <li>leverage: 3 call sites → 1 interface</li>
+      <li>locality: threshold tuning hits one place</li>
+      <li>interface shrinks from 17 fields to 3 structured result objects</li>
+    </ul>
+  </article>
+
+  <!-- ═══ Candidate 4: CSS extraction ═══ -->
+  <article class="rounded-xl border border-stone-200 bg-white p-6 space-y-4">
+    <div class="flex items-center gap-3">
+      <h2 class="text-xl font-serif font-bold">4. CSS 拆分为独立 module</h2>
+      <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">Speculative</span>
+      <span class="px-2 py-0.5 rounded-full text-xs text-stone-500 bg-stone-100">in-process</span>
+    </div>
+
+    <p class="text-xs font-mono text-stone-400">inline &lt;style&gt; block · 280 lines · 30+ class definitions</p>
+
+    <div class="grid grid-cols-2 gap-6">
+      <div>
+        <p class="text-xs uppercase tracking-wider text-stone-400 mb-2">Before — monolithic style block</p>
+        <div class="border border-stone-300 rounded p-3 font-mono text-[10px] space-y-1 bg-stone-50">
+          <div class="border-b border-stone-200 pb-1">:root { 30 variables }</div>
+          <div>.sidebar { ... }</div>
+          <div>.hero { ... }</div>
+          <div>.alert { ... }</div>
+          <div>.expander { ... }</div>
+          <div class="text-stone-400">... 25 more classes, 0 seams</div>
+        </div>
+      </div>
+      <div>
+        <p class="text-xs uppercase tracking-wider text-emerald-600 mb-2">After — CSS modules with seams</p>
+        <div class="border-2 border-emerald-500 rounded p-3 deep-bg text-white font-mono text-[10px] space-y-2">
+          <div class="text-emerald-300 font-semibold text-xs">design-tokens.css</div>
+          <div class="text-emerald-200/70 text-[9px]">interface: 30 CSS variables</div>
+          <div class="border-t border-emerald-700 pt-1 text-emerald-300 font-semibold text-xs">components.css</div>
+          <div class="text-emerald-200/70 text-[9px]">interface: 15 class names</div>
+          <div class="border-t border-emerald-700 pt-1 text-emerald-300 font-semibold text-xs">layout.css</div>
+          <div class="text-emerald-200/70 text-[9px]">interface: sidebar + main + topbar</div>
+        </div>
+      </div>
+    </div>
+
+    <p class="text-sm text-stone-600"><strong>Problem:</strong> 280行 CSS 内联在 HTML 中，修改一个组件的样式必须翻整个文件。没有 seam，无法独立测试或替换。</p>
+    <p class="text-sm text-stone-600"><strong>Solution:</strong> 拆为 <code>design-tokens.css</code> + <code>components.css</code> + <code>layout.css</code>，用 &lt;link&gt; 加载。</p>
+
+    <ul class="text-xs text-stone-500 space-y-1 pl-4 list-disc">
+      <li>leverage: one design-tokens.css serves all components</li>
+      <li>locality: color changes stop at :root</li>
+      <li>deletion test: delete design-tokens.css → chaos in 30 classes = it earns its place</li>
+    </ul>
+
+    <div class="rounded bg-amber-50 border border-amber-200 p-2 text-xs text-amber-700">
+      ⚠ 低优先级。当前单文件便于分发；只有需要多人协作或频繁调整样式时才值得拆。
+    </div>
+  </article>
+
+  <!-- ═══ Top Recommendation ═══ -->
+  <section class="rounded-xl border-2 border-emerald-500 bg-emerald-50 p-6 space-y-3">
+    <h2 class="text-lg font-serif font-bold text-emerald-800">Top recommendation: 收束数据管线</h2>
+    <p class="text-sm text-emerald-700">
+      先做 Candidate #1 —— 把 extractProducts → doClustering → extractRules → checkAvoidance 收束为一个
+      <code class="bg-emerald-100 px-1 rounded">DataPipeline.analyze(files)</code> module。这是整个看板的 calculation core，
+      收束后所有6个页面通过一个 interface 拿到数据，renderers 变 pure functions。它是其他 candidates 的前提。
+    </p>
+    <a href="#" class="text-xs text-emerald-600 underline">↑ 跳回 Candidate 1</a>
+  </section>
+
+</main>
+</body>
+</html>
