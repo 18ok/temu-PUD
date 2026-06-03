@@ -452,7 +452,8 @@
 // ═══════════════════════════════════════════════
 // 全局状态
 // ═══════════════════════════════════════════════
-var ST = { files: [], products: [], clusters: [], rules: [], snapshots: [], storeData: [] };
+var ST = { files: [], products: [], clusters: [], rules: [], snapshots: [], storeData: [], teamProducts: [] };
+var hasTeam = false;
 
 // ═══════════════════════════════════════════════
 // 工具函数
@@ -504,6 +505,9 @@ function safeSetItem(key, value) {
     if (!Array.isArray(ST.snapshots)) ST.snapshots = [];
     var storeRaw = localStorage.getItem('temu_v6_store');
     if (storeRaw) { try { ST.storeData = JSON.parse(storeRaw); } catch(e) { ST.storeData = []; } }
+    var teamRaw = localStorage.getItem('temu_v6_team');
+    if (teamRaw) { try { ST.teamProducts = JSON.parse(teamRaw); hasTeam = ST.teamProducts && ST.teamProducts.length > 0; } catch(e) { ST.teamProducts = []; hasTeam = false; } }
+    if (!Array.isArray(ST.teamProducts)) { ST.teamProducts = []; hasTeam = false; }
     if (!Array.isArray(ST.storeData)) ST.storeData = [];
     updateSidebar();
     if (ST.files.length > 0) {
@@ -543,6 +547,7 @@ function clearAllData() {
     ST.files = []; ST.products = []; ST.clusters = []; ST.rules = [];
     ST._avoidance = []; ST._stats = {}; ST.snapshots = [];
     ST.storeData = [];  // ← 之前漏了
+    ST.teamProducts = []; hasTeam = false; localStorage.removeItem('temu_v6_team');  // 团队数据重置
     updateSidebar();
     toast('本地数据已清空，请重新上传','warning');
 }
@@ -552,7 +557,8 @@ function updateSidebar() {
     if (!card) return;
     var meta = JSON.parse(localStorage.getItem('temu_v6_meta') || '{}');
     var storeCount = (ST.storeData && ST.storeData.length) ? ST.storeData.length : 0;
-    card.innerHTML = '📦 商品 <b>'+ST.files.length+'</b> 个文件<br>🏪 店铺 <b>'+storeCount+'</b> 条记录'+(meta.saved_at?'<br><span class="time">'+meta.saved_at+'</span>':'');
+    var teamCount = (ST.teamProducts && ST.teamProducts.length) ? ST.teamProducts.length : 0;
+    card.innerHTML = (teamCount > 0 ? '团队 <b>' + teamCount + '</b> 条 | ' : '') + '📦 商品 <b>'+ST.files.length+'</b> 个文件<br>🏪 店铺 <b>'+storeCount+'</b> 条记录'+(meta.saved_at?'<br><span class="time">'+meta.saved_at+'</span>':'');
     var sd = document.querySelector('.snapshot');
     if (sd) sd.innerHTML = '📸 <b>'+ST.snapshots.length+'</b> 份历史快照';
 }
@@ -723,6 +729,41 @@ function handleFileUpload(inputFiles) {
 }
 
 // ═══════════════════════════════════════════════
+// 团队数据上传Pipeline
+function handleTeamUpload(inputFiles) {
+    if (!inputFiles || inputFiles.length === 0) return;
+    toast('正在解析团队数据...', 'info');
+    var files = Array.from(inputFiles);
+    var count = 0;
+    files.forEach(function (f) {
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            try {
+                var wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                var sn = wb.SheetNames[0];
+                var json = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1 });
+                if (!json || json.length < 2) { toast('团队文件无数据: ' + f.name, 'warning'); return; }
+                var headers = json[0];
+                var rows = json.slice(1);
+                var cols = normalizeCols(headers);
+                var data = rows.map(function (r) {
+                    var o = {};
+                    cols.forEach(function (ci, i) { o[ci] = (i < r.length) ? r[i] : ''; });
+                    return o;
+                });
+                var result = DataPipeline.analyze([{rows: json, sheet: sn, filename: f.name}]);
+                ST.teamProducts = (ST.teamProducts || []).concat(result.products || data);
+                count += (result.products || data).length;
+            } catch (err) { toast('团队数据解析失败: ' + f.name, 'error'); return; }
+            hasTeam = ST.teamProducts.length > 0;
+            safeSetItem('temu_v6_team', JSON.stringify(ST.teamProducts));
+            reprocessAll(); updateSidebar(); if (typeof renderPKPage !== "undefined") try { renderPKPage(); } catch (e2) {}
+            toast('团队数据导入完成：' + count + ' 条商品', 'success');
+        };
+        reader.readAsArrayBuffer(f);
+    });
+}
+
 // 数据提取 & 聚类
 // ═══════════════════════════════════════════════
 function extractProducts(files) {
@@ -1158,14 +1199,31 @@ function renderDiagnosis() {
 
     /* ── ⑤ 个人 vs 团队 ── */
     var expVs=document.createElement('details'); expVs.className='expander';
+    var tmGoldPct = 40, tmMargin = 25, tmSales = 3;
+    if (hasTeam && ST.teamProducts && ST.teamProducts.length > 0) {
+        try {
+            var tmP = []; ST.teamProducts.forEach(function(r){
+                var spu = String(r.spu_id||'').replace(/\.0$/, '');
+                var cost = parseFloat(r.cost)||0, price = parseFloat(r.price)||0;
+                var ds = parseFloat(r.daily_sales)||0;
+                var gm = parseFloat(r.gross_margin)||(price>0?((price-cost)/price*100):0);
+                tmP.push({spu_id:spu, cost:cost, weight_g:parseFloat(r.weight_g)||0, price:price, daily_sales:ds, gross_margin:gm});
+            });
+            var tmC = doClustering(tmP);
+            var tg = tmC.filter(function(p){return p.cluster_label==='黄金品';});
+            tmGoldPct = tmC.length > 0 ? tg.length / tmC.length * 100 : 40;
+            tmMargin = avg(tmP.map(function(p){return p.gross_margin;})) || 25;
+            tmSales = avg(tmP.map(function(p){return p.daily_sales;})) || 3;
+        } catch(e) { console.error('team calc:', e); }
+    }
     var vsHTML='<summary>👥 个人 vs 团队</summary><div class="expander-content">';
     vsHTML+='<div class="alert alert-info"><span class="alert-icon">ℹ</span><span>"+ (hasTeam ? "团队基准来自导入的 "+ST.teamProducts.length+" 条真实数据" : "团队基准数据需导入团队 Excel 后自动计算。当前仅展示个人数据，虚线为估算团队中位。") +"</span></div>';
     vsHTML+='<table><thead><tr><th>指标</th><th>个人（最新）</th><th>团队中位（估算）</th><th>差距</th></tr></thead><tbody>';
     var metrics = [
-        {label:'商品总数', my:cmp.new_count, tm:Math.max(15,cmp.new_count*0.8|0), unit:' 个'},
-        {label:'黄金品占比', my:goldPct, tm:40, unit:'%'},
-        {label:'均毛利率', my:cmp.new_margin, tm:25, unit:'%'},
-        {label:'均日销量', my:cmp.new_sales, tm:3, unit:' 单'},
+        {label:'商品总数', my:cmp.new_count, tm:hasTeam?Math.round(tmP.length):Math.max(15,cmp.new_count*0.8|0), unit:' 个'},
+        {label:'黄金品占比', my:goldPct, tm:Math.round(tmGoldPct), unit:'%'},
+        {label:'均毛利率', my:cmp.new_margin, tm:Math.round(tmMargin), unit:'%'},
+        {label:'均日销量', my:cmp.new_sales, tm:Math.round(tmSales), unit:' 单'},
     ];
     metrics.forEach(function(m){
         var gap = m.my - m.tm;
