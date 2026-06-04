@@ -160,15 +160,16 @@ class TemuHandler(SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
     def log_message(self, fmt: str, *args) -> None:
-        if PROXY_PATH in (args[0] if args else ""):
-            sys.stdout.write("[OSS代理] %s\n" % (args[0] if args else fmt))
+        first = args[0] if args else ""
+        if isinstance(first, str) and PROXY_PATH in first:
+            sys.stdout.write("[OSS代理] %s\n" % first)
             return
         super().log_message(fmt, *args)
 
 
 def main() -> None:
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    server = HTTPServer(("127.0.0.1", PORT), TemuHandler)
+    server = HTTPServer(("0.0.0.0", PORT), TemuHandler)
     print("")
     print("=" * 42)
     print("  Temu 看板本地服务（含 OSS 代理）")

@@ -1,5 +1,24 @@
 # Changelog — Temu 运营数据看板
 
+## V10.1 — 2026-06-04
+
+### 修复（P0）
+
+- **初始化顺序**：`bootstrap()` 移至脚本末尾，修复 `DataPipeline` / `PAGE_META` / `renderImportPage` 未定义导致上传、OSS 诊断、联调全线报错
+- **上传 loading 卡死**：`handleFileUpload` / `handleTeamUpload` 增加 `finally`，存储满时单独提示「保存失败」
+- **OSS 诊断 / 团队联调**：点击即弹出实时结果窗；代理 ping 5s、读写 15s、总超时 35s/45s
+- **OSS 配置**：`init` 前定义 `OSS_DEFAULT`，修复 `temu-shujufenxi-data` 读取报错
+- **local_server.py**：修复 Chrome DevTools 404 触发的 `log_message` TypeError
+
+### 优化
+
+- 店铺数据 `safeSetItem` 挪至解析成功后，避免误报「解析失败」
+- `daily_profit` 双列（毛利润+每天利润）视为 Temu 正常表头，不再 F12 刷红
+- `parse_report` 仅写入侧边栏日志，不污染 Console
+- 启动自检 `runStartupSelfCheck()`；`docs/index.html` 与主文件同步
+
+---
+
 ## V10 — 2026-06-03
 
 团队 OSS 同步上线 + 数据解析全面修复。UI 版本号统一为 **V10**（localStorage 仍用 `temu_v6_*` 前缀，兼容旧数据）。

@@ -383,7 +383,7 @@
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
         /* ── Modal ── */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 10001; display: flex; align-items: center; justify-content: center; }
         .modal-box { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 28px; max-width: 480px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
         .modal-box h2 { margin-bottom: 16px; color: var(--gold); font-size: 1.3rem; }
 
@@ -812,10 +812,13 @@ function buildHeaderMappingReport(rawHeaders, mappedHeaders) {
     }
     var missingRequired = PRODUCT_REQUIRED_COLS.filter(function(k) { return mapped.indexOf(k) < 0; });
     var warnings = [];
-    var duplicateKeys = Object.keys(seen).filter(function(k) { return seen[k].length > 1; });
+    // Temu 利润表常见：「毛利润」「每天利润」都映射 daily_profit，取靠右列，不算异常
+    var BENIGN_DUP = { daily_profit: 1 };
+    var duplicateKeys = Object.keys(seen).filter(function(k) { return seen[k].length > 1 && !BENIGN_DUP[k]; });
+    var benignDupKeys = Object.keys(seen).filter(function(k) { return seen[k].length > 1 && BENIGN_DUP[k]; });
     if (missingRequired.length) warnings.push('缺少关键列: ' + missingRequired.join(', '));
     if (duplicateKeys.length) warnings.push('重复映射列: ' + duplicateKeys.join(', '));
-    return { mapping: mapping, missingRequired: missingRequired, duplicateKeys: duplicateKeys, warnings: warnings };
+    return { mapping: mapping, missingRequired: missingRequired, duplicateKeys: duplicateKeys, benignDupKeys: benignDupKeys, warnings: warnings };
 }
 
 function getParseReports() {
@@ -846,7 +849,7 @@ function recordProductParseReport(filename, sheet, headerRow, rawHeaders, parsed
     var hm = buildHeaderMappingReport(rawHeaders, parsed.headers);
     var quality = sampleProductRowQuality(parsed.data);
     var level = 'info';
-    if (hm.missingRequired.length || quality.noSpuPct > 50) level = 'error';
+    if (hm.missingRequired.length) level = 'warn';
     else if (hm.warnings.length || quality.marginZeroPct > 85 || quality.salesZeroPct > 85) level = 'warn';
     var report = {
         id: 'pr-' + Date.now() + '-' + Math.random().toString(36).slice(2, 5),
@@ -988,8 +991,11 @@ function logEvent(level, module, action, message, detail) {
     persistEventLog(entries);
     updateEventLogBadge();
     if (typeof renderEventLogViews === 'function') renderEventLogViews();
-    if (level === 'error') console.error('[EventLog]', module, action, message, detail || '');
-    else if (level === 'warn') console.warn('[EventLog]', module, action, message, detail || '');
+    // 解析报告写入侧边栏即可；Temu 利润表「毛利润+每天利润→daily_profit」属正常，不刷 F12
+    if (action !== 'parse_report') {
+        if (level === 'error') console.error('[EventLog]', module, action, message, detail || '');
+        else if (level === 'warn') console.warn('[EventLog]', module, action, message, detail || '');
+    }
     return entry;
 }
 
@@ -1240,47 +1246,116 @@ function pushSnapshot() {
 }
 
 // ═══════════════════════════════════════════════
-// 初始化
+// OSS 配置（必须在 init 之前：init/updateSidebar 会读 isOssConfigured）
 // ═══════════════════════════════════════════════
-(function init() {
-    var raw = localStorage.getItem('temu_v6_data');
-    if (raw) { try { ST.files = JSON.parse(raw); } catch(e) { ST.files = []; } }
-    // 确保 ST.files 是数组
-    if (!Array.isArray(ST.files)) ST.files = [];
-    var idx = localStorage.getItem('temu_v6_snap_idx');
-    if (idx) { try { ST.snapshots = JSON.parse(idx); } catch(e) { ST.snapshots = []; } }
-    if (!Array.isArray(ST.snapshots)) ST.snapshots = [];
-    var storeRaw = localStorage.getItem('temu_v6_store');
-    if (storeRaw) { try { ST.storeData = JSON.parse(storeRaw); } catch(e) { ST.storeData = []; } }
-    var teamRaw = localStorage.getItem('temu_v6_team');
-    if (teamRaw) { try { ST.teamProducts = normalizeTeamProducts(JSON.parse(teamRaw)); hasTeam = ST.teamProducts && ST.teamProducts.length > 0; } catch(e) { ST.teamProducts = []; hasTeam = false; } }
-    if (!Array.isArray(ST.teamProducts)) { ST.teamProducts = []; hasTeam = false; }
-    if (!Array.isArray(ST.storeData)) ST.storeData = [];
-    updateSidebar();
-    logEvent('info', 'system', 'session_start', '页面加载完成', {
-        files: ST.files.length,
-        storeRecords: ST.storeData.length,
-        teamProducts: ST.teamProducts.length,
-        ossConfigured: typeof isOssConfigured === 'function' ? isOssConfigured() : false
-    });
-    updateEventLogBadge();
-    var inlineToolbar = document.getElementById('eventLogInlineToolbar');
-    if (inlineToolbar) inlineToolbar.innerHTML = eventLogToolbarHTML('');
-    renderEventLogViews('');
-    renderParseReportsPanel();
-    if (ST.files.length > 0) {
-        try { reprocessAll(false); renderImportPage(); } catch(e) {
-            console.warn('数据加载失败，保留原始文件:', e.message);
-            logEvent('error', 'pipeline', 'init_reprocess_fail', '历史数据解析失败：' + e.message, { error: e.message });
-            toast('历史数据解析失败，请重新上传 Excel（原始文件仍保留）','error');
-        }
+var OSS_DEFAULT = {
+    region: 'oss-cn-hangzhou',
+    bucket: 'temu-shujufenxi-data',
+    prefix: 'temu/',
+    owner: '',
+    accessKeyId: '',
+    accessKeySecret: ''
+};
+
+var OSS_LEGACY_BUCKET_MAP = {
+    'temu-pod-data': 'temu-shujufenxi-data'
+};
+
+function normalizeSavedOssKeys(raw) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) raw = {};
+    var cfg = {
+        region: String(raw.region || raw.Region || OSS_DEFAULT.region).trim(),
+        bucket: String(raw.bucket || raw.Bucket || OSS_DEFAULT.bucket).trim(),
+        prefix: String(raw.prefix || 'temu/').trim() || 'temu/',
+        owner: String(raw.owner || raw.Owner || '').trim(),
+        accessKeyId: String(raw.accessKeyId || raw.accessKey || raw.ak || raw.AccessKeyId || '').trim(),
+        accessKeySecret: String(raw.accessKeySecret || raw.secretKey || raw.sk || raw.AccessKeySecret || '').trim()
+    };
+    if (OSS_LEGACY_BUCKET_MAP && OSS_LEGACY_BUCKET_MAP[cfg.bucket]) {
+        cfg.bucket = OSS_LEGACY_BUCKET_MAP[cfg.bucket];
     }
-    // 侧边栏折叠状态恢复
-    if (localStorage.getItem('temu_v6_sidebar') === 'collapsed') {
-        document.querySelector('.sidebar').classList.add('collapsed');
+    return cfg;
+}
+
+function getOssConfig() {
+    try {
+        var rawStr = localStorage.getItem('temu_v6_oss_config');
+        if (!rawStr) return normalizeSavedOssKeys({});
+        var saved = JSON.parse(rawStr);
+        return normalizeSavedOssKeys(saved);
+    } catch(e) {
+        console.warn('getOssConfig parse failed:', e.message);
+        return normalizeSavedOssKeys({});
     }
-    initUX();
-})();
+}
+
+function saveOssConfig(cfg) {
+    var norm = normalizeSavedOssKeys(cfg);
+    safeSetItem('temu_v6_oss_config', JSON.stringify(norm));
+    return norm;
+}
+
+function verifyOssConfigSaved() {
+    var raw = localStorage.getItem('temu_v6_oss_config');
+    if (!raw) return { ok: false, reason: 'empty', detail: {} };
+    var parsed;
+    try { parsed = JSON.parse(raw); } catch(e) {
+        return { ok: false, reason: 'parse_error', detail: { error: e.message, rawLen: raw.length } };
+    }
+    var cfg = normalizeSavedOssKeys(parsed);
+    var ok = !!(cfg.bucket && cfg.region && cfg.accessKeyId && cfg.accessKeySecret);
+    return {
+        ok: ok,
+        reason: ok ? 'ok' : 'missing_fields',
+        detail: {
+            hasBucket: !!cfg.bucket,
+            hasRegion: !!cfg.region,
+            hasAk: !!cfg.accessKeyId,
+            hasSk: !!cfg.accessKeySecret,
+            storedKeys: parsed && typeof parsed === 'object' ? Object.keys(parsed) : [],
+            rawLen: raw.length
+        },
+        cfg: cfg
+    };
+}
+
+function normalizeOssRegion(region) {
+    var r = (region || '').trim();
+    if (!r) return '';
+    if (r.indexOf('oss-') === 0) return r;
+    if (r.indexOf('cn-') === 0) return 'oss-' + r;
+    return r;
+}
+
+function isOssConfigured() {
+    var c = getOssConfig();
+    return !!(c.bucket && c.region && c.accessKeyId && c.accessKeySecret);
+}
+
+function getActiveOssFormOverlay() {
+    var overlays = document.querySelectorAll('.modal-overlay');
+    for (var i = overlays.length - 1; i >= 0; i--) {
+        if (overlays[i].querySelector('#oss_owner')) return overlays[i];
+    }
+    return null;
+}
+
+function readOssFormFromOverlay(overlay) {
+    overlay = overlay || getActiveOssFormOverlay();
+    if (!overlay) return null;
+    return {
+        owner: (overlay.querySelector('#oss_owner') || {}).value || '',
+        region: normalizeOssRegion(((overlay.querySelector('#oss_region') || {}).value || '').trim()),
+        bucket: ((overlay.querySelector('#oss_bucket') || {}).value || '').trim(),
+        prefix: 'temu/',
+        accessKeyId: ((overlay.querySelector('#oss_ak') || {}).value || '').trim(),
+        accessKeySecret: ((overlay.querySelector('#oss_sk') || {}).value || '').trim()
+    };
+}
+
+// ═══════════════════════════════════════════════
+// 初始化见文件末尾 bootstrap()（必须在 DataPipeline / PAGE_META 定义之后）
+// ═══════════════════════════════════════════════
 
 function warnIfDataSuspicious() {
     if (!ST.products || ST.products.length < 3) return;
@@ -1312,12 +1387,13 @@ function reprocessAll(skipLog) {
     warnIfDataSuspicious();
 }
 
-// 清空所有本地数据（配额恢复用）
+// 清空所有本地数据（配额恢复用；保留 OSS 配置与运行日志）
 function clearAllData() {
+    var keep = { temu_v6_oss_config: 1, temu_v6_event_log: 1, temu_v6_parse_reports: 1 };
     var keys = [];
     for (var i = 0; i < localStorage.length; i++) {
         var k = localStorage.key(i);
-        if (k && k.indexOf('temu_v6') === 0) keys.push(k);
+        if (k && k.indexOf('temu_v6') === 0 && !keep[k]) keys.push(k);
     }
     keys.forEach(function(k) { localStorage.removeItem(k); });
     ST.files = []; ST.products = []; ST.clusters = []; ST.rules = [];
@@ -1718,64 +1794,119 @@ function toast(msg, type, opts) {
     }, ms);
 }
 
-function showModal(title, bodyHTML, confirmText, onConfirm) {
+function showModal(title, bodyHTML, confirmText, onConfirm, onMount) {
+    document.querySelectorAll('.modal-overlay').forEach(function(el) { el.remove(); });
     var o = document.createElement('div'); o.className = 'modal-overlay';
-    o.innerHTML = '<div class="modal-box"><h2>'+title+'</h2>'+bodyHTML+'<div style="display:flex;gap:12px;margin-top:16px;justify-content:flex-end;"><button class="btn" onclick="this.closest(\'.modal-overlay\').remove()">取消</button><button class="btn" id="modalOK" style="background:var(--gold);color:var(--bg);">'+confirmText+'</button></div></div>';
+    o.innerHTML = '<div class="modal-box"><h2>'+title+'</h2>'+bodyHTML+'<div style="display:flex;gap:12px;margin-top:16px;justify-content:flex-end;"><button type="button" class="btn modal-cancel-btn">取消</button><button type="button" class="btn modal-confirm-btn" style="background:var(--gold);color:var(--bg);">'+confirmText+'</button></div></div>';
     document.body.appendChild(o);
+    o.querySelector('.modal-cancel-btn').addEventListener('click', function() { o.remove(); });
     o.addEventListener('click', function(e) { if (e.target === o) o.remove(); });
-    document.getElementById('modalOK').addEventListener('click', function() {
-        if (onConfirm && onConfirm() === false) return;
+    o.querySelector('.modal-confirm-btn').addEventListener('click', function() {
+        if (onConfirm && onConfirm(o) === false) return;
         o.remove();
+    });
+    if (onMount) onMount(o);
+}
+
+function showTextResultModal(title, text, confirmText) {
+    confirmText = confirmText || '关闭';
+    document.querySelectorAll('.modal-overlay').forEach(function(el) { el.remove(); });
+    var o = document.createElement('div');
+    o.className = 'modal-overlay';
+    var box = document.createElement('div');
+    box.className = 'modal-box';
+    var h2 = document.createElement('h2');
+    h2.textContent = title;
+    var pre = document.createElement('pre');
+    pre.style.cssText = 'white-space:pre-wrap;font-size:0.82rem;color:var(--text-dim);max-height:55vh;overflow:auto;line-height:1.55;margin:0;';
+    pre.textContent = text || '（无输出）';
+    var footer = document.createElement('div');
+    footer.style.cssText = 'display:flex;gap:12px;margin-top:16px;justify-content:flex-end;';
+    var okBtn = document.createElement('button');
+    okBtn.type = 'button';
+    okBtn.className = 'btn';
+    okBtn.style.cssText = 'background:var(--gold);color:var(--bg);';
+    okBtn.textContent = confirmText;
+    okBtn.addEventListener('click', function() { o.remove(); });
+    footer.appendChild(okBtn);
+    box.appendChild(h2);
+    box.appendChild(pre);
+    box.appendChild(footer);
+    o.appendChild(box);
+    o.addEventListener('click', function(e) { if (e.target === o) o.remove(); });
+    document.body.appendChild(o);
+}
+
+/** 可实时追加文字的结果弹窗（诊断/联调用） */
+function createLiveResultModal(title, seedLines) {
+    document.querySelectorAll('.modal-overlay').forEach(function(el) { el.remove(); });
+    var lines = (seedLines || []).slice();
+    var o = document.createElement('div');
+    o.className = 'modal-overlay';
+    var box = document.createElement('div');
+    box.className = 'modal-box';
+    box.style.maxWidth = '520px';
+    var h2 = document.createElement('h2');
+    h2.textContent = title;
+    var pre = document.createElement('pre');
+    pre.style.cssText = 'white-space:pre-wrap;font-size:0.82rem;color:var(--text-dim);max-height:55vh;overflow:auto;line-height:1.55;margin:0;';
+    function refresh() {
+        pre.textContent = lines.length ? lines.join('\n') : '（等待中…）';
+        pre.scrollTop = pre.scrollHeight;
+    }
+    refresh();
+    var footer = document.createElement('div');
+    footer.style.cssText = 'display:flex;gap:12px;margin-top:16px;justify-content:flex-end;';
+    var okBtn = document.createElement('button');
+    okBtn.type = 'button';
+    okBtn.className = 'btn';
+    okBtn.style.cssText = 'background:var(--gold);color:var(--bg);';
+    okBtn.textContent = '关闭';
+    okBtn.addEventListener('click', function() { o.remove(); });
+    footer.appendChild(okBtn);
+    box.appendChild(h2);
+    box.appendChild(pre);
+    box.appendChild(footer);
+    o.appendChild(box);
+    o.addEventListener('click', function(e) { if (e.target === o) o.remove(); });
+    document.body.appendChild(o);
+    return {
+        push: function(line) { lines.push(line); refresh(); },
+        getLines: function() { return lines.slice(); },
+        setTitle: function(t) { h2.textContent = t; }
+    };
+}
+
+var OSS_PING_TIMEOUT_MS = 5000;
+var OSS_PROXY_IO_TIMEOUT_MS = 15000;
+var OSS_DIAGNOSE_MAX_MS = 35000;
+var OSS_DRILL_MAX_MS = 45000;
+
+function promiseWithTimeout(promise, ms, message) {
+    return new Promise(function(resolve, reject) {
+        var done = false;
+        var timer = setTimeout(function() {
+            if (done) return;
+            done = true;
+            reject(new Error(message || ('操作超时（' + ms + 'ms）')));
+        }, ms);
+        Promise.resolve(promise).then(function(v) {
+            if (done) return;
+            done = true;
+            clearTimeout(timer);
+            resolve(v);
+        }).catch(function(e) {
+            if (done) return;
+            done = true;
+            clearTimeout(timer);
+            reject(e);
+        });
     });
 }
 
 // ═══════════════════════════════════════════════
 // 第二阶段：阿里云 OSS 团队同步（只传 JSON 摘要，不传原始 Excel）
 // ═══════════════════════════════════════════════
-var OSS_DEFAULT = {
-    region: 'oss-cn-hangzhou',
-    bucket: 'temu-shujufenxi-data',
-    prefix: 'temu/',
-    owner: '',
-    accessKeyId: '',
-    accessKeySecret: ''
-};
-
-var OSS_LEGACY_BUCKET_MAP = {
-    'temu-pod-data': 'temu-shujufenxi-data'
-};
-
-function getOssConfig() {
-    try {
-        var saved = JSON.parse(localStorage.getItem('temu_v6_oss_config') || '{}');
-        var cfg = {};
-        Object.keys(OSS_DEFAULT).forEach(function(k) { cfg[k] = saved[k] !== undefined ? saved[k] : OSS_DEFAULT[k]; });
-        if (OSS_LEGACY_BUCKET_MAP[cfg.bucket]) {
-            cfg.bucket = OSS_LEGACY_BUCKET_MAP[cfg.bucket];
-            saved.bucket = cfg.bucket;
-            localStorage.setItem('temu_v6_oss_config', JSON.stringify(saved));
-        }
-        return cfg;
-    } catch(e) { return Object.assign({}, OSS_DEFAULT); }
-}
-
-function saveOssConfig(cfg) {
-    localStorage.setItem('temu_v6_oss_config', JSON.stringify(cfg));
-}
-
-function normalizeOssRegion(region) {
-    var r = (region || '').trim();
-    if (!r) return '';
-    if (r.indexOf('oss-') === 0) return r;
-    if (r.indexOf('cn-') === 0) return 'oss-' + r;
-    return r;
-}
-
-function isOssConfigured() {
-    var c = getOssConfig();
-    return !!(c.bucket && c.region && c.accessKeyId && c.accessKeySecret);
-}
-
 function extractOwnerFromFilename(name) {
     if (!name) return '';
     var m = name.match(/^(.+?)(?:Y2)?店铺(?:利润统计|数据记录)/i);
@@ -1817,41 +1948,59 @@ function isLocalDevServer() {
 }
 
 var _ossProxyReady = null;
+function resetOssProxyCache() {
+    _ossProxyReady = null;
+}
 function checkOssLocalProxy() {
     if (!isLocalDevServer()) return Promise.resolve(false);
-    if (_ossProxyReady !== null) return _ossProxyReady;
-    _ossProxyReady = fetch('/__temu_oss__', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'ping' })
-    }).then(function(r) { return r.ok; }).catch(function() { return false; });
+    if (_ossProxyReady != null) return _ossProxyReady;
+    _ossProxyReady = promiseWithTimeout(
+        fetch('/__temu_oss__', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'ping' })
+        }).then(function(r) { return r.ok; }),
+        OSS_PING_TIMEOUT_MS,
+        '连接本地 OSS 代理超时（请确认 启动本地看板.bat 窗口未关闭）'
+    ).catch(function() {
+        resetOssProxyCache();
+        return false;
+    });
     return _ossProxyReady;
 }
 
 function ossUploadViaProxy(cfg, key, bodyStr) {
-    return fetch('/__temu_oss__', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'put', cfg: cfg, key: key, body: bodyStr })
-    }).then(function(r) {
-        return r.json().then(function(data) {
-            if (!r.ok || !data.ok) throw new Error(data.error || ('HTTP ' + r.status));
-            return data;
-        });
-    });
+    return promiseWithTimeout(
+        fetch('/__temu_oss__', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'put', cfg: cfg, key: key, body: bodyStr })
+        }).then(function(r) {
+            return r.json().then(function(data) {
+                if (!r.ok || !data.ok) throw new Error(data.error || ('HTTP ' + r.status));
+                return data;
+            });
+        }),
+        OSS_PROXY_IO_TIMEOUT_MS,
+        'OSS 上传超时（15秒）'
+    );
 }
 
 function ossGetViaProxy(cfg, key) {
-    return fetch('/__temu_oss__', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'get', cfg: cfg, key: key })
-    }).then(function(r) {
-        return r.json().then(function(data) {
-            if (!r.ok || !data.ok) throw new Error(data.error || ('HTTP ' + r.status));
-            return data.body;
-        });
-    });
+    return promiseWithTimeout(
+        fetch('/__temu_oss__', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'get', cfg: cfg, key: key })
+        }).then(function(r) {
+            return r.json().then(function(data) {
+                if (!r.ok || !data.ok) throw new Error(data.error || ('HTTP ' + r.status));
+                return data.body;
+            });
+        }),
+        OSS_PROXY_IO_TIMEOUT_MS,
+        'OSS 读取超时（15秒）'
+    );
 }
 
 function ossHmacSha1Base64(secret, message) {
@@ -1984,19 +2133,18 @@ function ossUploadObject(cfg, key, bodyStr) {
     });
 }
 
-function readOssFormOrSaved() {
-    var ownerEl = document.getElementById('oss_owner');
-    if (ownerEl) {
-        return {
-            owner: ownerEl.value.trim(),
-            region: normalizeOssRegion(document.getElementById('oss_region').value.trim()),
-            bucket: document.getElementById('oss_bucket').value.trim(),
-            prefix: 'temu/',
-            accessKeyId: document.getElementById('oss_ak').value.trim(),
-            accessKeySecret: document.getElementById('oss_sk').value.trim()
-        };
-    }
-    return getOssConfig();
+function readOssFormOrSaved(overlay) {
+    var saved = getOssConfig();
+    var fromForm = readOssFormFromOverlay(overlay);
+    if (!fromForm) return saved;
+    return {
+        owner: (fromForm.owner || saved.owner || '').trim(),
+        region: normalizeOssRegion((fromForm.region || saved.region || '').trim()),
+        bucket: (fromForm.bucket || saved.bucket || '').trim(),
+        prefix: 'temu/',
+        accessKeyId: (fromForm.accessKeyId || saved.accessKeyId || '').trim(),
+        accessKeySecret: (fromForm.accessKeySecret || saved.accessKeySecret || '').trim()
+    };
 }
 
 function ossObjectUrls(cfg, key) {
@@ -2014,70 +2162,88 @@ function ossTryCorsGet(url) {
     });
 }
 
-function diagnoseOssConnection() {
-    var cfg = readOssFormOrSaved();
+function diagnoseOssConnection(overlay) {
+    overlay = overlay || getActiveOssFormOverlay();
+    var cfg = readOssFormOrSaved(overlay);
     if (!cfg.bucket || !cfg.region || !cfg.accessKeyId || !cfg.accessKeySecret) {
-        toast('请先填完整 OSS 配置', 'warning');
+        toast('请先填完整 OSS 配置（Secret 可留空若已保存过）', 'warning');
         return;
     }
-    toast('OSS 诊断中…', 'info');
     var region = normalizeOssRegion(cfg.region);
     var lines = [
         '当前页面: ' + location.href,
         'Bucket: ' + cfg.bucket + ' · Region: ' + region,
-        ''
+        '',
+        '⏳ 正在检测本地 OSS 代理…'
     ];
-    var manifestKey = cfg.prefix + 'manifest.json';
-    var urlList = ossObjectUrls(cfg, manifestKey);
+    var live = createLiveResultModal('OSS 诊断结果', lines);
+    function pushLine(s) { live.push(s); }
+    var urlList = ossObjectUrls(cfg, cfg.prefix + 'manifest.json');
     var testKey = cfg.prefix + '_diag/' + Date.now() + '.json';
     var testBody = '{"ping":1}';
+    var finished = false;
+    function finishDiagnose() {
+        if (finished) return;
+        finished = true;
+        live.setTitle('OSS 诊断结果');
+        var allLines = live.getLines();
+        var hasErr = allLines.some(function(l) { return l.indexOf('❌') >= 0; });
+        var hasOk = allLines.some(function(l) { return l.indexOf('✅') >= 0; });
+        logEvent(hasErr ? 'warn' : 'info', 'oss', 'diagnose', 'OSS 诊断完成' + (hasOk && !hasErr ? '（通过）' : hasErr ? '（有问题）' : ''), {
+            bucket: cfg.bucket, region: region, hasProxy: allLines.some(function(l){ return l.indexOf('代理已启用') >= 0; }), summary: allLines.slice(0, 10)
+        });
+    }
+    var safetyTimer = setTimeout(function() {
+        pushLine('');
+        pushLine('⏱ 诊断超过 ' + (OSS_DIAGNOSE_MAX_MS / 1000) + ' 秒，已强制结束');
+        finishDiagnose();
+    }, OSS_DIAGNOSE_MAX_MS);
 
     checkOssLocalProxy().then(function(hasProxy) {
         if (hasProxy) {
-            lines.push('✅ 本地 OSS 代理已启用（启动本地看板.bat 新版）');
-            lines.push('   ⬆ 同步走代理，不依赖浏览器 CORS');
-            lines.push('');
+            pushLine('✅ 本地 OSS 代理已启用（启动本地看板.bat 新版）');
+            pushLine('   ⬆ 同步走代理，不依赖浏览器 CORS');
+            pushLine('');
+            pushLine('⏳ 测试代理 PUT 上传…');
             return ossUploadViaProxy(cfg, testKey, testBody).then(function() {
-                lines.push('① 代理 PUT 上传: ✅ 成功');
+                pushLine('① 代理 PUT 上传: ✅ 成功');
+                pushLine('⏳ 测试代理签名 GET…');
                 return ossGetViaProxy(cfg, testKey).then(function(body) {
                     if (body && body.indexOf('"ping"') >= 0) {
-                        lines.push('② 代理签名 GET: ✅ 成功（私有 Bucket 可用）');
+                        pushLine('② 代理签名 GET: ✅ 成功（私有 Bucket 可用）');
                     } else {
-                        lines.push('② 代理签名 GET: ⚠️ 响应异常');
+                        pushLine('② 代理签名 GET: ⚠️ 响应异常');
                     }
-                    lines.push('');
-                    lines.push('→ 可以 ⬆ 同步；团队拉取用 📥 或 🧪 联调');
+                    pushLine('');
+                    pushLine('→ 可以 ⬆ 同步；团队拉取用 📥 或 🧪 联调');
                 }).catch(function(ge) {
-                    lines.push('② 代理签名 GET: ❌ ' + ge.message);
-                    lines.push('   → RAM 用户需 oss:GetObject 权限');
+                    pushLine('② 代理签名 GET: ❌ ' + ge.message);
+                    pushLine('   → RAM 用户需 oss:GetObject 权限');
                 });
             }).catch(function(e) {
-                lines.push('① 代理 PUT 上传: ❌ ' + e.message);
-                lines.push('   → 检查 AccessKey 是否有 PutObject 权限');
-                lines.push('   → 检查 Bucket/Region 是否与控制台一致');
+                pushLine('① 代理 PUT 上传: ❌ ' + e.message);
+                pushLine('   → 检查 AccessKey 是否有 PutObject 权限');
+                pushLine('   → 检查 Bucket/Region 是否与控制台一致');
             });
+            return;
         }
 
-        lines.push('⚠️ 未检测到本地 OSS 代理');
-        lines.push('   请关闭浏览器，重新双击「启动本地看板.bat」');
-        lines.push('   窗口应显示「含 OSS 代理」，不要用手动 python -m http.server');
-        lines.push('');
-        lines.push('【浏览器直传】需配 CORS。新标签页打开：');
-        urlList.forEach(function(u) { lines.push('  ' + u.label + ': ' + u.url); });
-        lines.push('');
-        lines.push('  • NoSuchKey → Bucket 通、公共读 OK');
-        lines.push('  • AccessDenied → 公共读未开或阻止公共访问未关');
-        lines.push('  • NoSuchBucket → Bucket 名或 Region 填错');
-        lines.push('');
+        pushLine('⚠️ 未检测到本地 OSS 代理');
+        pushLine('   请关闭浏览器，重新双击「启动本地看板.bat」');
+        pushLine('   窗口应显示「含 OSS 代理」，不要用手动 python -m http.server');
+        pushLine('');
+        pushLine('【浏览器直传】需配 CORS。新标签页打开：');
+        urlList.forEach(function(u) { pushLine('  ' + u.label + ': ' + u.url); });
+        pushLine('');
 
         var stepGet = urlList.reduce(function(chain, item) {
             return chain.then(function(gotOk) {
                 if (gotOk) return true;
-                return ossTryCorsGet(item.url).then(function(res) {
-                    lines.push('GET+CORS [' + item.label + ']: HTTP ' + res.status + (res.status === 404 ? ' ✅' : res.status === 200 ? ' ✅' : ''));
+                return promiseWithTimeout(ossTryCorsGet(item.url), 8000, 'GET 超时').then(function(res) {
+                    pushLine('GET+CORS [' + item.label + ']: HTTP ' + res.status + (res.status === 404 ? ' ✅' : res.status === 200 ? ' ✅' : ''));
                     return res.status === 200 || res.status === 404;
                 }).catch(function(e) {
-                    lines.push('GET+CORS [' + item.label + ']: ❌ ' + e.message);
+                    pushLine('GET+CORS [' + item.label + ']: ❌ ' + e.message);
                     return false;
                 });
             });
@@ -2085,32 +2251,30 @@ function diagnoseOssConnection() {
 
         return stepGet.then(function(corsOk) {
             if (!corsOk) {
-                lines.push('');
-                lines.push('CORS 规则（数据安全 → 跨域设置）：');
-                lines.push('  来源: http://localhost:8080 和 http://127.0.0.1:8080');
-                lines.push('  Methods: GET PUT POST HEAD');
-                lines.push('  允许 Headers: *  暴露 Headers: ETag');
+                pushLine('');
+                pushLine('CORS 规则（数据安全 → 跨域设置）：');
+                pushLine('  来源: http://localhost:8080 和 http://127.0.0.1:8080');
+                pushLine('  Methods: GET PUT POST HEAD');
             }
-            return ossPostDirect(cfg, testKey, testBody).then(function() {
-                lines.push('POST 上传: ✅ 成功');
+            return promiseWithTimeout(ossPostDirect(cfg, testKey, testBody), 12000, 'POST 上传超时').then(function() {
+                pushLine('POST 上传: ✅ 成功');
             }).catch(function(e1) {
-                lines.push('POST 上传: ❌ ' + e1.message);
-                return ossPutDirect(cfg, testKey, testBody).then(function() {
-                    lines.push('PUT 上传: ✅ 成功');
+                pushLine('POST 上传: ❌ ' + e1.message);
+                return promiseWithTimeout(ossPutDirect(cfg, testKey, testBody), 12000, 'PUT 上传超时').then(function() {
+                    pushLine('PUT 上传: ✅ 成功');
                 }).catch(function(e2) {
-                    lines.push('PUT 上传: ❌ ' + e2.message);
+                    pushLine('PUT 上传: ❌ ' + e2.message);
                 });
             });
         });
+    }).catch(function(e) {
+        pushLine('❌ 诊断过程异常: ' + (e && e.message ? e.message : String(e)));
     }).then(function() {
-        showModal('OSS 诊断结果', '<pre style="white-space:pre-wrap;font-size:0.82rem;color:var(--text-dim);max-height:420px;overflow:auto;line-height:1.55;">' + lines.join('\n') + '</pre>', '关闭', function() {});
-        var hasErr = lines.some(function(l) { return l.indexOf('❌') >= 0; });
-        var hasOk = lines.some(function(l) { return l.indexOf('✅') >= 0; });
-        logEvent(hasErr ? 'warn' : 'info', 'oss', 'diagnose', 'OSS 诊断完成' + (hasOk && !hasErr ? '（通过）' : hasErr ? '（有问题）' : ''), {
-            bucket: cfg.bucket, region: region, hasProxy: lines.some(function(l){ return l.indexOf('代理已启用') >= 0; }), summary: lines.slice(0, 8)
-        });
+        clearTimeout(safetyTimer);
+        finishDiagnose();
     });
 }
+window.diagnoseOssConnection = diagnoseOssConnection;
 
 function fetchPublicJson(url) {
     return fetch(url).then(function(r) {
@@ -2233,15 +2397,35 @@ function runTeamSyncDrill() {
     }
     var cfg = getOssConfig();
     var myOwner = getCloudOwner();
-    var lines = ['团队联调（模拟第二人上传 + 拉取）', '你的归属人: ' + myOwner, ''];
-    toast('团队联调运行中…', 'info');
+    var live = createLiveResultModal('🧪 团队联调结果', [
+        '团队联调（模拟第二人上传 + 拉取）',
+        '你的归属人: ' + myOwner,
+        '',
+        '⏳ 正在检测本地 OSS 代理…'
+    ]);
+    function pushLine(s) { live.push(s); }
+    var finished = false;
+    function finishDrill() {
+        if (finished) return;
+        finished = true;
+        live.setTitle('🧪 团队联调结果');
+        var allLines = live.getLines();
+        var ok = allLines.some(function(l) { return l.indexOf('团队拉取成功') >= 0; });
+        logEvent(ok ? 'info' : 'warn', 'oss', 'team_drill', ok ? '团队联调通过' : '团队联调未完全通过', { lines: allLines });
+    }
+    var safetyTimer = setTimeout(function() {
+        pushLine('');
+        pushLine('⏱ 联调超过 ' + (OSS_DRILL_MAX_MS / 1000) + ' 秒，已强制结束');
+        finishDrill();
+    }, OSS_DRILL_MAX_MS);
 
     checkOssLocalProxy().then(function(hasProxy) {
         if (!hasProxy) {
-            lines.push('❌ 未检测到 OSS 本地代理 → 请重启 启动本地看板.bat');
+            pushLine('❌ 未检测到 OSS 本地代理 → 请重启 启动本地看板.bat');
             return Promise.reject(new Error('no-proxy'));
         }
-        lines.push('✅ 本地 OSS 代理正常');
+        pushLine('✅ 本地 OSS 代理正常');
+        pushLine('⏳ 上传虚拟同事数据…');
         var summary = buildTeamDrillSummary();
         var slug = ownerPathSlug(TEAM_DRILL_OWNER);
         var key = cfg.prefix + 'uploads/' + slug + '/drill/' + Date.now() + '.json';
@@ -2254,38 +2438,40 @@ function runTeamSyncDrill() {
             uploaded_at: summary.uploaded_at
         };
         return ossUploadViaProxy(cfg, key, JSON.stringify(summary)).then(function() {
-            lines.push('✅ 已上传虚拟同事 JSON: ' + TEAM_DRILL_OWNER);
+            pushLine('✅ 已上传虚拟同事 JSON: ' + TEAM_DRILL_OWNER);
+            pushLine('⏳ 更新 manifest 索引…');
             return updateCloudManifest(null, cfg, entry);
         }).then(function() {
-            lines.push('✅ manifest 索引已更新');
+            pushLine('✅ manifest 索引已更新');
+            pushLine('⏳ 拉取团队数据…');
             return fetchOssJson(cfg, cfg.prefix + 'manifest.json');
         }).then(function(manifest) {
             var list = collectTeamEntriesFromManifest(manifest, myOwner);
             var hasDrill = list.some(function(e) { return e.owner === TEAM_DRILL_OWNER; });
             if (!hasDrill) {
-                lines.push('❌ manifest 里找不到虚拟同事（归属人过滤可能有问题）');
+                pushLine('❌ manifest 里找不到虚拟同事（归属人过滤可能有问题）');
                 return Promise.reject(new Error('no-drill'));
             }
-            lines.push('✅ manifest 含其他成员: ' + list.map(function(e) { return e.owner; }).join('、'));
+            pushLine('✅ manifest 含其他成员: ' + list.map(function(e) { return e.owner; }).join('、'));
             return Promise.all(list.map(function(e) { return fetchOssJson(cfg, e.key); }));
         }).then(function(summaries) {
             var r = applyTeamSummaries(summaries);
-            lines.push('✅ 团队拉取成功: ' + r.people + ' 人 · ' + r.count + ' 条 SPU');
-            lines.push('');
-            lines.push('下一步: 打开「诊断」页查看「个人 vs 团队」');
-            lines.push('真实同事同步后，📥 团队 会拉取他们的数据（不含你自己）');
+            pushLine('✅ 团队拉取成功: ' + r.people + ' 人 · ' + r.count + ' 条 SPU');
+            pushLine('');
+            pushLine('下一步: 打开「诊断」页查看「个人 vs 团队」');
+            pushLine('真实同事同步后，📥 团队 会拉取他们的数据（不含你自己）');
         });
     }).catch(function(e) {
         if (e && e.message === 'no-proxy') { /* lines already set */ }
         else if (e && e.message !== 'no-drill') {
-            lines.push('❌ ' + (e.message || String(e)));
+            pushLine('❌ ' + (e.message || String(e)));
         }
     }).then(function() {
-        showModal('🧪 团队联调结果', '<pre style="white-space:pre-wrap;font-size:0.82rem;color:var(--text-dim);max-height:420px;overflow:auto;line-height:1.55;">' + lines.join('\n') + '</pre>', '关闭', function() {});
-        var ok = lines.some(function(l) { return l.indexOf('团队拉取成功') >= 0; });
-        logEvent(ok ? 'info' : 'warn', 'oss', 'team_drill', ok ? '团队联调通过' : '团队联调未完全通过', { lines: lines });
+        clearTimeout(safetyTimer);
+        finishDrill();
     });
 }
+window.runTeamSyncDrill = runTeamSyncDrill;
 
 function createOssClient(cfg) {
     if (typeof OSS === 'undefined') throw new Error('OSS SDK 未加载，请检查网络');
@@ -2423,42 +2609,86 @@ function showOssConfigModal(onSaved) {
         '<p style="color:var(--text-dim);font-size:0.85rem;margin-bottom:12px;"><strong>Bucket 名和 Region 必须与阿里云控制台「Bucket 列表」里完全一致。</strong>若浏览器打开 <code>https://你的Bucket.oss-cn-xxx.aliyuncs.com/</code> 出现 <code>NoSuchBucket</code>，说明名字或地域填错了（不是 CORS 问题）。</p>' +
         '<p style="color:var(--text-dim);font-size:0.85rem;margin-bottom:8px;"><strong>推荐</strong>：双击 <code>启动本地看板.bat</code>（含 OSS 代理，<strong>Bucket 可设私有</strong>，无需公共读/CORS）。</p>' +
         '<p style="color:var(--text-dim);font-size:0.85rem;margin-bottom:8px;"><strong>安全</strong>：建议 RAM 子账号，仅授予 <code>GetObject</code> + <code>PutObject</code>（详见传话文件夹 OSS 私有配置说明）。</p>' +
-        '<button type="button" class="btn" style="width:100%;margin-bottom:8px;" onclick="diagnoseOssConnection()">🔍 诊断 OSS 连接</button>' +
-        '<button type="button" class="btn" style="width:100%;margin-bottom:12px;" onclick="runTeamSyncDrill()">🧪 团队联调（模拟第二人）</button>' +
+        '<button type="button" class="btn oss-diag-btn" style="width:100%;margin-bottom:8px;">🔍 诊断 OSS 连接</button>' +
+        '<button type="button" class="btn oss-drill-btn" style="width:100%;margin-bottom:12px;">🧪 团队联调（模拟第二人）</button>' +
         '<div style="display:grid;gap:10px;">' +
-        '<label>归属人（姓名）<br><input id="oss_owner" value="'+(cfg.owner||'')+'" placeholder="如：胡安康" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
-        '<label>Region（填 oss-cn-hangzhou）<br><input id="oss_region" value="'+cfg.region+'" placeholder="oss-cn-hangzhou" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
-        '<label>Bucket 名称（控制台 Bucket 列表里复制的 exact 名字）<br><input id="oss_bucket" value="'+cfg.bucket+'" placeholder="temu-shujufenxi-data" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
-        '<label>AccessKey ID<br><input id="oss_ak" value="'+cfg.accessKeyId+'" autocomplete="off" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
-        '<label>AccessKey Secret<br><input id="oss_sk" type="password" value="'+cfg.accessKeySecret+'" autocomplete="new-password" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
+        '<label>归属人（姓名）<br><input id="oss_owner" value="'+escHtml(cfg.owner||'')+'" placeholder="如：胡安康" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
+        '<label>Region（填 oss-cn-hangzhou）<br><input id="oss_region" value="'+escHtml(cfg.region)+'" placeholder="oss-cn-hangzhou" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
+        '<label>Bucket 名称（控制台 Bucket 列表里复制的 exact 名字）<br><input id="oss_bucket" value="'+escHtml(cfg.bucket)+'" placeholder="temu-shujufenxi-data" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
+        '<label>AccessKey ID<br><input id="oss_ak" value="'+escHtml(cfg.accessKeyId)+'" autocomplete="off" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
+        '<label>AccessKey Secret（仅保存在本机浏览器）<br><input id="oss_sk" type="text" autocomplete="off" spellcheck="false" placeholder="粘贴 Secret，保存后可被浏览器记住" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-family:monospace;"></label>' +
         '</div>';
-    showModal('☁ 阿里云 OSS 配置', body, '保存', function() {
-        var next = {
-            owner: document.getElementById('oss_owner').value.trim(),
-            region: normalizeOssRegion(document.getElementById('oss_region').value.trim()),
-            bucket: document.getElementById('oss_bucket').value.trim(),
-            prefix: 'temu/',
-            accessKeyId: document.getElementById('oss_ak').value.trim(),
-            accessKeySecret: document.getElementById('oss_sk').value.trim()
-        };
+    showModal('☁ 阿里云 OSS 配置', body, '保存', function(overlay) {
+        var next = readOssFormFromOverlay(overlay);
+        if (!next) {
+            toast('无法读取配置表单，请关闭弹窗后重试', 'error');
+            return false;
+        }
+        next.owner = next.owner.trim();
         if (!next.bucket || !next.region || !next.accessKeyId || !next.accessKeySecret) {
             toast('请填完整：Bucket、Region、AccessKey ID 和 Secret', 'warning');
+            logEvent('warn', 'oss', 'config_incomplete', 'OSS 配置未填完整', {
+                bucket: !!next.bucket, region: !!next.region, ak: !!next.accessKeyId, sk: !!next.accessKeySecret,
+                skLen: next.accessKeySecret ? next.accessKeySecret.length : 0
+            });
             return false;
         }
         try {
             saveOssConfig(next);
         } catch(e) {
-            toast('配置保存失败：' + e.message, 'error');
+            var errMsg = e.message || String(e);
+            var hint = '';
+            if (e.name === 'QuotaExceededError') {
+                hint = '。浏览器存储已满（Excel 数据太大），请侧边栏「清除」释放空间后再保存 OSS';
+            } else if (e.name === 'SecurityError') {
+                hint = '。浏览器禁止写入本地存储，请关闭无痕模式，并用 启动本地看板.bat 打开 localhost:8080';
+            }
+            toast('配置保存失败：' + errMsg + hint, 'error');
+            logEvent('error', 'oss', 'config_save_fail', 'OSS 配置保存失败：' + errMsg, {
+                errorName: e.name || '', href: location.href, protocol: location.protocol
+            });
             return false;
         }
-        if (!isOssConfigured()) {
-            toast('保存后校验失败，请重试', 'error');
+        var verify = verifyOssConfigSaved();
+        if (!verify.ok) {
+            var d = verify.detail || {};
+            var miss = [];
+            if (!d.hasBucket) miss.push('Bucket');
+            if (!d.hasRegion) miss.push('Region');
+            if (!d.hasAk) miss.push('AccessKey ID');
+            if (!d.hasSk) miss.push('Secret');
+            var tip = verify.reason === 'parse_error'
+                ? '本地数据损坏（' + (d.error || 'JSON 解析失败') + '），请清空后重填'
+                : ('缺少：' + (miss.length ? miss.join('、') : '未知字段'));
+            toast('保存后校验失败：' + tip, 'error');
+            logEvent('error', 'oss', 'config_verify_fail', 'OSS 保存后校验失败', Object.assign({
+                href: location.href, reason: verify.reason, formSkLen: next.accessKeySecret.length
+            }, d));
             return false;
         }
         updateSidebar();
         toast('OSS 已保存 · ' + next.bucket + ' · ' + next.owner, 'success');
         logEvent('info', 'oss', 'config_save', 'OSS 配置已保存', { bucket: next.bucket, region: next.region, owner: next.owner });
         if (onSaved) setTimeout(onSaved, 300);
+    }, function(overlay) {
+        var skEl = overlay.querySelector('#oss_sk');
+        if (skEl && cfg.accessKeySecret) skEl.value = cfg.accessKeySecret;
+        var diagBtn = overlay.querySelector('.oss-diag-btn');
+        var drillBtn = overlay.querySelector('.oss-drill-btn');
+        if (diagBtn) {
+            diagBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                diagnoseOssConnection(overlay);
+            });
+        }
+        if (drillBtn) {
+            drillBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                runTeamSyncDrill();
+            });
+        }
     });
 }
 
@@ -2632,68 +2862,76 @@ function handleFileUpload(inputFiles) {
         };
         reader.onload = function(e){
             try {
-                var wb = XLSX.read(e.target.result,{type:'array'});
-                wb.SheetNames.forEach(function(sn){
-                    if (sn==='计算公式') return;
-                    var ws = wb.Sheets[sn], json = XLSX.utils.sheet_to_json(ws,{header:1});
-                    if (json.length<=1) return;
+                try {
+                    var wb = XLSX.read(e.target.result,{type:'array'});
+                    wb.SheetNames.forEach(function(sn){
+                        if (sn==='计算公式') return;
+                        var ws = wb.Sheets[sn], json = XLSX.utils.sheet_to_json(ws,{header:1});
+                        if (json.length<=1) return;
 
-                    var sheetType = detectSheetType(json, f.name);
-                    if (sheetType === 'store') {
-                        var storeRecs = StoreDataPipeline.analyze([{rows: json, sheet: sn, filename: f.name}]);
-                        ST.storeData = (ST.storeData||[]).concat(storeRecs);
-                        storeCount += storeRecs.length;
-                        safeSetItem('temu_v6_store', JSON.stringify(ST.storeData));
-                        var storeNames = {};
-                        storeRecs.forEach(function(r) { if (r.store) storeNames[r.store] = 1; });
-                        recordStoreParseReport(f.name, sn, storeRecs.length, Object.keys(storeNames));
-                        return;
-                    }
+                        var sheetType = detectSheetType(json, f.name);
+                        if (sheetType === 'store') {
+                            var storeRecs = StoreDataPipeline.analyze([{rows: json, sheet: sn, filename: f.name}]);
+                            ST.storeData = (ST.storeData||[]).concat(storeRecs);
+                            storeCount += storeRecs.length;
+                            var storeNames = {};
+                            storeRecs.forEach(function(r) { if (r.store) storeNames[r.store] = 1; });
+                            recordStoreParseReport(f.name, sn, storeRecs.length, Object.keys(storeNames));
+                            return;
+                        }
 
-                    // 店铺利润统计：自动定位含「商品SPU ID」的表头行
-                    var hi = findProductHeaderRow(json);
-                    var rawHeaders = (json[hi] || []).map(function(h) { return String(h).trim(); });
-                    var parsed = rowsToProductData(json, hi);
-                    if (parsed.data.length === 0) {
-                        logEvent('warn', 'upload', 'parse_empty', f.name + ' 无有效商品行', { filename: f.name, sheet: sn, headerRow: hi, headers: parsed.headers });
-                        return;
-                    }
-                    ST.files.push({filename:f.name,sheet:sn,headers:parsed.headers,data:parsed.data,rowCount:parsed.data.length,fileType:'product',time:new Date().toLocaleString('zh-CN')});
-                    count+=parsed.data.length;
-                    recordProductParseReport(f.name, sn, hi, rawHeaders, parsed);
-                });
-            } catch(err) {
-                logEvent('error', 'upload', 'parse_fail', '解析失败: ' + f.name, { filename: f.name, error: err.message || String(err) });
-                toast('解析失败: '+f.name,'error');
+                        var hi = findProductHeaderRow(json);
+                        var rawHeaders = (json[hi] || []).map(function(h) { return String(h).trim(); });
+                        var parsed = rowsToProductData(json, hi);
+                        if (parsed.data.length === 0) {
+                            logEvent('warn', 'upload', 'parse_empty', f.name + ' 无有效商品行', { filename: f.name, sheet: sn, headerRow: hi, headers: parsed.headers });
+                            return;
+                        }
+                        ST.files.push({filename:f.name,sheet:sn,headers:parsed.headers,data:parsed.data,rowCount:parsed.data.length,fileType:'product',time:new Date().toLocaleString('zh-CN')});
+                        count+=parsed.data.length;
+                        recordProductParseReport(f.name, sn, hi, rawHeaders, parsed);
+                    });
+                } catch(err) {
+                    var parseMsg = err.message || String(err);
+                    logEvent('error', 'upload', 'parse_fail', '解析失败: ' + f.name, { filename: f.name, error: parseMsg });
+                    toast('解析失败: ' + f.name + ' — ' + parseMsg, 'error');
+                    return;
+                }
+                if (storeCount > 0) safeSetItem('temu_v6_store', JSON.stringify(ST.storeData));
+                safeSetItem('temu_v6_data', JSON.stringify(ST.files));
+                var now = new Date().toLocaleString('zh-CN');
+                if (count > 0) pushSnapshot();
+                safeSetItem('temu_v6_meta', JSON.stringify({count:ST.files.length, saved_at:now}));
+                reprocessAll(); updateSidebar(); renderImportPage(); if(typeof renderPKPage!=="undefined") try{renderPKPage();}catch(e){}
+                var msg = [];
+                if (count > 0) msg.push('利润统计 '+count+' 条商品');
+                if (storeCount > 0) msg.push('数据记录 '+storeCount+' 条店铺');
+                if (msg.length) {
+                    logEvent('info', 'upload', 'batch_done', msg.join(' · '), {
+                        productRows: count, storeRows: storeCount, files: ST.files.length, spu: ST.products.length
+                    });
+                } else {
+                    logEvent('warn', 'upload', 'batch_empty', '上传完成但未解析到有效数据', { filenames: fileList.map(function(x){ return x.name; }) });
+                }
+                if (msg.length) {
+                    toast('上传完成：' + msg.join(' · '), 'success', {
+                        action: '撤销',
+                        onAction: undoLastUpload,
+                        duration: 9000
+                    });
+                } else {
+                    toast('未解析到有效数据', 'warning');
+                }
+            } catch(saveErr) {
+                var errMsg = saveErr.message || String(saveErr);
+                var hint = (saveErr.name === 'QuotaExceededError' || /quota|存储/i.test(errMsg))
+                    ? '浏览器存储已满，请侧边栏「清除」释放空间后重新上传'
+                    : errMsg;
+                logEvent('error', 'storage', 'upload_save_fail', '上传后保存失败: ' + f.name, { filename: f.name, error: errMsg });
+                toast('保存失败：' + hint, 'error');
+            } finally {
                 fileDone();
-                return;
             }
-            // 安全写入 localStorage（自动处理配额溢出和快照清理）
-            safeSetItem('temu_v6_data', JSON.stringify(ST.files));
-            var now = new Date().toLocaleString('zh-CN');
-            if (count > 0) pushSnapshot();
-            safeSetItem('temu_v6_meta', JSON.stringify({count:ST.files.length, saved_at:now}));
-            reprocessAll(); updateSidebar(); renderImportPage(); if(typeof renderPKPage!=="undefined") try{renderPKPage();}catch(e){}
-            var msg = [];
-            if (count > 0) msg.push('利润统计 '+count+' 条商品');
-            if (storeCount > 0) msg.push('数据记录 '+storeCount+' 条店铺');
-            if (msg.length) {
-                logEvent('info', 'upload', 'batch_done', msg.join(' · '), {
-                    productRows: count, storeRows: storeCount, files: ST.files.length, spu: ST.products.length
-                });
-            } else {
-                logEvent('warn', 'upload', 'batch_empty', '上传完成但未解析到有效数据', { filenames: Array.from(inputFiles).map(function(x){ return x.name; }) });
-            }
-            if (msg.length) {
-                toast('上传完成：' + msg.join(' · '), 'success', {
-                    action: '撤销',
-                    onAction: undoLastUpload,
-                    duration: 9000
-                });
-            } else {
-                toast('未解析到有效数据', 'warning');
-            }
-            fileDone();
         };
         reader.readAsArrayBuffer(f);
     });
@@ -2722,7 +2960,10 @@ function handleTeamUpload(inputFiles) {
                 var wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
                 var sn = wb.SheetNames[0];
                 var json = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1 });
-                if (!json || json.length < 2) { toast('团队文件无数据: ' + f.name, 'warning'); return; }
+                if (!json || json.length < 2) {
+                    toast('团队文件无数据: ' + f.name, 'warning');
+                    return;
+                }
                 if (detectSheetType(json, f.name) === 'store') {
                     logEvent('warn', 'team', 'wrong_file_type', '团队区收到店铺数据记录：' + f.name, { filename: f.name });
                     toast('「' + f.name + '」是店铺数据记录，请拖到主上传区。团队区只收利润统计。', 'warning');
@@ -2732,7 +2973,8 @@ function handleTeamUpload(inputFiles) {
                 var parsed = rowsToProductData(json, hi);
                 if (parsed.data.length === 0) {
                     logEvent('warn', 'team', 'parse_empty', '团队文件无有效行: ' + f.name, { filename: f.name });
-                    toast('团队文件无有效行: ' + f.name, 'warning'); return;
+                    toast('团队文件无有效行: ' + f.name, 'warning');
+                    return;
                 }
                 var rawHeaders = (json[hi] || []).map(function(h) { return String(h).trim(); });
                 var fileEntry = {filename: f.name, sheet: sn, headers: parsed.headers, data: parsed.data, rowCount: parsed.data.length, time: new Date().toLocaleString('zh-CN')};
@@ -2741,16 +2983,18 @@ function handleTeamUpload(inputFiles) {
                 count += result.products.length;
                 recordProductParseReport('[团队] ' + f.name, sn, hi, rawHeaders, parsed);
                 logEvent('info', 'team', 'import_file', f.name + ' → ' + result.products.length + ' SPU', { filename: f.name, spuAdded: result.products.length, teamTotal: ST.teamProducts.length });
+                hasTeam = ST.teamProducts.length > 0;
+                safeSetItem('temu_v6_team', JSON.stringify(ST.teamProducts));
+                reprocessAll(); updateSidebar(); if (typeof renderPKPage !== "undefined") try { renderPKPage(); } catch (e2) {}
+                logEvent('info', 'team', 'import_done', '团队 Excel 导入完成 · ' + count + ' 条', { count: count, teamTotal: ST.teamProducts.length });
+                toast('团队数据导入完成：' + count + ' 条商品', 'success');
             } catch (err) {
-                logEvent('error', 'team', 'parse_fail', '团队数据解析失败: ' + f.name, { filename: f.name, error: err.message || String(err) });
-                toast('团队数据解析失败: ' + f.name, 'error'); return;
+                var teamParseMsg = err.message || String(err);
+                logEvent('error', 'team', 'parse_fail', '团队数据解析失败: ' + f.name, { filename: f.name, error: teamParseMsg });
+                toast('团队数据解析失败: ' + f.name + ' — ' + teamParseMsg, 'error');
+            } finally {
+                teamFileDone();
             }
-            hasTeam = ST.teamProducts.length > 0;
-            safeSetItem('temu_v6_team', JSON.stringify(ST.teamProducts));
-            reprocessAll(); updateSidebar(); if (typeof renderPKPage !== "undefined") try { renderPKPage(); } catch (e2) {}
-            logEvent('info', 'team', 'import_done', '团队 Excel 导入完成 · ' + count + ' 条', { count: count, teamTotal: ST.teamProducts.length });
-            toast('团队数据导入完成：' + count + ' 条商品', 'success');
-            teamFileDone();
         };
         reader.readAsArrayBuffer(f);
     });
@@ -3622,6 +3866,72 @@ function renderPKNoData(pg) {
     pg.appendChild(div);
 }
     return renderPKPage;
+})();
+
+// IIFE 页面渲染器 → 全局别名（onclick / 旧代码直接调用名）
+var renderImportPage = window.renderImportPage;
+var renderProducts = window.renderProducts;
+var renderRules = window.renderRules;
+var renderPredict = window.renderPredict;
+var renderBlacklist = window.renderBlacklist;
+var renderDiagnosis = window.renderDiagnosis;
+var renderStorePage = window.renderStorePage;
+var renderPKPage = window.renderPKPage;
+
+function runStartupSelfCheck() {
+    var issues = [];
+    if (typeof XLSX === 'undefined') issues.push('SheetJS 未加载（检查网络或 CDN）');
+    if (!PAGE_META || !PAGE_META.import) issues.push('PAGE_META 未就绪');
+    if (!DataPipeline || typeof DataPipeline.analyze !== 'function') issues.push('DataPipeline 未就绪');
+    if (!StoreDataPipeline || typeof StoreDataPipeline.analyze !== 'function') issues.push('StoreDataPipeline 未就绪');
+    if (typeof checkOssLocalProxy !== 'function') issues.push('OSS 代理检测未就绪');
+    if (typeof renderImportPage !== 'function') issues.push('renderImportPage 未就绪');
+    if (issues.length) {
+        console.error('[Temu Dashboard 启动自检失败]', issues);
+        toast('看板初始化异常：' + issues[0], 'error', { duration: 12000 });
+        logEvent('error', 'system', 'startup_check_fail', issues.join(' · '), { issues: issues });
+        return false;
+    }
+    return true;
+}
+
+(function bootstrap() {
+    var raw = localStorage.getItem('temu_v6_data');
+    if (raw) { try { ST.files = JSON.parse(raw); } catch(e) { ST.files = []; } }
+    if (!Array.isArray(ST.files)) ST.files = [];
+    var idx = localStorage.getItem('temu_v6_snap_idx');
+    if (idx) { try { ST.snapshots = JSON.parse(idx); } catch(e) { ST.snapshots = []; } }
+    if (!Array.isArray(ST.snapshots)) ST.snapshots = [];
+    var storeRaw = localStorage.getItem('temu_v6_store');
+    if (storeRaw) { try { ST.storeData = JSON.parse(storeRaw); } catch(e) { ST.storeData = []; } }
+    var teamRaw = localStorage.getItem('temu_v6_team');
+    if (teamRaw) { try { ST.teamProducts = normalizeTeamProducts(JSON.parse(teamRaw)); hasTeam = ST.teamProducts && ST.teamProducts.length > 0; } catch(e) { ST.teamProducts = []; hasTeam = false; } }
+    if (!Array.isArray(ST.teamProducts)) { ST.teamProducts = []; hasTeam = false; }
+    if (!Array.isArray(ST.storeData)) ST.storeData = [];
+    if (!runStartupSelfCheck()) return;
+    updateSidebar();
+    logEvent('info', 'system', 'session_start', '页面加载完成', {
+        files: ST.files.length,
+        storeRecords: ST.storeData.length,
+        teamProducts: ST.teamProducts.length,
+        ossConfigured: typeof isOssConfigured === 'function' ? isOssConfigured() : false
+    });
+    updateEventLogBadge();
+    var inlineToolbar = document.getElementById('eventLogInlineToolbar');
+    if (inlineToolbar) inlineToolbar.innerHTML = eventLogToolbarHTML('');
+    renderEventLogViews('');
+    renderParseReportsPanel();
+    if (ST.files.length > 0) {
+        try { reprocessAll(false); renderImportPage(); } catch(e) {
+            console.warn('数据加载失败，保留原始文件:', e.message);
+            logEvent('error', 'pipeline', 'init_reprocess_fail', '历史数据解析失败：' + e.message, { error: e.message });
+            toast('历史数据解析失败，请重新上传 Excel（原始文件仍保留）','error');
+        }
+    }
+    if (localStorage.getItem('temu_v6_sidebar') === 'collapsed') {
+        document.querySelector('.sidebar').classList.add('collapsed');
+    }
+    initUX();
 })();
 
 </script>
