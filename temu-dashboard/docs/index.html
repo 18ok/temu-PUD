@@ -19,7 +19,7 @@
 
     <style>
         /* ── shadcn/ui Maia-inspired 设计系统 ── */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
 
         :root {
             --bg: #0f0f17;
@@ -60,10 +60,15 @@
         }
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
         body {
-            font-family: var(--font); background: var(--bg); color: var(--text);
+            font-family: var(--font); color: var(--text);
             line-height: 1.65; min-height: 100vh; -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
+            background: var(--bg);
+            background-image:
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(226, 184, 122, 0.08), transparent),
+                radial-gradient(ellipse 60% 40% at 100% 50%, rgba(91, 155, 213, 0.04), transparent);
         }
 
         /* ── 布局 ── */
@@ -99,7 +104,11 @@
             border-radius: var(--radius-sm); text-decoration: none;
             color: var(--text-dim); font-size: 0.92rem; transition: all 0.15s; cursor: pointer;
         }
-        .sidebar-nav a:hover, .sidebar-nav a.active { background: var(--info-bg); color: var(--text); }
+        .sidebar-nav a:hover { background: var(--info-bg); color: var(--text); }
+        .sidebar-nav a.active {
+            background: var(--info-bg); color: var(--gold);
+            box-shadow: inset 3px 0 0 var(--gold);
+        }
         .nav-icon { font-size: 1.1rem; }
         .sidebar-info { padding: 12px; border-top: 1px solid var(--border-light); font-size: 0.82rem; color: var(--text-dim); }
         .sidebar-info .stat-card {
@@ -124,17 +133,91 @@
         }
         .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
         .topbar {
-            display: flex; align-items: center; justify-content: flex-end;
-            padding: 10px 20px; gap: 10px;
+            display: flex; align-items: center; gap: 14px;
+            padding: 12px 24px; border-bottom: 1px solid var(--border-light);
+            background: rgba(15, 15, 23, 0.72); backdrop-filter: blur(12px);
+            position: sticky; top: 0; z-index: 50;
         }
-        .topbar .btn-deploy {
-            padding: 6px 16px; border-radius: var(--radius-sm); border: none;
-            background: var(--gold); color: var(--bg); font-weight: 700;
-            cursor: pointer; font-size: 0.85rem;
+        .topbar-title { flex: 1; min-width: 0; }
+        .topbar-title h2 {
+            font-family: 'Plus Jakarta Sans', var(--font);
+            font-size: 1.15rem; font-weight: 700; color: var(--text);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
-        .content { padding: 24px 32px; max-width: 1100px; }
+        .topbar-title p { font-size: 0.78rem; color: var(--text-dim); margin-top: 2px; }
+        .topbar-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .btn-ghost {
+            padding: 8px 12px; border-radius: var(--radius-sm);
+            border: 1px solid var(--border); background: transparent;
+            color: var(--text-dim); cursor: pointer; font-size: 0.9rem;
+            transition: all 0.15s;
+        }
+        .btn-ghost:hover { border-color: var(--border-hover); color: var(--text); background: var(--card-hover); }
+        .btn-primary-sm {
+            padding: 8px 14px; border-radius: var(--radius-sm); border: none;
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            color: var(--bg); font-weight: 700; cursor: pointer; font-size: 0.85rem;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .btn-primary-sm:hover { transform: translateY(-1px); box-shadow: 0 4px 14px var(--gold-glow); }
+        .workflow-strip {
+            display: flex; gap: 6px; padding: 10px 24px 0;
+            max-width: 1100px; margin: 0 auto; width: 100%; flex-wrap: wrap;
+        }
+        .workflow-step {
+            flex: 1; min-width: 100px; padding: 8px 12px; border-radius: var(--radius-sm);
+            font-size: 0.75rem; font-weight: 600; text-align: center;
+            border: 1px solid var(--border-light); color: var(--text-dim);
+            background: var(--card); transition: all 0.25s;
+        }
+        .workflow-step.done { border-color: var(--success-border); color: var(--success-text); background: var(--success); }
+        .workflow-step.current { border-color: var(--gold); color: var(--gold); background: var(--gold-bg); }
+        .workflow-step { cursor: pointer; user-select: none; }
+        .workflow-step:hover { border-color: var(--border-hover); transform: translateY(-1px); }
+        .empty-state {
+            text-align: center; padding: 48px 28px; margin: 20px 0;
+            background: var(--card); border: 1px dashed var(--border);
+            border-radius: var(--radius-xl);
+        }
+        .empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; opacity: 0.9; }
+        .empty-state h3 { font-family: 'Plus Jakarta Sans', var(--font); font-size: 1.2rem; margin-bottom: 8px; color: var(--text); }
+        .empty-state p { color: var(--text-dim); font-size: 0.9rem; max-width: 420px; margin: 0 auto 18px; line-height: 1.55; }
+        .insights-bar {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px; margin-bottom: 20px;
+        }
+        .insight-card {
+            background: var(--card); border: 1px solid var(--border-light);
+            border-radius: var(--radius); padding: 14px 16px;
+            transition: border-color 0.15s, transform 0.15s;
+        }
+        .insight-card:hover { border-color: var(--border-hover); transform: translateY(-2px); }
+        .insight-card .label { font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+        .insight-card .value { font-size: 1.35rem; font-weight: 700; margin-top: 4px; color: var(--gold); }
+        .insight-card .sub { font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; }
+        #toast { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+        .toast-msg {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            max-width: 100%; box-shadow: var(--shadow);
+        }
+        .toast-action {
+            padding: 4px 10px; border-radius: 6px; border: 1px solid currentColor;
+            background: transparent; color: inherit; font-size: 0.8rem; font-weight: 600;
+            cursor: pointer; white-space: nowrap;
+        }
+        .toast-action:hover { background: rgba(255,255,255,0.08); }
+        .page-toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; align-items: center; }
+        .content { padding: 20px 32px 32px; max-width: 1100px; margin: 0 auto; width: 100%; }
         .page { display: none; }
-        .page.active { display: block; }
+        .page.active { display: block; animation: pageIn 0.35s ease-out; }
+        @keyframes pageIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .page.active { animation: none; }
+            .upload-zone, .btn, .sidebar-nav a { transition: none; }
+        }
 
         /* ── Hero ── */
         .hero {
@@ -178,7 +261,13 @@
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; margin-bottom: 18px;
         }
         .upload-zone:hover { border-color: var(--border-hover); background: var(--card-hover); box-shadow: var(--shadow-sm); }
-        .upload-zone .icon { font-size: 2.8rem; margin-bottom: 10px; }
+        .upload-zone.dragover {
+            border-color: var(--gold); background: var(--gold-bg);
+            box-shadow: 0 0 0 4px var(--gold-glow); transform: scale(1.01);
+        }
+        .upload-zone.parsing { pointer-events: none; opacity: 0.65; }
+        .upload-zone .icon { font-size: 2.8rem; margin-bottom: 10px; transition: transform 0.25s; }
+        .upload-zone.dragover .icon { transform: scale(1.08); }
         .upload-zone .hint { font-size: 0.84rem; color: var(--text-dim); margin-top: 10px; }
 
         /* ── 折叠面板 ── */
@@ -289,22 +378,94 @@
             transition: all 0.15s; margin-right: auto;
         }
         .sidebar-toggle-btn:hover { color: var(--text); border-color: var(--border-hover); background: var(--card-hover); }
-        #toast { position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 420px; }
-        .toast-msg { padding: 12px 20px; border-radius: var(--radius); margin-bottom: 8px; font-size: 0.9rem; animation: slideIn 0.3s ease; }
+        #toast { position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 420px; pointer-events: none; }
+        #toast .toast-msg { pointer-events: auto; padding: 12px 16px; border-radius: var(--radius); font-size: 0.9rem; animation: slideIn 0.3s ease; }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
         /* ── Modal ── */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; display: flex; align-items: center; justify-content: center; }
         .modal-box { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 28px; max-width: 480px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
         .modal-box h2 { margin-bottom: 16px; color: var(--gold); font-size: 1.3rem; }
+
+        /* ── 运行日志 ── */
+        .log-badge { font-size: 0.72rem; padding: 1px 7px; border-radius: 9999px; margin-left: 6px; vertical-align: middle; }
+        .log-badge-warn { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.35); }
+        .log-badge-err { background: rgba(248,113,113,0.15); color: #f87171; border: 1px solid rgba(248,113,113,0.35); }
+        .log-list { max-height: 360px; overflow-y: auto; font-size: 0.82rem; line-height: 1.5; }
+        .log-entry { padding: 8px 10px; border-bottom: 1px solid var(--border-light); border-left: 3px solid var(--border); }
+        .log-entry.log-info { border-left-color: rgba(91,155,213,0.6); }
+        .log-entry.log-warn { border-left-color: #fbbf24; background: rgba(251,191,36,0.04); }
+        .log-entry.log-error { border-left-color: #f87171; background: rgba(248,113,113,0.06); }
+        .log-entry .log-meta { color: var(--text-dim); font-size: 0.75rem; margin-bottom: 3px; }
+        .log-entry .log-msg { color: var(--text); word-break: break-word; }
+        .log-entry .log-detail { color: var(--text-dim); font-size: 0.75rem; margin-top: 4px; font-family: ui-monospace, monospace; white-space: pre-wrap; }
+        .log-toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; align-items: center; }
+        .log-toolbar select { padding: 6px 10px; background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: 8px; font-size: 0.85rem; }
+        .log-empty { color: var(--text-dim); padding: 16px; text-align: center; font-size: 0.9rem; }
+        .log-search { flex: 1; min-width: 140px; max-width: 220px; padding: 6px 10px; background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: 8px; font-size: 0.85rem; }
+        .log-map-table { width: 100%; font-size: 0.75rem; margin-top: 6px; border-collapse: collapse; }
+        .log-map-table th, .log-map-table td { padding: 4px 8px; border: 1px solid var(--border-light); text-align: left; }
+        .log-map-table th { color: var(--text-dim); background: var(--card-alt); }
+        .log-map-miss { color: #f87171; }
+        .log-map-ok { color: #4ade80; }
+        .parse-report-card { padding: 10px 12px; border: 1px solid var(--border-light); border-radius: var(--radius); margin-bottom: 10px; background: var(--card-alt); }
+        .parse-report-card.warn { border-left: 3px solid #fbbf24; }
+        .parse-report-card.err { border-left: 3px solid #f87171; }
+        .parse-report-card.ok { border-left: 3px solid #4ade80; }
+
+        /* ── 全局加载 / 移动端侧栏 ── */
+        .global-loading {
+            position: fixed; inset: 0; z-index: 10000;
+            background: rgba(15, 15, 23, 0.55); backdrop-filter: blur(4px);
+            display: none; align-items: center; justify-content: center;
+        }
+        .global-loading.show { display: flex; }
+        .global-loading-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: var(--radius-xl); padding: 28px 36px; text-align: center;
+            box-shadow: var(--shadow-lg); min-width: 200px;
+        }
+        .spinner {
+            width: 36px; height: 36px; margin: 0 auto 14px;
+            border: 3px solid var(--border); border-top-color: var(--gold);
+            border-radius: 50%; animation: spin 0.75s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .global-loading-card p { font-size: 0.9rem; color: var(--text-dim); }
+        .sidebar-backdrop {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+            z-index: 90;
+        }
+        .app-footer {
+            margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border-light);
+            font-size: 0.78rem; color: var(--text-faded); text-align: center; line-height: 1.6;
+        }
+        .app-footer strong { color: var(--text-dim); font-weight: 600; }
+        @media (max-width: 900px) {
+            .sidebar {
+                position: fixed; left: 0; top: 0; bottom: 0; z-index: 100;
+                transform: translateX(-100%); transition: transform 0.28s ease;
+                box-shadow: var(--shadow-lg);
+            }
+            .sidebar.mobile-open { transform: translateX(0); }
+            .sidebar-backdrop.show { display: block; }
+            .content { padding: 16px 18px 28px; }
+            .topbar { padding: 10px 16px; }
+            .workflow-strip { padding: 8px 16px 0; }
+            .hero { padding: 22px 20px; }
+            .hero h1 { font-size: 1.5rem; }
+        }
     </style>
 </head>
 <body>
-<div style="background:rgba(239,68,68,0.15);border-bottom:2px solid rgba(239,68,68,0.4);padding:10px 20px;text-align:center;font-size:0.85rem;color:#fca5a5;font-family:Inter,sans-serif;">
-⚠️ 在线版仅可查看/导入本地 Excel — <strong>⬆ 云端同步</strong> 请用本地 <code style="background:rgba(226,184,122,0.15);color:#e2b87a;padding:1px 6px;border-radius:3px;">启动本地看板.bat</code> 版
-</div>
-
 <div id="toast"></div>
+<div id="globalLoading" class="global-loading" aria-hidden="true" aria-live="polite">
+    <div class="global-loading-card">
+        <div class="spinner" role="status"></div>
+        <p id="globalLoadingText">处理中…</p>
+    </div>
+</div>
+<div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
 
 <div class="app">
     <aside class="sidebar">
@@ -341,14 +502,27 @@
                 <button onclick="runTeamSyncDrill()" title="上传虚拟同事数据并验证团队拉取">🧪 联调</button>
                 <button onclick="doClear()">🗑️ 清除</button>
             </div>
+            <div class="sidebar-actions">
+                <button onclick="showEventLogModal()" title="运行日志 (L)">📋 日志</button>
+                <button onclick="exportDiagnosisReport()" title="导出 Markdown 周报">📄 周报</button>
+            </div>
         </div>
     </aside>
 
     <main class="main">
         <header class="topbar">
-            <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="折叠侧边栏">☰</button>
-            <button class="btn-deploy" onclick="location.reload()">🔄 刷新</button>
+            <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="菜单 (M)" aria-label="切换侧边栏">☰</button>
+            <div class="topbar-title">
+                <h2 id="topbarTitle">数据导入</h2>
+                <p id="topbarSub">上传 Excel · 自动识别商品与店铺</p>
+            </div>
+            <div class="topbar-actions">
+                <button type="button" class="btn-ghost" onclick="showEventLogModal()" title="运行日志 (L)">📋</button>
+                <button type="button" class="btn-primary-sm" onclick="uploadToCloud()" title="同步到团队云端">⬆ 同步</button>
+                <button type="button" class="btn-ghost" onclick="location.reload()" title="刷新页面">🔄</button>
+            </div>
         </header>
+        <div class="workflow-strip" id="workflowStrip" aria-label="工作流进度"></div>
         <div class="content">
 
             <!-- ═══ 页面 1: 数据导入 ═══ -->
@@ -373,7 +547,8 @@
                             <div class="step"><div class="emoji">🔍</div><div class="title">2. 自动分流</div><div class="desc">商品SPU→选品页 · 店铺名称→运营/PK</div></div>
                             <div class="step"><div class="emoji">📊</div><div class="title">3. 查看分析</div><div class="desc">本地看板 + 侧边栏 ⬆同步 OSS</div></div>
                         </div>
-                        <div class="alert alert-info" style="margin-top:12px;"><span class="alert-icon">☁️</span><span><strong>OSS 同步</strong>：解析后点侧边栏 <strong>⬆ 同步</strong>。请双击文件夹里的 <strong>启动本地看板.bat</strong>（含 OSS 代理，无需配 CORS），浏览器打开 <code style="color:var(--gold);">http://localhost:8080/temu-dashboard.html</code></span></div>
+                        <div class="alert alert-info" style="margin-top:12px;"><span class="alert-icon">☁️</span><span><strong>OSS 同步</strong>：解析后点顶栏 <strong>⬆ 同步</strong>。请双击 <strong>启动本地看板.bat</strong>，打开 <code style="color:var(--gold);">http://localhost:8080/temu-dashboard.html</code></span></div>
+                        <p style="font-size:0.8rem;color:var(--text-dim);margin-top:10px;">快捷键：<kbd style="padding:2px 6px;border-radius:4px;background:var(--card-alt);border:1px solid var(--border);">1</kbd>–<kbd style="padding:2px 6px;border-radius:4px;background:var(--card-alt);border:1px solid var(--border);">8</kbd> 切换页面 · <kbd style="padding:2px 6px;border-radius:4px;background:var(--card-alt);border:1px solid var(--border);">M</kbd> 菜单 · <kbd style="padding:2px 6px;border-radius:4px;background:var(--card-alt);border:1px solid var(--border);">L</kbd> 日志</p>
                     </div>
                 </details>
                 <hr>
@@ -381,7 +556,7 @@
                     <div class="icon">📁</div>
                     <div style="font-size:1.1rem; margin-bottom:8px;">拖拽文件到此处或点击选择</div>
                     <div class="hint">店铺利润统计 .xls（商品SPU）· 店铺数据记录 .xlsx（ROAS/花费）</div>
-                    <button class="btn" style="margin-top:14px;" onclick="event.stopPropagation(); document.getElementById('fileInput').click();">⬆ Upload</button>
+                    <button class="btn" style="margin-top:14px;" onclick="event.stopPropagation(); document.getElementById('fileInput').click();">⬆ 选择文件</button>
                 </div>
                 <input type="file" id="fileInput" accept=".xls,.xlsx" multiple style="display:none" onchange="handleFileUpload(this.files)">
                 <div class="alert alert-info"><span class="alert-icon">📂</span><span>支持两类文件混传：<strong>店铺利润统计</strong>（.xls，表头含「商品SPU ID」→ 商品画像/选品）和 <strong>店铺数据记录</strong>（.xlsx，表头含「店铺名称」→ 店铺运营/个人PK）</span></div>
@@ -393,6 +568,24 @@
                     <button class="btn" style="margin-top:10px;border-color:rgba(91,155,213,0.28);" onclick="event.stopPropagation(); document.getElementById('teamFileInput').click();">⬆ 上传团队数据</button>
                 </div>
                 <input type="file" id="teamFileInput" accept=".xls,.xlsx" multiple style="display:none" onchange="handleTeamUpload(this.files)">
+                <details class="expander" id="parseReportsPanel" style="margin-top:20px;">
+                    <summary>📑 解析报告 <span id="parseReportBadge" style="color:var(--text-dim);font-size:0.8rem;"></span></summary>
+                    <div class="expander-content">
+                        <p style="color:var(--text-dim);font-size:0.85rem;margin-bottom:10px;">每次上传 Excel 自动生成：原表头 → 内部字段映射、缺列告警、数据质量抽样。列全是 0 时先看这里。</p>
+                        <div id="parseReportsList"></div>
+                        <div class="btn-row" style="margin-top:8px;">
+                            <button type="button" class="btn" onclick="clearParseReportsConfirm()">🗑️ 清空解析报告</button>
+                        </div>
+                    </div>
+                </details>
+                <details class="expander" id="eventLogPanel" style="margin-top:12px;">
+                    <summary>📋 运行日志 <span id="eventLogBadge"></span></summary>
+                    <div class="expander-content">
+                        <p style="color:var(--text-dim);font-size:0.85rem;margin-bottom:10px;">记录上传、解析、OSS、团队同步等操作。出问题可复制日志发给 AI / 技术支持，无需重传 Excel。</p>
+                        <div id="eventLogInlineToolbar" class="log-toolbar"></div>
+                        <div id="eventLogInlineList" class="log-list"></div>
+                    </div>
+                </details>
             </div>
 
             <!-- ═══ 页面 2: 商品画像 ═══ -->
@@ -459,6 +652,10 @@
                 </div>
             </div>
 
+            <footer class="app-footer">
+                <strong>Temu 运营数据看板 V10</strong> · 跨境团队选品与运营一体化<br>
+                本地解析 · 团队 OSS · 运行日志 · 面向企业内训与能力沉淀（小程序 / 付费版规划中）
+            </footer>
         </div>
     </main>
 </div>
@@ -477,8 +674,48 @@ function med(a){var m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m]
 function q75(a){return a[Math.floor(a.length*0.75)];}
 function q25(a){return a[Math.floor(a.length*0.25)];}
 function avg(a){var f=a.filter(function(v){return v!=null&&!isNaN(v);});return f.length===0?0:f.reduce(function(x,y){return x+y;},0)/f.length;}
+function avgOrNull(a){var f=a.filter(function(v){return v!=null&&!isNaN(v);});return f.length===0?null:f.reduce(function(x,y){return x+y;},0)/f.length;}
 // ── 安全数值格式化：NaN/Infinity 时返回 '—' ──
 function sf(v,d){ d=d||0; return (isNaN(v)||!isFinite(v))?'—':v.toFixed(d); }
+function parseNum(v){
+    if(v===null||v===undefined||v===''||v==='无') return NaN;
+    if(typeof v==='string') v=v.replace(/[%％$,，\s]/g,'').trim();
+    var n=parseFloat(v);
+    return isNaN(n)?NaN:n;
+}
+function cleanHeaderKey(h){
+    return String(h||'').trim()
+        .replace(/[（(][^）)]*[）)]/g,'')
+        .replace(/[%％]/g,'')
+        .replace(/\s+/g,'')
+        .toLowerCase();
+}
+function normalizePercent(val, price, cost){
+    var gm=parseNum(val);
+    if(isNaN(gm)){
+        if(price>0&&cost>=0) return (price-cost)/price*100;
+        return 0;
+    }
+    if(Math.abs(gm)>0&&Math.abs(gm)<=1) gm=gm*100;
+    return gm;
+}
+function normalizeRateToRatio(val){
+    var n=parseNum(val);
+    if(isNaN(n)) return 0;
+    if(Math.abs(n)>1&&Math.abs(n)<=100) return n/100;
+    return n;
+}
+function fmtPctPoints(v,d){
+    d=d===undefined?2:d;
+    if(v===null||v===undefined||isNaN(v)||!isFinite(v)) return '—';
+    return v.toFixed(d)+'%';
+}
+function fmtRatePct(ratio,d){
+    d=d===undefined?2:d;
+    if(ratio===null||ratio===undefined||isNaN(ratio)||!isFinite(ratio)) return '—';
+    if(ratio===0) return '0.00%';
+    return (ratio*100).toFixed(d)+'%';
+}
 
 // 安全写入 localStorage：配额溢出时自动清理旧快照后重试
 function safeSetItem(key, value) {
@@ -487,6 +724,9 @@ function safeSetItem(key, value) {
     } catch(e) {
         if (e.name === 'QuotaExceededError') {
             console.warn('localStorage 配额不足，清理旧快照...');
+            if (typeof logEvent === 'function') {
+                logEvent('warn', 'storage', 'quota_exceeded', 'localStorage 配额不足，正在清理旧快照', { key: key });
+            }
             // 清理所有快照
             var snapKeys = [];
             for (var i = localStorage.length - 1; i >= 0; i--) {
@@ -501,10 +741,470 @@ function safeSetItem(key, value) {
             try { localStorage.setItem(key, value); } catch(e2) {
                 // 仍然失败：清空全部数据
                 toast('存储空间不足，请清理旧数据后重试','error');
+                if (typeof logEvent === 'function') {
+                    logEvent('error', 'storage', 'quota_fatal', '清理快照后仍无法写入 localStorage', { key: key });
+                }
                 throw e2;
             }
         } else { throw e; }
     }
+}
+
+// ═══════════════════════════════════════════════
+// 运行日志（localStorage 环形缓冲，供排查与 AI 对接）
+// ═══════════════════════════════════════════════
+var EVENT_LOG_KEY = 'temu_v6_event_log';
+var EVENT_LOG_MAX = 200;
+var PARSE_REPORT_KEY = 'temu_v6_parse_reports';
+var PARSE_REPORT_MAX = 30;
+var DASHBOARD_VERSION = 'V10';
+var PRODUCT_REQUIRED_COLS = ['spu_id', 'gross_margin', 'daily_sales', 'cost', 'weight_g'];
+
+function productQualityStats(products) {
+    if (!products || !products.length) return { total: 0, marginZeroPct: 0, salesZeroPct: 0 };
+    var withMargin = products.filter(function(p) { return p.gross_margin > 0; }).length;
+    var withSales = products.filter(function(p) { return p.daily_sales > 0; }).length;
+    var n = products.length;
+    return {
+        total: n,
+        withMargin: withMargin,
+        withSales: withSales,
+        marginZeroPct: Math.round((1 - withMargin / n) * 100),
+        salesZeroPct: Math.round((1 - withSales / n) * 100)
+    };
+}
+
+function sampleProductRowQuality(data) {
+    if (!data || !data.length) return { rows: 0, noSpu: 0, marginZero: 0, salesZero: 0 };
+    var noSpu = 0, marginZero = 0, salesZero = 0;
+    data.forEach(function(r) {
+        var spu = String(r.spu_id || '').replace(/\.0$/, '').trim();
+        if (!spu || spu === 'undefined') noSpu++;
+        var gm = parseFloat(r.gross_margin);
+        if (isNaN(gm) || gm === 0) marginZero++;
+        var ds = parseFloat(r.daily_sales);
+        if (isNaN(ds) || ds === 0) salesZero++;
+    });
+    var n = data.length;
+    return {
+        rows: n,
+        noSpu: noSpu,
+        marginZero: marginZero,
+        salesZero: salesZero,
+        noSpuPct: Math.round(noSpu / n * 100),
+        marginZeroPct: Math.round(marginZero / n * 100),
+        salesZeroPct: Math.round(salesZero / n * 100)
+    };
+}
+
+function buildHeaderMappingReport(rawHeaders, mappedHeaders) {
+    var raw = rawHeaders || [];
+    var mapped = mappedHeaders || [];
+    var len = Math.max(raw.length, mapped.length);
+    var mapping = [];
+    var seen = {};
+    for (var i = 0; i < len; i++) {
+        var m = mapped[i] || '';
+        mapping.push({ index: i, raw: raw[i] || '', mapped: m });
+        if (m) {
+            if (seen[m]) seen[m].push(i); else seen[m] = [i];
+        }
+    }
+    var missingRequired = PRODUCT_REQUIRED_COLS.filter(function(k) { return mapped.indexOf(k) < 0; });
+    var warnings = [];
+    var duplicateKeys = Object.keys(seen).filter(function(k) { return seen[k].length > 1; });
+    if (missingRequired.length) warnings.push('缺少关键列: ' + missingRequired.join(', '));
+    if (duplicateKeys.length) warnings.push('重复映射列: ' + duplicateKeys.join(', '));
+    return { mapping: mapping, missingRequired: missingRequired, duplicateKeys: duplicateKeys, warnings: warnings };
+}
+
+function getParseReports() {
+    try {
+        var r = JSON.parse(localStorage.getItem(PARSE_REPORT_KEY) || '[]');
+        return Array.isArray(r) ? r.slice().reverse() : [];
+    } catch(e) { return []; }
+}
+
+function saveParseReport(report) {
+    var reports = [];
+    try {
+        reports = JSON.parse(localStorage.getItem(PARSE_REPORT_KEY) || '[]');
+        if (!Array.isArray(reports)) reports = [];
+    } catch(e) { reports = []; }
+    reports.push(report);
+    if (reports.length > PARSE_REPORT_MAX) reports = reports.slice(-PARSE_REPORT_MAX);
+    try {
+        localStorage.setItem(PARSE_REPORT_KEY, JSON.stringify(reports));
+    } catch(e) {
+        try { localStorage.setItem(PARSE_REPORT_KEY, JSON.stringify(reports.slice(-10))); } catch(e2) {}
+    }
+    updateParseReportBadge();
+    if (typeof renderParseReportsPanel === 'function') renderParseReportsPanel();
+}
+
+function recordProductParseReport(filename, sheet, headerRow, rawHeaders, parsed) {
+    var hm = buildHeaderMappingReport(rawHeaders, parsed.headers);
+    var quality = sampleProductRowQuality(parsed.data);
+    var level = 'info';
+    if (hm.missingRequired.length || quality.noSpuPct > 50) level = 'error';
+    else if (hm.warnings.length || quality.marginZeroPct > 85 || quality.salesZeroPct > 85) level = 'warn';
+    var report = {
+        id: 'pr-' + Date.now() + '-' + Math.random().toString(36).slice(2, 5),
+        ts: new Date().toISOString(),
+        ts_display: new Date().toLocaleString('zh-CN'),
+        filename: filename,
+        sheet: sheet,
+        type: 'product',
+        typeLabel: '店铺利润统计',
+        headerRow: headerRow,
+        rowCount: parsed.data.length,
+        headerMapping: hm,
+        quality: quality,
+        level: level
+    };
+    saveParseReport(report);
+    logEvent(level, 'upload', 'parse_report', filename + ' · ' + parsed.data.length + ' 行' + (hm.warnings.length ? ' · ' + hm.warnings[0] : ''), {
+        reportId: report.id,
+        missingRequired: hm.missingRequired,
+        warnings: hm.warnings,
+        quality: quality
+    });
+    return report;
+}
+
+function recordStoreParseReport(filename, sheet, recordCount, storeNames) {
+    var report = {
+        id: 'sr-' + Date.now(),
+        ts: new Date().toISOString(),
+        ts_display: new Date().toLocaleString('zh-CN'),
+        filename: filename,
+        sheet: sheet,
+        type: 'store',
+        typeLabel: '店铺数据记录',
+        rowCount: recordCount,
+        storeCount: storeNames ? storeNames.length : 0,
+        stores: (storeNames || []).slice(0, 8),
+        level: recordCount > 0 ? 'info' : 'warn'
+    };
+    saveParseReport(report);
+    logEvent(report.level, 'store', 'parse_report', filename + ' · 店铺 ' + recordCount + ' 条', {
+        reportId: report.id,
+        storeCount: report.storeCount
+    });
+    return report;
+}
+
+function updateParseReportBadge() {
+    var el = document.getElementById('parseReportBadge');
+    if (!el) return;
+    var reports = getParseReports();
+    var warn = reports.filter(function(r) { return r.level === 'warn' || r.level === 'error'; }).length;
+    if (!reports.length) el.textContent = '（暂无）';
+    else if (warn) el.innerHTML = '<span class="log-badge log-badge-warn">' + warn + ' 需关注</span>';
+    else el.textContent = '（最近 ' + Math.min(reports.length, PARSE_REPORT_MAX) + ' 份）';
+}
+
+function renderHeaderMappingTable(hm) {
+    if (!hm || !hm.mapping) return '';
+    var rows = hm.mapping.map(function(m) {
+        var cls = PRODUCT_REQUIRED_COLS.indexOf(m.mapped) >= 0 ? 'log-map-ok' : '';
+        if (!m.mapped && m.raw) cls = 'log-map-miss';
+        return '<tr><td>' + m.index + '</td><td>' + escHtml(m.raw) + '</td><td class="' + cls + '">' + escHtml(m.mapped || '—') + '</td></tr>';
+    }).join('');
+    var warn = '';
+    if (hm.warnings && hm.warnings.length) {
+        warn = '<p style="color:#fbbf24;font-size:0.8rem;margin:8px 0 0;">⚠️ ' + escHtml(hm.warnings.join(' · ')) + '</p>';
+    }
+    return '<table class="log-map-table"><thead><tr><th>#</th><th>Excel 原表头</th><th>内部字段</th></tr></thead><tbody>' + rows + '</tbody></table>' + warn;
+}
+
+function renderParseReportsPanel() {
+    var box = document.getElementById('parseReportsList');
+    if (!box) return;
+    var reports = getParseReports().slice(0, 15);
+    if (!reports.length) {
+        box.innerHTML = '<div class="log-empty">上传 Excel 后会在此显示解析报告。</div>';
+        updateParseReportBadge();
+        return;
+    }
+    box.innerHTML = reports.map(function(r) {
+        var cls = r.level === 'error' ? 'err' : (r.level === 'warn' ? 'warn' : 'ok');
+        var body = '';
+        if (r.type === 'product' && r.headerMapping) {
+            body += renderHeaderMappingTable(r.headerMapping);
+            if (r.quality) {
+                body += '<p style="font-size:0.8rem;color:var(--text-dim);margin-top:8px;">抽样：无 SPU ' + r.quality.noSpuPct + '% · 毛利率为0 ' + r.quality.marginZeroPct + '% · 日销为0 ' + r.quality.salesZeroPct + '%</p>';
+            }
+        } else if (r.type === 'store') {
+            body += '<p style="font-size:0.85rem;color:var(--text-dim);">记录 ' + r.rowCount + ' 条 · 店铺 ' + (r.storeCount || 0) + ' 个' +
+                (r.stores && r.stores.length ? '：' + escHtml(r.stores.join('、')) : '') + '</p>';
+        }
+        return '<div class="parse-report-card ' + cls + '">' +
+            '<div style="font-weight:600;margin-bottom:4px;">' + escHtml(r.ts_display) + ' · ' + escHtml(r.typeLabel || r.type) + '</div>' +
+            '<div style="font-size:0.88rem;">' + escHtml(r.filename) + (r.sheet ? ' / ' + escHtml(r.sheet) : '') + ' · ' + r.rowCount + ' 行</div>' +
+            body + '</div>';
+    }).join('');
+    updateParseReportBadge();
+}
+
+function clearParseReportsConfirm() {
+    showModal('清空解析报告', '<p style="color:var(--text-dim);">确定清空全部解析报告？</p>', '确认清空', function() {
+        localStorage.removeItem(PARSE_REPORT_KEY);
+        renderParseReportsPanel();
+        toast('解析报告已清空', 'warning');
+    });
+}
+
+function persistEventLog(entries) {
+    try {
+        localStorage.setItem(EVENT_LOG_KEY, JSON.stringify(entries));
+    } catch(e) {
+        try {
+            localStorage.setItem(EVENT_LOG_KEY, JSON.stringify(entries.slice(-Math.min(50, entries.length))));
+        } catch(e2) { /* 日志写入失败时静默，避免干扰主流程 */ }
+    }
+}
+
+function logEvent(level, module, action, message, detail) {
+    var now = new Date();
+    var entry = {
+        id: now.getTime() + '-' + Math.random().toString(36).slice(2, 7),
+        ts: now.toISOString(),
+        ts_display: now.toLocaleString('zh-CN'),
+        level: level || 'info',
+        module: module || 'system',
+        action: action || '',
+        message: String(message || ''),
+        detail: detail || null,
+        version: DASHBOARD_VERSION
+    };
+    var entries = [];
+    try {
+        entries = JSON.parse(localStorage.getItem(EVENT_LOG_KEY) || '[]');
+        if (!Array.isArray(entries)) entries = [];
+    } catch(e) { entries = []; }
+    entries.push(entry);
+    if (entries.length > EVENT_LOG_MAX) entries = entries.slice(-EVENT_LOG_MAX);
+    persistEventLog(entries);
+    updateEventLogBadge();
+    if (typeof renderEventLogViews === 'function') renderEventLogViews();
+    if (level === 'error') console.error('[EventLog]', module, action, message, detail || '');
+    else if (level === 'warn') console.warn('[EventLog]', module, action, message, detail || '');
+    return entry;
+}
+
+function getEventLogsRaw() {
+    try {
+        var entries = JSON.parse(localStorage.getItem(EVENT_LOG_KEY) || '[]');
+        return Array.isArray(entries) ? entries : [];
+    } catch(e) { return []; }
+}
+
+function getEventLogFilterState(suffix) {
+    suffix = suffix || '';
+    var levelEl = document.getElementById('eventLogFilter' + suffix) || document.getElementById('eventLogFilter');
+    var modEl = document.getElementById('eventLogModuleFilter' + suffix) || document.getElementById('eventLogModuleFilter');
+    var searchEl = document.getElementById('eventLogSearch' + suffix) || document.getElementById('eventLogSearch');
+    return {
+        level: levelEl ? levelEl.value : 'all',
+        module: modEl ? modEl.value : 'all',
+        search: searchEl ? String(searchEl.value || '').trim().toLowerCase() : ''
+    };
+}
+
+function getEventLogs(filter, moduleFilter, search) {
+    var entries = getEventLogsRaw().slice().reverse();
+    if (filter && filter !== 'all') entries = entries.filter(function(e) { return e.level === filter; });
+    if (moduleFilter && moduleFilter !== 'all') entries = entries.filter(function(e) { return e.module === moduleFilter; });
+    if (search) {
+        entries = entries.filter(function(e) {
+            var blob = (e.message + ' ' + e.module + ' ' + e.action + ' ' + JSON.stringify(e.detail || '')).toLowerCase();
+            return blob.indexOf(search) >= 0;
+        });
+    }
+    return entries;
+}
+
+function getFilteredEventLogsForUI(suffix) {
+    var st = getEventLogFilterState(suffix);
+    return getEventLogs(st.level, st.module, st.search);
+}
+
+function buildEventLogExportPayload(suffix) {
+    var st = getEventLogFilterState(suffix);
+    return {
+        exported_at: new Date().toISOString(),
+        dashboard: DASHBOARD_VERSION,
+        filter: st,
+        owner: typeof getCloudOwner === 'function' ? getCloudOwner() : '',
+        entries: getFilteredEventLogsForUI(suffix).slice().reverse(),
+        parse_reports: getParseReports().slice().reverse()
+    };
+}
+
+function countEventLogsByLevel() {
+    var entries = [];
+    try { entries = JSON.parse(localStorage.getItem(EVENT_LOG_KEY) || '[]'); } catch(e) {}
+    var c = { info: 0, warn: 0, error: 0 };
+    entries.forEach(function(e) { if (c[e.level] !== undefined) c[e.level]++; });
+    return c;
+}
+
+function updateEventLogBadge() {
+    var badge = document.getElementById('eventLogBadge');
+    if (!badge) return;
+    var c = countEventLogsByLevel();
+    var parts = [];
+    if (c.error) parts.push('<span class="log-badge log-badge-err">' + c.error + ' 错误</span>');
+    if (c.warn) parts.push('<span class="log-badge log-badge-warn">' + c.warn + ' 警告</span>');
+    badge.innerHTML = parts.length ? parts.join(' ') : '<span style="color:var(--text-dim);font-size:0.75rem;">暂无异常</span>';
+}
+
+function formatLogDetail(detail, entry) {
+    if (!detail) return '';
+    if (entry && entry.action === 'parse_report' && detail.reportId) {
+        var reports = getParseReports();
+        var pr = reports.filter(function(r) { return r.id === detail.reportId; })[0];
+        if (pr && pr.headerMapping) return renderHeaderMappingTable(pr.headerMapping);
+    }
+    if (detail.headerMapping && detail.headerMapping.mapping) {
+        return renderHeaderMappingTable(detail.headerMapping);
+    }
+    try {
+        var s = JSON.stringify(detail, null, 0);
+        return escHtml(s.length > 400 ? s.slice(0, 400) + '…' : s);
+    } catch(e) { return escHtml(String(detail)); }
+}
+
+function escHtml(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function renderEventLogListHTML(entries, maxItems) {
+    maxItems = maxItems || 80;
+    if (!entries.length) return '<div class="log-empty">暂无日志。上传 Excel 或同步 OSS 后会自动记录。</div>';
+    return entries.slice(0, maxItems).map(function(e) {
+        var det = e.detail ? '<div class="log-detail">' + formatLogDetail(e.detail, e) + '</div>' : '';
+        return '<div class="log-entry log-' + escHtml(e.level) + '">' +
+            '<div class="log-meta">' + escHtml(e.ts_display) + ' · ' + escHtml((e.level || '').toUpperCase()) + ' · ' + escHtml(e.module) + '/' + escHtml(e.action) + '</div>' +
+            '<div class="log-msg">' + escHtml(e.message) + '</div>' + det + '</div>';
+    }).join('');
+}
+
+function eventLogToolbarHTML(suffix) {
+    suffix = suffix || '';
+    var fid = 'eventLogFilter' + suffix;
+    var mid = 'eventLogModuleFilter' + suffix;
+    var sid = 'eventLogSearch' + suffix;
+    var st = getEventLogFilterState(suffix);
+    var modules = ['all', 'upload', 'store', 'pipeline', 'oss', 'team', 'storage', 'system'];
+    var modOpts = modules.map(function(m) {
+        var sel = st.module === m ? ' selected' : '';
+        var label = m === 'all' ? '全部模块' : m;
+        return '<option value="' + m + '"' + sel + '>' + label + '</option>';
+    }).join('');
+    var levelOpts = ['all', 'info', 'warn', 'error'].map(function(l) {
+        var sel = st.level === l ? ' selected' : '';
+        var label = l === 'all' ? '全部级别' : l;
+        return '<option value="' + l + '"' + sel + '>' + label + '</option>';
+    }).join('');
+    return '<select id="' + fid + '" onchange="renderEventLogViews(\'' + suffix + '\')">' + levelOpts + '</select>' +
+        '<select id="' + mid + '" onchange="renderEventLogViews(\'' + suffix + '\')">' + modOpts + '</select>' +
+        '<input type="search" class="log-search" id="' + sid + '" placeholder="搜索关键词…" value="' + escHtml(st.search) + '" oninput="renderEventLogViews(\'' + suffix + '\')">' +
+        '<button type="button" class="btn" onclick="copyEventLogs(\'' + suffix + '\')">📋 复制</button>' +
+        '<button type="button" class="btn" onclick="exportEventLogsFile(\'' + suffix + '\')">💾 导出</button>' +
+        '<button type="button" class="btn" onclick="uploadEventLogsToCloud()">☁️ 备份日志</button>' +
+        '<button type="button" class="btn" onclick="clearEventLogsConfirm()">🗑️ 清空</button>' +
+        '<span style="color:var(--text-dim);font-size:0.75rem;width:100%;margin-top:4px;">运行日志 ' + EVENT_LOG_MAX + ' 条 · 解析报告 ' + PARSE_REPORT_MAX + ' 份（导出时一并包含）</span>';
+}
+
+function renderEventLogViews(suffix) {
+    suffix = suffix || '';
+    var entries = getFilteredEventLogsForUI(suffix);
+    var list = suffix === 'Modal' ? document.getElementById('eventLogModalList') : document.getElementById('eventLogInlineList');
+    if (list) {
+        if (!entries.length) {
+            list.innerHTML = '<div class="log-empty">无匹配日志，试试放宽筛选。</div>';
+        } else {
+            list.innerHTML = renderEventLogListHTML(entries, suffix === 'Modal' ? 120 : 60);
+        }
+    }
+    var toolbar = suffix === 'Modal' ? document.getElementById('eventLogModalToolbar') : document.getElementById('eventLogInlineToolbar');
+    if (toolbar) toolbar.innerHTML = eventLogToolbarHTML(suffix);
+    if (!suffix) {
+        var modalList = document.getElementById('eventLogModalList');
+        if (modalList && document.querySelector('.modal-overlay')) {
+            renderEventLogViews('Modal');
+        }
+    }
+    updateEventLogBadge();
+}
+
+function showEventLogModal() {
+    var body = '<p style="color:var(--text-dim);font-size:0.85rem;margin-bottom:12px;">完整运行日志 + 解析报告摘要。可复制或 ☁️ 备份到 OSS 发给 AI。</p>' +
+        '<div class="log-toolbar" id="eventLogModalToolbar"></div>' +
+        '<div id="eventLogModalList" class="log-list" style="max-height:50vh;"></div>';
+    showModal('📋 运行日志', body, '关闭', function() {});
+    renderEventLogViews('Modal');
+}
+
+function copyEventLogs(suffix) {
+    var payload = buildEventLogExportPayload(suffix || '');
+    var text = JSON.stringify(payload, null, 2);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+            toast('日志已复制到剪贴板（' + payload.entries.length + ' 条）', 'success');
+        }).catch(function() {
+            toast('复制失败，请用导出 JSON', 'warning');
+        });
+    } else {
+        toast('浏览器不支持剪贴板，请用导出 JSON', 'warning');
+    }
+}
+
+function exportEventLogsFile(suffix) {
+    var payload = buildEventLogExportPayload(suffix || '');
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'temu-event-log-' + new Date().toISOString().slice(0, 10) + '.json';
+    a.click();
+    toast('已导出 ' + payload.entries.length + ' 条日志 + ' + (payload.parse_reports || []).length + ' 份解析报告', 'success');
+}
+
+function uploadEventLogsToCloud() {
+    if (!isOssConfigured()) { showOssConfigModal(uploadEventLogsToCloud); return; }
+    if (!isLocalDevServer() && isLocalFilePage()) {
+        toast('请用 启动本地看板.bat 打开 localhost 后再备份日志', 'warning');
+        return;
+    }
+    var payload = buildEventLogExportPayload('');
+    if (!payload.entries.length && !payload.parse_reports.length) {
+        toast('暂无日志可备份', 'warning');
+        return;
+    }
+    toast('正在备份日志到 OSS…', 'info');
+    var cfg = getOssConfig();
+    var owner = getCloudOwner();
+    var slug = ownerPathSlug(owner);
+    var key = cfg.prefix + 'logs/' + slug + '/' + new Date().toISOString().slice(0, 10) + '/' + Date.now() + '-event-log.json';
+    var body = JSON.stringify(payload);
+    ossUploadObject(cfg, key, body).then(function() {
+        logEvent('info', 'oss', 'log_backup_ok', '运行日志已备份 OSS · ' + payload.entries.length + ' 条', { key: key, owner: owner });
+        toast('日志已备份 OSS（' + payload.entries.length + ' 条）', 'success');
+    }).catch(function(e) {
+        logEvent('error', 'oss', 'log_backup_fail', '日志备份 OSS 失败', { error: e.message || String(e) });
+        toast('日志备份失败：' + (e.message || ''), 'error');
+    });
+}
+
+function clearEventLogsConfirm() {
+    showModal('清空运行日志', '<p style="color:var(--text-dim);">确定清空全部运行日志？此操作不可恢复。</p>', '确认清空', function() {
+        localStorage.removeItem(EVENT_LOG_KEY);
+        updateEventLogBadge();
+        renderEventLogViews();
+        toast('运行日志已清空', 'warning');
+    });
 }
 
 // 读取快照中的 files 数组（兼容旧版仅含摘要的对象格式）
@@ -553,13 +1253,25 @@ function pushSnapshot() {
     var storeRaw = localStorage.getItem('temu_v6_store');
     if (storeRaw) { try { ST.storeData = JSON.parse(storeRaw); } catch(e) { ST.storeData = []; } }
     var teamRaw = localStorage.getItem('temu_v6_team');
-    if (teamRaw) { try { ST.teamProducts = JSON.parse(teamRaw); hasTeam = ST.teamProducts && ST.teamProducts.length > 0; } catch(e) { ST.teamProducts = []; hasTeam = false; } }
+    if (teamRaw) { try { ST.teamProducts = normalizeTeamProducts(JSON.parse(teamRaw)); hasTeam = ST.teamProducts && ST.teamProducts.length > 0; } catch(e) { ST.teamProducts = []; hasTeam = false; } }
     if (!Array.isArray(ST.teamProducts)) { ST.teamProducts = []; hasTeam = false; }
     if (!Array.isArray(ST.storeData)) ST.storeData = [];
     updateSidebar();
+    logEvent('info', 'system', 'session_start', '页面加载完成', {
+        files: ST.files.length,
+        storeRecords: ST.storeData.length,
+        teamProducts: ST.teamProducts.length,
+        ossConfigured: typeof isOssConfigured === 'function' ? isOssConfigured() : false
+    });
+    updateEventLogBadge();
+    var inlineToolbar = document.getElementById('eventLogInlineToolbar');
+    if (inlineToolbar) inlineToolbar.innerHTML = eventLogToolbarHTML('');
+    renderEventLogViews('');
+    renderParseReportsPanel();
     if (ST.files.length > 0) {
-        try { reprocessAll(); renderImportPage(); } catch(e) {
+        try { reprocessAll(false); renderImportPage(); } catch(e) {
             console.warn('数据加载失败，保留原始文件:', e.message);
+            logEvent('error', 'pipeline', 'init_reprocess_fail', '历史数据解析失败：' + e.message, { error: e.message });
             toast('历史数据解析失败，请重新上传 Excel（原始文件仍保留）','error');
         }
     }
@@ -567,12 +1279,23 @@ function pushSnapshot() {
     if (localStorage.getItem('temu_v6_sidebar') === 'collapsed') {
         document.querySelector('.sidebar').classList.add('collapsed');
     }
+    initUX();
 })();
 
-function reprocessAll() {
+function warnIfDataSuspicious() {
+    if (!ST.products || ST.products.length < 3) return;
+    var qs = productQualityStats(ST.products);
+    if (qs.withMargin < ST.products.length * 0.15 || qs.withSales < ST.products.length * 0.15) {
+        logEvent('warn', 'pipeline', 'suspicious_zeros', '多数商品毛利率/日销为 0，可能列映射错误或旧缓存', qs);
+        toast('多数商品毛利率/日销为 0：请展开「📑 解析报告」核对列映射，或重新上传 Excel', 'warning');
+    }
+}
+
+function reprocessAll(skipLog) {
     var result = DataPipeline.analyze(ST.files);
     if (!result || !result.products) {
         console.warn('reprocessAll: analyze 返回无效数据，使用空结果');
+        logEvent('warn', 'pipeline', 'analyze_empty', 'DataPipeline.analyze 返回无效结果', { fileCount: ST.files.length });
         result = { products: [], clusters: [], rules: [], avoidance: [], stats: {} };
     }
     ST.products = result.products;
@@ -580,6 +1303,13 @@ function reprocessAll() {
     ST.rules = result.rules;
     ST._avoidance = result.avoidance;
     ST._stats = result.stats;
+    if (!skipLog && ST.products.length > 0) {
+        logEvent('info', 'pipeline', 'reprocess', '聚类完成 · SPU ' + ST.products.length, {
+            stats: ST._stats,
+            quality: productQualityStats(ST.products)
+        });
+    }
+    warnIfDataSuspicious();
 }
 
 // 清空所有本地数据（配额恢复用）
@@ -595,6 +1325,7 @@ function clearAllData() {
     ST.storeData = [];  // ← 之前漏了
     ST.teamProducts = []; hasTeam = false; localStorage.removeItem('temu_v6_team');  // 团队数据重置
     updateSidebar();
+    logEvent('info', 'storage', 'clear_all', '用户清空全部本地数据', {});
     toast('本地数据已清空，请重新上传','warning');
 }
 
@@ -620,30 +1351,371 @@ function updateSidebar() {
             cs.innerHTML = parts.join(' · ');
         }
     }
+    updateWorkflowStrip();
+}
+
+var PAGE_META = {
+    import:    { title: '数据导入', sub: '上传 Excel · 自动识别商品与店铺' },
+    products:  { title: '商品画像', sub: 'K-Means 聚类 · 毛利率与日销分布' },
+    rules:     { title: '选品规则', sub: '铁律与避坑 · 可执行 SOP' },
+    predict:   { title: '智能预测', sub: '成本公式 · 新品预估' },
+    blacklist: { title: '避坑清单', sub: '高克重陷阱 · 低毛利 · 滞销' },
+    diagnosis: { title: '个人诊断', sub: '历史对比 · 个人 vs 团队' },
+    store:     { title: '店铺运营', sub: 'ROAS · 花费 · 转化趋势' },
+    pk:        { title: '个人 PK', sub: '选品输入 vs 运营输出' }
+};
+
+function updateTopbar(pageName) {
+    var meta = PAGE_META[pageName] || PAGE_META.import;
+    var t = document.getElementById('topbarTitle');
+    var s = document.getElementById('topbarSub');
+    if (t) t.textContent = meta.title;
+    if (s) s.textContent = meta.sub;
+}
+
+function getWorkflowState() {
+    var hasProduct = ST.files.length > 0 && ST.products.length > 0;
+    var hasStore = ST.storeData && ST.storeData.length > 0;
+    var ossOk = typeof isOssConfigured === 'function' && isOssConfigured();
+    var synced = false;
+    try { synced = !!JSON.parse(localStorage.getItem('temu_v6_cloud_last_upload') || 'null'); } catch(e) {}
+    var step = 0;
+    if (hasProduct || hasStore) step = 1;
+    if (hasProduct && ST.clusters && ST.clusters.length > 0) step = 2;
+    if (ossOk && synced) step = 3;
+    return { hasProduct: hasProduct, hasStore: hasStore, ossOk: ossOk, synced: synced, step: step };
+}
+
+var WORKFLOW_PAGES = ['import', 'products', 'import', 'diagnosis'];
+
+function workflowGo(stepId) {
+    if (stepId === 2) {
+        if (!isOssConfigured()) { showOssConfigModal(uploadToCloud); return; }
+        if (!getWorkflowState().synced) {
+            toast('请先完成 ⬆ 云端同步，再拉取团队数据', 'info');
+            uploadToCloud();
+            return;
+        }
+        loadFromCloud();
+        return;
+    }
+    switchPage(WORKFLOW_PAGES[stepId] || 'import');
+}
+
+function updateWorkflowStrip() {
+    var el = document.getElementById('workflowStrip');
+    if (!el) return;
+    var w = getWorkflowState();
+    var labels = [
+        { id: 0, text: '① 导入数据' },
+        { id: 1, text: '② 查看分析' },
+        { id: 2, text: '③ 团队同步' },
+        { id: 3, text: '④ 诊断复盘' }
+    ];
+    el.innerHTML = labels.map(function(l) {
+        var cls = 'workflow-step';
+        if (w.step > l.id) cls += ' done';
+        else if (w.step === l.id) cls += ' current';
+        return '<div class="' + cls + '" role="button" tabindex="0" title="点击跳转" onclick="workflowGo(' + l.id + ')">' + l.text + '</div>';
+    }).join('');
+}
+
+function hasProductData() {
+    return ST.products && ST.products.length > 0;
+}
+
+function hasStoreData() {
+    return ST.storeData && ST.storeData.length > 0;
+}
+
+function emptyStateHTML(opts) {
+    opts = opts || {};
+    var extra = opts.extra ? '<div style="margin-top:14px;">' + opts.extra + '</div>' : '';
+    return '<div class="empty-state">' +
+        '<div class="empty-icon">' + (opts.icon || '📂') + '</div>' +
+        '<h3>' + escHtml(opts.title || '暂无数据') + '</h3>' +
+        '<p>' + escHtml(opts.desc || '上传 Excel 后即可使用本页功能。') + '</p>' +
+        '<button type="button" class="btn-primary-sm" onclick="switchPage(\'import\')">' + escHtml(opts.cta || '去导入数据') + '</button>' +
+        extra + '</div>';
+}
+
+function mountEmptyState(pg, contentClass, opts) {
+    if (!pg) return true;
+    var alertEl = pg.querySelector('.alert.alert-info');
+    if (alertEl) alertEl.style.display = 'none';
+    var old = pg.querySelector('.' + contentClass);
+    if (old) old.remove();
+    var wrap = document.createElement('div');
+    wrap.className = contentClass;
+    wrap.innerHTML = emptyStateHTML(opts);
+    pg.appendChild(wrap);
+    return true;
+}
+
+function buildInsightsBarHTML() {
+    if (!hasProductData() && !hasStoreData()) return '';
+    var goldN = ST.clusters ? ST.clusters.filter(function(p) { return p.cluster_label === '黄金品'; }).length : 0;
+    var goldPct = ST.clusters && ST.clusters.length ? Math.round(goldN / ST.clusters.length * 100) : 0;
+    var avgM = hasProductData() ? avg(ST.products.map(function(p) { return p.gross_margin; })).toFixed(1) : '—';
+    var teamM = hasTeam && ST.teamProducts.length ? avg(ST.teamProducts.map(function(p) { return p.gross_margin; })).toFixed(1) : null;
+    var cards = [
+        { label: 'SPU', value: ST.products.length, sub: ST.files.length + ' 个利润文件' },
+        { label: '黄金品占比', value: goldPct + '%', sub: goldN + ' 个黄金品' },
+        { label: '均毛利率', value: avgM + '%', sub: '个人选品' },
+        { label: '店铺记录', value: (ST.storeData || []).length, sub: '运营数据条数' }
+    ];
+    if (teamM !== null) {
+        cards.push({ label: '团队均毛利', value: teamM + '%', sub: ST.teamProducts.length + ' 条团队基准' });
+    }
+    return '<div class="insights-bar">' + cards.map(function(c) {
+        return '<div class="insight-card"><div class="label">' + escHtml(c.label) + '</div><div class="value">' + escHtml(String(c.value)) + '</div><div class="sub">' + escHtml(c.sub) + '</div></div>';
+    }).join('') + '</div>';
+}
+
+var UPLOAD_UNDO_KEY = 'temu_v6_upload_undo';
+
+function captureUploadUndoState() {
+    try {
+        sessionStorage.setItem(UPLOAD_UNDO_KEY, JSON.stringify({
+            files: ST.files,
+            storeData: ST.storeData || [],
+            snapshots: ST.snapshots || [],
+            teamProducts: ST.teamProducts || [],
+            hasTeam: hasTeam
+        }));
+    } catch(e) {}
+}
+
+function undoLastUpload() {
+    var raw = sessionStorage.getItem(UPLOAD_UNDO_KEY);
+    if (!raw) { toast('没有可撤销的上传操作', 'warning'); return; }
+    try {
+        var s = JSON.parse(raw);
+        ST.files = s.files || [];
+        ST.storeData = s.storeData || [];
+        ST.snapshots = s.snapshots || [];
+        ST.teamProducts = s.teamProducts || [];
+        hasTeam = !!s.hasTeam;
+        safeSetItem('temu_v6_data', JSON.stringify(ST.files));
+        safeSetItem('temu_v6_store', JSON.stringify(ST.storeData));
+        safeSetItem('temu_v6_snap_idx', JSON.stringify(ST.snapshots));
+        if (hasTeam) safeSetItem('temu_v6_team', JSON.stringify(ST.teamProducts));
+        else localStorage.removeItem('temu_v6_team');
+        reprocessAll();
+        updateSidebar();
+        renderImportPage();
+        switchPage('import');
+        sessionStorage.removeItem(UPLOAD_UNDO_KEY);
+        logEvent('info', 'storage', 'undo_upload', '用户撤销了最近一次上传', { files: ST.files.length });
+        toast('已撤销最近一次上传', 'success');
+    } catch(e) {
+        toast('撤销失败', 'error');
+    }
+}
+
+function buildDiagnosisReportMarkdown() {
+    if (ST.snapshots.length < 2) return null;
+    var cmp = compareSnapshots();
+    if (!cmp) return null;
+    var lines = [];
+    var owner = typeof getCloudOwner === 'function' ? getCloudOwner() : '';
+    lines.push('# Temu 选品诊断周报');
+    lines.push('');
+    lines.push('- 归属人：' + owner);
+    lines.push('- 生成时间：' + new Date().toLocaleString('zh-CN'));
+    lines.push('- 看板版本：' + DASHBOARD_VERSION);
+    lines.push('');
+    lines.push('## 概览对比（最新 vs 上一份）');
+    lines.push('| 指标 | 旧 | 新 |');
+    lines.push('|------|-----|-----|');
+    lines.push('| 商品数 | ' + cmp.old_count + ' | ' + cmp.new_count + ' |');
+    lines.push('| 黄金品 | ' + cmp.old_gold + ' | ' + cmp.new_gold + ' |');
+    lines.push('| 均毛利率 | ' + cmp.old_margin.toFixed(1) + '% | ' + cmp.new_margin.toFixed(1) + '% |');
+    lines.push('| 均日销 | ' + cmp.old_sales.toFixed(1) + ' | ' + cmp.new_sales.toFixed(1) + ' |');
+    if (cmp.degraded.length) {
+        lines.push('');
+        lines.push('## 在变差的品（' + cmp.degraded.length + '）');
+        cmp.degraded.slice(0, 30).forEach(function(d) {
+            lines.push('- **' + d.spu_id + '** ' + d.old_label + '→' + d.new_label + '，毛利 ' + d.old_margin.toFixed(1) + '%→' + d.new_margin.toFixed(1) + '%（' + d.suggestion + '）');
+        });
+    }
+    if (hasTeam && ST.teamProducts.length) {
+        lines.push('');
+        lines.push('## 团队基准');
+        lines.push('- 团队 SPU 样本：' + ST.teamProducts.length);
+        lines.push('- 团队均毛利率：' + avg(ST.teamProducts.map(function(p) { return p.gross_margin; })).toFixed(1) + '%');
+    }
+    var advice = generateDirectionAdvice(cmp);
+    if (advice && advice.length) {
+        lines.push('');
+        lines.push('## 方向建议');
+        advice.forEach(function(a) {
+            lines.push('- **' + a.priority + ' ' + a.title + '**：' + a.detail + ' → ' + a.action);
+        });
+    }
+    lines.push('');
+    lines.push('---');
+    lines.push('*由 Temu 数据看板自动导出*');
+    return lines.join('\n');
+}
+
+function exportDiagnosisReport() {
+    var md = buildDiagnosisReportMarkdown();
+    if (!md) {
+        toast('需要至少 2 次上传快照才能导出周报', 'warning');
+        switchPage('import');
+        return;
+    }
+    var blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'temu-diagnosis-' + new Date().toISOString().slice(0, 10) + '.md';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    logEvent('info', 'export', 'diagnosis_md', '导出诊断周报 Markdown', { owner: getCloudOwner() });
+    toast('诊断周报已下载（Markdown）', 'success');
+}
+
+function setGlobalLoading(show, message) {
+    var el = document.getElementById('globalLoading');
+    var txt = document.getElementById('globalLoadingText');
+    if (!el) return;
+    if (show) {
+        el.classList.add('show');
+        el.setAttribute('aria-hidden', 'false');
+        if (txt) txt.textContent = message || '处理中…';
+        var uz = document.getElementById('uploadZone');
+        if (uz) uz.classList.add('parsing');
+    } else {
+        el.classList.remove('show');
+        el.setAttribute('aria-hidden', 'true');
+        var uz2 = document.getElementById('uploadZone');
+        if (uz2) uz2.classList.remove('parsing');
+    }
+}
+
+function isMobileLayout() {
+    return window.matchMedia && window.matchMedia('(max-width: 900px)').matches;
+}
+
+function closeMobileSidebar() {
+    var sb = document.querySelector('.sidebar');
+    var bd = document.getElementById('sidebarBackdrop');
+    if (sb) sb.classList.remove('mobile-open');
+    if (bd) bd.classList.remove('show');
 }
 
 function toggleSidebar() {
     var sb = document.querySelector('.sidebar');
+    if (isMobileLayout()) {
+        sb.classList.toggle('mobile-open');
+        var bd = document.getElementById('sidebarBackdrop');
+        if (bd) bd.classList.toggle('show', sb.classList.contains('mobile-open'));
+        return;
+    }
     sb.classList.toggle('collapsed');
     localStorage.setItem('temu_v6_sidebar', sb.classList.contains('collapsed') ? 'collapsed' : 'expanded');
-    // 折叠后重绘 Plotly 图表适配新宽度
     setTimeout(function(){
-        if (typeof Plotly !== 'undefined') Plotly.Plots.resize(document.getElementById('scatterPlot'));
-        if (typeof Plotly !== 'undefined') Plotly.Plots.resize(document.getElementById('trendChart'));
+        if (typeof Plotly !== 'undefined') {
+            var sp = document.getElementById('scatterPlot');
+            var tc = document.getElementById('trendChart');
+            if (sp) Plotly.Plots.resize(sp);
+            if (tc) Plotly.Plots.resize(tc);
+        }
     }, 300);
+}
+
+function initUploadZoneDragDrop() {
+    function bindZone(zoneEl, inputId) {
+        if (!zoneEl) return;
+        ['dragenter', 'dragover'].forEach(function(ev) {
+            zoneEl.addEventListener(ev, function(e) {
+                e.preventDefault(); e.stopPropagation();
+                zoneEl.classList.add('dragover');
+            });
+        });
+        ['dragleave', 'drop'].forEach(function(ev) {
+            zoneEl.addEventListener(ev, function(e) {
+                e.preventDefault(); e.stopPropagation();
+                zoneEl.classList.remove('dragover');
+            });
+        });
+        zoneEl.addEventListener('drop', function(e) {
+            var files = e.dataTransfer && e.dataTransfer.files;
+            if (!files || !files.length) return;
+            if (inputId === 'fileInput') handleFileUpload(files);
+            else if (inputId === 'teamFileInput') handleTeamUpload(files);
+        });
+    }
+    bindZone(document.getElementById('uploadZone'), 'fileInput');
+    var teamZones = document.querySelectorAll('.upload-zone');
+    if (teamZones.length > 1) bindZone(teamZones[1], 'teamFileInput');
+}
+
+function initKeyboardShortcuts() {
+    document.addEventListener('keydown', function(e) {
+        if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
+        var pages = ['import', 'products', 'rules', 'predict', 'blacklist', 'diagnosis', 'store', 'pk'];
+        if (e.key >= '1' && e.key <= '8' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            switchPage(pages[parseInt(e.key, 10) - 1]);
+            return;
+        }
+        if (e.key === 'm' || e.key === 'M') { toggleSidebar(); return; }
+        if (e.key === 'l' || e.key === 'L') { showEventLogModal(); return; }
+    });
+}
+
+function initUX() {
+    initUploadZoneDragDrop();
+    initKeyboardShortcuts();
+    updateWorkflowStrip();
+    var hash = (location.hash || '').replace('#', '').trim();
+    if (hash && PAGE_META[hash]) {
+        switchPage(hash);
+    } else {
+        updateTopbar('import');
+    }
+    window.addEventListener('resize', function() {
+        if (!isMobileLayout()) closeMobileSidebar();
+    });
 }
 
 // ═══════════════════════════════════════════════
 // Toast & Modal
 // ═══════════════════════════════════════════════
-function toast(msg, type) {
+function toast(msg, type, opts) {
+    opts = opts || {};
+    var box = document.getElementById('toast');
+    if (!box) return;
+    while (box.children.length >= 4) box.removeChild(box.firstChild);
     var bg = {success:'rgba(45,106,79,0.18)',warning:'rgba(139,105,20,0.18)',error:'rgba(139,0,0,0.18)'}[type]||'rgba(226,184,122,0.08)';
     var bd = {success:'rgba(45,106,79,0.5)',warning:'rgba(139,105,20,0.5)',error:'rgba(139,0,0,0.5)'}[type]||'rgba(226,184,122,0.25)';
     var cl = {success:'#4ade80',warning:'#fbbf24',error:'#f87171'}[type]||'#f1f0ee';
     var d = document.createElement('div'); d.className = 'toast-msg';
     d.style.cssText = 'background:'+bg+';border:1px solid '+bd+';color:'+cl;
-    d.textContent = msg; document.getElementById('toast').appendChild(d);
-    setTimeout(function(){ d.style.opacity='0'; d.style.transition='opacity 0.3s'; setTimeout(function(){ d.remove(); },300); }, 3000);
+    var span = document.createElement('span');
+    span.textContent = msg;
+    d.appendChild(span);
+    if (opts.action && opts.onAction) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'toast-action';
+        btn.textContent = opts.action;
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            opts.onAction();
+            d.remove();
+        });
+        d.appendChild(btn);
+    }
+    box.appendChild(d);
+    var ms = opts.duration || (type === 'error' ? 5500 : (opts.action ? 8000 : 3200));
+    setTimeout(function(){
+        if (!d.parentNode) return;
+        d.style.opacity = '0';
+        d.style.transition = 'opacity 0.3s';
+        setTimeout(function(){ if (d.parentNode) d.remove(); }, 300);
+    }, ms);
 }
 
 function showModal(title, bodyHTML, confirmText, onConfirm) {
@@ -1032,6 +2104,11 @@ function diagnoseOssConnection() {
         });
     }).then(function() {
         showModal('OSS 诊断结果', '<pre style="white-space:pre-wrap;font-size:0.82rem;color:var(--text-dim);max-height:420px;overflow:auto;line-height:1.55;">' + lines.join('\n') + '</pre>', '关闭', function() {});
+        var hasErr = lines.some(function(l) { return l.indexOf('❌') >= 0; });
+        var hasOk = lines.some(function(l) { return l.indexOf('✅') >= 0; });
+        logEvent(hasErr ? 'warn' : 'info', 'oss', 'diagnose', 'OSS 诊断完成' + (hasOk && !hasErr ? '（通过）' : hasErr ? '（有问题）' : ''), {
+            bucket: cfg.bucket, region: region, hasProxy: lines.some(function(l){ return l.indexOf('代理已启用') >= 0; }), summary: lines.slice(0, 8)
+        });
     });
 }
 
@@ -1089,13 +2166,14 @@ function collectTeamEntriesFromManifest(manifest, myOwner) {
 }
 
 function applyTeamSummaries(summaries) {
-    ST.teamProducts = [];
+    var raw = [];
     var people = 0;
     (summaries || []).forEach(function(s) {
-        if (!s || !s.products) return;
+        if (!s || !s.products || !s.products.length) return;
         people++;
-        ST.teamProducts = ST.teamProducts.concat(s.products);
+        raw = raw.concat(s.products);
     });
+    ST.teamProducts = normalizeTeamProducts(raw);
     hasTeam = ST.teamProducts.length > 0;
     safeSetItem('temu_v6_team', JSON.stringify(ST.teamProducts));
     safeSetItem('temu_v6_cloud_last_load', JSON.stringify({
@@ -1104,6 +2182,10 @@ function applyTeamSummaries(summaries) {
         count: ST.teamProducts.length
     }));
     updateSidebar();
+    var dp = document.getElementById('page-diagnosis');
+    if (dp && dp.classList.contains('active') && typeof renderDiagnosis === 'function') {
+        try { renderDiagnosis(); } catch(e) {}
+    }
     return { people: people, count: ST.teamProducts.length };
 }
 
@@ -1115,23 +2197,30 @@ function loadFromCloud() {
     fetchOssJson(cfg, cfg.prefix + 'manifest.json').then(function(manifest) {
         var list = collectTeamEntriesFromManifest(manifest, myOwner);
         if ((manifest.entries || []).length === 0) {
+            logEvent('warn', 'oss', 'team_load_empty', '云端 manifest 为空', { owner: myOwner });
             toast('云端暂无团队数据', 'warning');
             return Promise.reject(new Error('empty'));
         }
         if (list.length === 0) {
+            logEvent('warn', 'oss', 'team_load_solo', '云端只有自己的数据，无其他同事', { owner: myOwner, manifestEntries: (manifest.entries || []).length });
             toast('云端只有你自己的数据，暂无其他同事（可点 🧪 联调 自测）', 'warning');
             return Promise.reject(new Error('solo'));
         }
+        logEvent('info', 'oss', 'team_load_start', '拉取 ' + list.length + ' 位同事最新数据', {
+            owner: myOwner, peers: list.map(function(e) { return e.owner; })
+        });
         return Promise.all(list.map(function(entry) {
             return fetchOssJson(cfg, entry.key);
         }));
     }).then(function(summaries) {
         if (!summaries) return;
         var r = applyTeamSummaries(summaries);
+        logEvent('info', 'oss', 'team_load_ok', '团队数据已加载 · ' + r.people + ' 人 · ' + r.count + ' SPU', r);
         toast('团队数据已加载：' + r.people + ' 人 · ' + r.count + ' 条 SPU', 'success');
     }).catch(function(e) {
         if (e && (e.message === 'empty' || e.message === 'solo')) return;
         console.error('loadFromCloud:', e);
+        logEvent('error', 'oss', 'team_load_fail', '团队拉取失败：' + (e.message || '未知'), { error: e.message || String(e) });
         toast('拉取失败：' + (e.message || '请确认 AccessKey 有 GetObject 权限'), 'error');
     });
 }
@@ -1193,6 +2282,8 @@ function runTeamSyncDrill() {
         }
     }).then(function() {
         showModal('🧪 团队联调结果', '<pre style="white-space:pre-wrap;font-size:0.82rem;color:var(--text-dim);max-height:420px;overflow:auto;line-height:1.55;">' + lines.join('\n') + '</pre>', '关闭', function() {});
+        var ok = lines.some(function(l) { return l.indexOf('团队拉取成功') >= 0; });
+        logEvent(ok ? 'info' : 'warn', 'oss', 'team_drill', ok ? '团队联调通过' : '团队联调未完全通过', { lines: lines });
     });
 }
 
@@ -1273,11 +2364,18 @@ function updateCloudManifest(clientOrCfg, cfg, entry) {
 function uploadToCloud() {
     if (!isOssConfigured()) { showOssConfigModal(uploadToCloud); return; }
     var summary = buildCloudSummary();
-    if (!summary) { toast('请先上传 Excel 再同步到云端', 'warning'); return; }
+    if (!summary) {
+        logEvent('warn', 'oss', 'upload_skip', '同步跳过：无 Excel 数据', {});
+        toast('请先上传 Excel 再同步到云端', 'warning'); return;
+    }
     if (isLocalFilePage()) {
+        logEvent('warn', 'oss', 'upload_file_protocol', '检测到 file:// 打开，上传可能被拦截', { href: location.href });
         toast('检测到 file:// 打开，上传极易被拦截。建议用 localhost 打开（导入页有说明）', 'warning');
     }
     toast('正在同步 JSON 摘要到 OSS...', 'info');
+    logEvent('info', 'oss', 'upload_start', '开始同步 · ' + summary.owner, {
+        owner: summary.owner, spu: summary.products.length, store: summary.store_records.length
+    });
     var cfg = getOssConfig();
     var slug = ownerPathSlug(summary.owner);
     var key = cfg.prefix + 'uploads/' + slug + '/' + summary.date + '/' + Date.now() + '.json';
@@ -1293,6 +2391,7 @@ function uploadToCloud() {
     ossUploadObject(cfg, key, jsonStr).then(function() {
         return updateCloudManifest(null, cfg, entry).catch(function(mErr) {
             console.warn('manifest 更新失败（数据已上传）:', mErr);
+            logEvent('warn', 'oss', 'manifest_fail', 'JSON 已上传但 manifest 索引失败', { key: key, error: mErr.message || String(mErr) });
             return { manifestFailed: true, err: mErr };
         });
     }).then(function(manifestResult) {
@@ -1302,10 +2401,14 @@ function uploadToCloud() {
         if (summary.store_records.length) msg += ' · ' + summary.store_records.length + ' 店铺';
         if (manifestResult && manifestResult.manifestFailed) {
             msg += '（索引未更新，📥团队 可能暂不可用）';
+            logEvent('warn', 'oss', 'upload_partial', msg, { key: key, owner: summary.owner, manifestFailed: true });
+        } else {
+            logEvent('info', 'oss', 'upload_ok', msg, { key: key, owner: summary.owner, spuCount: summary.products.length, storeCount: summary.store_records.length });
         }
         toast(msg, manifestResult && manifestResult.manifestFailed ? 'warning' : 'success');
     }).catch(function(e) {
         console.error('uploadToCloud:', e);
+        logEvent('error', 'oss', 'upload_fail', '云端同步失败：' + formatOssUploadError(e), { error: e.message || String(e), owner: summary.owner });
         toast('云端同步失败：' + formatOssUploadError(e), 'error');
     });
 }
@@ -1354,6 +2457,7 @@ function showOssConfigModal(onSaved) {
         }
         updateSidebar();
         toast('OSS 已保存 · ' + next.bucket + ' · ' + next.owner, 'success');
+        logEvent('info', 'oss', 'config_save', 'OSS 配置已保存', { bucket: next.bucket, region: next.region, owner: next.owner });
         if (onSaved) setTimeout(onSaved, 300);
     });
 }
@@ -1362,16 +2466,21 @@ function showOssConfigModal(onSaved) {
 // 页面切换
 // ═══════════════════════════════════════════════
 function switchPage(name) {
+    closeMobileSidebar();
     document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
     var pg = document.getElementById('page-'+name); if(pg) pg.classList.add('active');
     document.querySelectorAll('.sidebar-nav a').forEach(function(a){a.classList.remove('active');});
     document.querySelectorAll('.sidebar-nav a').forEach(function(a){
         var oc = a.getAttribute('onclick')||''; if(oc.indexOf("'"+name+"'")!==-1) a.classList.add('active');
     });
-    if (name==='products' && ST.products.length>0) renderProducts();
-    if (name==='rules' && ST.products.length>0) renderRules();
+    updateTopbar(name);
+    if (typeof history !== 'undefined' && history.replaceState) {
+        try { history.replaceState({ page: name }, '', '#' + name); } catch(e) {}
+    }
+    if (name==='products') renderProducts();
+    if (name==='rules') renderRules();
     if (name==='predict') renderPredict();
-    if (name==='blacklist' && ST.products.length>0) renderBlacklist();
+    if (name==='blacklist') renderBlacklist();
     if (name==='diagnosis') { if(typeof Plotly!=='undefined') try{Plotly.purge('trendChart');}catch(e){} renderDiagnosis(); }
     if (name==='import') renderImportPage();
     if (name==='store') renderStorePage();
@@ -1393,6 +2502,7 @@ function doSave() {
     a.href=url; a.download='temu-backup-'+new Date().toISOString().slice(0,10)+'.json'; a.click();
     URL.revokeObjectURL(url);
     toast('已保存 '+ST.files.length+' 个文件 | 备份已下载','success');
+    logEvent('info', 'storage', 'manual_save', '手动保存本地 + 下载备份', { files: ST.files.length, snapshots: ST.snapshots.length });
 }
 
 function doClear() {
@@ -1406,27 +2516,65 @@ function doLoad() {
     var raw = localStorage.getItem('temu_v6_data');
     if (!raw) { toast('没有历史数据','warning'); return; }
     ST.files = JSON.parse(raw); reprocessAll(); updateSidebar(); renderImportPage(); if(typeof renderPKPage!=="undefined") try{renderPKPage();}catch(e){}
+    logEvent('info', 'storage', 'manual_load', '加载历史 localStorage 数据', { files: ST.files.length });
     toast('已加载 '+ST.files.length+' 个文件','success');
 }
-
-// ═══════════════════════════════════════════════
-// 拖拽绑定
-// ═══════════════════════════════════════════════
-(function bindDrag(){
-    var uz = document.getElementById('uploadZone');
-    if (uz) {
-        uz.addEventListener('dragover', function(e) { e.preventDefault(); uz.style.borderColor='var(--gold)'; });
-        uz.addEventListener('dragleave', function(){ uz.style.borderColor=''; });
-        uz.addEventListener('drop', function(e){ e.preventDefault(); uz.style.borderColor=''; handleFileUpload(e.dataTransfer.files); });
-    }
-})();
 
 // ═══════════════════════════════════════════════
 // Excel 解析
 // ═══════════════════════════════════════════════
 function normalizeCols(headers) {
-    var map = {spuid:'spu_id','spu id':'spu_id','商品spuid':'spu_id',name:'name','名称':'name','品名':'name','商品名称':'name','成本':'cost','克重':'weight_g','重量':'weight_g','weight':'weight_g','weight_g':'weight_g','售价':'price','卖价':'price','实际卖价':'price','同行卖价':'competitor_price','日均销量':'daily_sales','每天销量':'daily_sales','今日销量':'daily_sales','销量':'daily_sales','daily_sales':'daily_sales','sales':'daily_sales','毛利率':'gross_margin','毛利润率':'gross_margin','gross_margin':'gross_margin','日利润':'daily_profit','每天利润':'daily_profit','daily_profit':'daily_profit','品类':'category','累计销量':'total_sales'};
-    return headers.map(function(h){var l=h.toLowerCase().replace(/\s/g,'');return map[l]||map[h]||h;});
+    var map = {
+        spuid:'spu_id','spuid':'spu_id','商品spuid':'spu_id',
+        name:'name','名称':'name','品名':'name','商品名称':'name',
+        '成本':'cost','供货价':'cost','采购价':'cost',
+        '售价':'price','卖价':'price','实际卖价':'price','同行卖价':'competitor_price',
+        '日均销量':'daily_sales','每天销量':'daily_sales','今日销量':'daily_sales','销量':'daily_sales',
+        daily_sales:'daily_sales',sales:'daily_sales','累计销量':'total_sales',
+        '毛利率':'gross_margin','毛利润率':'gross_margin',gross_margin:'gross_margin','毛利':'gross_margin',
+        '日利润':'daily_profit','每天利润':'daily_profit',daily_profit:'daily_profit','毛利润':'daily_profit',
+        '克重':'weight_g','重量':'weight_g',weight:'weight_g',weight_g:'weight_g','品类':'category'
+    };
+    return (headers||[]).map(function(h){
+        var raw=String(h||'').trim();
+        var k=cleanHeaderKey(h);
+        if(map[k]) return map[k];
+        if(map[raw]) return map[raw];
+        if(/spu/i.test(raw)&&/商品|spu/i.test(raw)) return 'spu_id';
+        if(/毛利润/.test(raw)&&/率/.test(raw)) return 'gross_margin';
+        if(/毛利润/.test(raw)&&!/率/.test(raw)) return 'daily_profit';
+        if(/实际卖价|售价|卖价/.test(raw)) return 'price';
+        if(/每天销量|日均销量|日销/.test(raw)&&!/累计/.test(raw)) return 'daily_sales';
+        if(/^成本$|供货价|采购价/.test(raw)) return 'cost';
+        return k||raw;
+    });
+}
+
+function rowHasProductHeader(row) {
+    if (!row || !row.length) return false;
+    return row.some(function(h) {
+        var s = String(h || '').trim();
+        return s === '商品SPU ID' || (s.indexOf('商品') >= 0 && /SPU/i.test(s));
+    });
+}
+
+function findProductHeaderRow(json) {
+    for (var i = 0; i < Math.min((json || []).length, 8); i++) {
+        if (rowHasProductHeader(json[i])) return i;
+    }
+    return 0;
+}
+
+function rowsToProductData(json, headerRowIdx) {
+    var headers = (json[headerRowIdx] || []).map(function(h){ return String(h).trim(); });
+    var rows = json.slice(headerRowIdx + 1).filter(function(r){ return r && r.some(function(c){ return c !== null && c !== ''; }); });
+    var cols = normalizeCols(headers);
+    var data = rows.map(function(r){
+        var o = {};
+        cols.forEach(function(c, i){ o[c] = (i < r.length) ? r[i] : ''; });
+        return o;
+    });
+    return { headers: cols, data: data };
 }
 
 // 区分两类 Excel：店铺利润统计(.xls 商品SPU) vs 店铺数据记录(.xlsx 店铺名称+ROAS)
@@ -1442,17 +2590,14 @@ function detectSheetType(json, filename) {
         return cells.indexOf('店铺名称') >= 0 && (/目标ROAS|花费|销售额|预计利润|曝光量/.test(joined));
     }
     function hasProductMark(row) {
-        if (!row || !row.length) return false;
-        return row.some(function(h) {
-            var s = String(h || '').trim();
-            return s === '商品SPU ID' || (s.indexOf('商品') >= 0 && s.indexOf('SPU') >= 0);
-        });
+        return rowHasProductHeader(row);
     }
 
     var h0 = json[0] || [];
     var h1 = json[1] || [];
     if (hasStoreMark(h0) || hasStoreMark(h1)) return 'store';
     if (hasProductMark(h0)) return 'product';
+    if (hasProductMark(h1)) return 'product';
 
     var a1 = String(h0[0] || '').trim();
     if ((/\d+月\d+[号日]?/.test(a1)) || (parseFloat(a1) > 40000 && parseFloat(a1) < 50000)) {
@@ -1469,9 +2614,22 @@ function sheetTypeLabel(type) {
 
 function handleFileUpload(inputFiles) {
     if (!inputFiles||inputFiles.length===0) return;
+    captureUploadUndoState();
+    var fileList = Array.from(inputFiles);
+    var pending = fileList.length;
     var count=0, storeCount=0;
-    Array.from(inputFiles).forEach(function(f){
+    setGlobalLoading(true, '正在解析 ' + fileList.length + ' 个文件…');
+    function fileDone() {
+        pending--;
+        if (pending <= 0) setGlobalLoading(false);
+    }
+    fileList.forEach(function(f){
         var reader = new FileReader();
+        reader.onerror = function() {
+            fileDone();
+            logEvent('error', 'upload', 'read_fail', '无法读取文件: ' + f.name, { filename: f.name });
+            toast('无法读取: ' + f.name, 'error');
+        };
         reader.onload = function(e){
             try {
                 var wb = XLSX.read(e.target.result,{type:'array'});
@@ -1486,19 +2644,30 @@ function handleFileUpload(inputFiles) {
                         ST.storeData = (ST.storeData||[]).concat(storeRecs);
                         storeCount += storeRecs.length;
                         safeSetItem('temu_v6_store', JSON.stringify(ST.storeData));
+                        var storeNames = {};
+                        storeRecs.forEach(function(r) { if (r.store) storeNames[r.store] = 1; });
+                        recordStoreParseReport(f.name, sn, storeRecs.length, Object.keys(storeNames));
                         return;
                     }
 
-                    // 店铺利润统计：第 0 行即表头（商品SPU ID / 每天销量 / 克重…）
-                    var headers = json[0].map(function(h){return String(h).trim();});
-                    var rows = json.slice(1).filter(function(r){return r.some(function(c){return c!==null&&c!=='';});});
-                    if (rows.length===0) return;
-                    var cols = normalizeCols(headers);
-                    var data = rows.map(function(r){var o={};cols.forEach(function(c,i){o[c]=(i<r.length)?r[i]:'';});return o;});
-                    ST.files.push({filename:f.name,sheet:sn,headers:cols,data:data,rowCount:data.length,fileType:'product',time:new Date().toLocaleString('zh-CN')});
-                    count+=data.length;
+                    // 店铺利润统计：自动定位含「商品SPU ID」的表头行
+                    var hi = findProductHeaderRow(json);
+                    var rawHeaders = (json[hi] || []).map(function(h) { return String(h).trim(); });
+                    var parsed = rowsToProductData(json, hi);
+                    if (parsed.data.length === 0) {
+                        logEvent('warn', 'upload', 'parse_empty', f.name + ' 无有效商品行', { filename: f.name, sheet: sn, headerRow: hi, headers: parsed.headers });
+                        return;
+                    }
+                    ST.files.push({filename:f.name,sheet:sn,headers:parsed.headers,data:parsed.data,rowCount:parsed.data.length,fileType:'product',time:new Date().toLocaleString('zh-CN')});
+                    count+=parsed.data.length;
+                    recordProductParseReport(f.name, sn, hi, rawHeaders, parsed);
                 });
-            } catch(err) { toast('解析失败: '+f.name,'error'); return; }
+            } catch(err) {
+                logEvent('error', 'upload', 'parse_fail', '解析失败: ' + f.name, { filename: f.name, error: err.message || String(err) });
+                toast('解析失败: '+f.name,'error');
+                fileDone();
+                return;
+            }
             // 安全写入 localStorage（自动处理配额溢出和快照清理）
             safeSetItem('temu_v6_data', JSON.stringify(ST.files));
             var now = new Date().toLocaleString('zh-CN');
@@ -1508,7 +2677,23 @@ function handleFileUpload(inputFiles) {
             var msg = [];
             if (count > 0) msg.push('利润统计 '+count+' 条商品');
             if (storeCount > 0) msg.push('数据记录 '+storeCount+' 条店铺');
-            toast(msg.length ? ('上传完成：' + msg.join(' · ')) : '未解析到有效数据', msg.length ? 'success' : 'warning');
+            if (msg.length) {
+                logEvent('info', 'upload', 'batch_done', msg.join(' · '), {
+                    productRows: count, storeRows: storeCount, files: ST.files.length, spu: ST.products.length
+                });
+            } else {
+                logEvent('warn', 'upload', 'batch_empty', '上传完成但未解析到有效数据', { filenames: Array.from(inputFiles).map(function(x){ return x.name; }) });
+            }
+            if (msg.length) {
+                toast('上传完成：' + msg.join(' · '), 'success', {
+                    action: '撤销',
+                    onAction: undoLastUpload,
+                    duration: 9000
+                });
+            } else {
+                toast('未解析到有效数据', 'warning');
+            }
+            fileDone();
         };
         reader.readAsArrayBuffer(f);
     });
@@ -1518,11 +2703,20 @@ function handleFileUpload(inputFiles) {
 // 团队数据上传Pipeline
 function handleTeamUpload(inputFiles) {
     if (!inputFiles || inputFiles.length === 0) return;
-    toast('正在解析团队数据...', 'info');
     var files = Array.from(inputFiles);
+    var pending = files.length;
     var count = 0;
+    setGlobalLoading(true, '正在解析团队数据…');
+    function teamFileDone() {
+        pending--;
+        if (pending <= 0) setGlobalLoading(false);
+    }
     files.forEach(function (f) {
         var reader = new FileReader();
+        reader.onerror = function() {
+            teamFileDone();
+            toast('无法读取: ' + f.name, 'error');
+        };
         reader.onload = function (e) {
             try {
                 var wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
@@ -1530,27 +2724,33 @@ function handleTeamUpload(inputFiles) {
                 var json = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1 });
                 if (!json || json.length < 2) { toast('团队文件无数据: ' + f.name, 'warning'); return; }
                 if (detectSheetType(json, f.name) === 'store') {
+                    logEvent('warn', 'team', 'wrong_file_type', '团队区收到店铺数据记录：' + f.name, { filename: f.name });
                     toast('「' + f.name + '」是店铺数据记录，请拖到主上传区。团队区只收利润统计。', 'warning');
                     return;
                 }
-                var headers = json[0].map(function(h){ return String(h).trim(); });
-                var rows = json.slice(1).filter(function(r){ return r.some(function(c){ return c !== null && c !== ''; }); });
-                if (rows.length === 0) { toast('团队文件无有效行: ' + f.name, 'warning'); return; }
-                var cols = normalizeCols(headers);
-                var data = rows.map(function (r) {
-                    var o = {};
-                    cols.forEach(function (ci, i) { o[ci] = (i < r.length) ? r[i] : ''; });
-                    return o;
-                });
-                var fileEntry = {filename: f.name, sheet: sn, headers: cols, data: data, rowCount: data.length, time: new Date().toLocaleString('zh-CN')};
+                var hi = findProductHeaderRow(json);
+                var parsed = rowsToProductData(json, hi);
+                if (parsed.data.length === 0) {
+                    logEvent('warn', 'team', 'parse_empty', '团队文件无有效行: ' + f.name, { filename: f.name });
+                    toast('团队文件无有效行: ' + f.name, 'warning'); return;
+                }
+                var rawHeaders = (json[hi] || []).map(function(h) { return String(h).trim(); });
+                var fileEntry = {filename: f.name, sheet: sn, headers: parsed.headers, data: parsed.data, rowCount: parsed.data.length, time: new Date().toLocaleString('zh-CN')};
                 var result = DataPipeline.analyze([fileEntry]);
-                ST.teamProducts = (ST.teamProducts || []).concat(result.products);
+                ST.teamProducts = normalizeTeamProducts((ST.teamProducts || []).concat(result.products));
                 count += result.products.length;
-            } catch (err) { toast('团队数据解析失败: ' + f.name, 'error'); return; }
+                recordProductParseReport('[团队] ' + f.name, sn, hi, rawHeaders, parsed);
+                logEvent('info', 'team', 'import_file', f.name + ' → ' + result.products.length + ' SPU', { filename: f.name, spuAdded: result.products.length, teamTotal: ST.teamProducts.length });
+            } catch (err) {
+                logEvent('error', 'team', 'parse_fail', '团队数据解析失败: ' + f.name, { filename: f.name, error: err.message || String(err) });
+                toast('团队数据解析失败: ' + f.name, 'error'); return;
+            }
             hasTeam = ST.teamProducts.length > 0;
             safeSetItem('temu_v6_team', JSON.stringify(ST.teamProducts));
             reprocessAll(); updateSidebar(); if (typeof renderPKPage !== "undefined") try { renderPKPage(); } catch (e2) {}
+            logEvent('info', 'team', 'import_done', '团队 Excel 导入完成 · ' + count + ' 条', { count: count, teamTotal: ST.teamProducts.length });
             toast('团队数据导入完成：' + count + ' 条商品', 'success');
+            teamFileDone();
         };
         reader.readAsArrayBuffer(f);
     });
@@ -1562,15 +2762,26 @@ function extractProducts(files) {
     var pros=[];
     files.forEach(function(f){
         (f.data||[]).forEach(function(r){
-            var cost=parseFloat(r.cost)||0, price=parseFloat(r.price)||0;
-            var ds=parseFloat(r.daily_sales)||parseFloat(r.total_sales)||0;
-            var gm=parseFloat(r.gross_margin);
-            if (isNaN(gm) || gm === 0) gm = price>0?((price-cost)/price*100):0;
-            else if (Math.abs(gm) <= 1.5) gm = gm * 100;
+            var cost=parseNum(r.cost); if(isNaN(cost)) cost=0;
+            var price=parseNum(r.price); if(isNaN(price)) price=parseNum(r.competitor_price)||0;
+            var ds=parseNum(r.daily_sales); if(isNaN(ds)) ds=parseNum(r.total_sales)||0;
+            var gm=normalizePercent(r.gross_margin, price, cost);
+            var dp=parseNum(r.daily_profit);
+            if(isNaN(dp)) dp=(price>0&&ds>0)?ds*(price-cost):(ds*price*gm/100);
             var spu=String(r.spu_id||'').replace(/\.0$/,'');
-            pros.push({spu_id:spu||('SPU-'+Math.random().toString(36).slice(2,8)),name:r.name||spu||'?',cost:cost,weight_g:parseFloat(r.weight_g)||0,price:price,daily_sales:ds,gross_margin:gm,daily_profit:parseFloat(r.daily_profit)||(ds*cost*gm/100),category:r.category||''});
+            if(!spu||spu==='undefined') return;
+            pros.push({
+                spu_id:spu,name:r.name||spu||'?',cost:cost,
+                weight_g:parseNum(r.weight_g)||0,price:price,daily_sales:ds,
+                gross_margin:gm,daily_profit:isNaN(dp)?0:dp,category:r.category||''
+            });
         });
     }); return pros;
+}
+
+function normalizeTeamProducts(rawList) {
+    if (!rawList || !rawList.length) return [];
+    return extractProducts([{ data: rawList }]);
 }
 
 function doClustering(products) {
@@ -1659,20 +2870,21 @@ function parseStoreDateCell(cell) {
 function buildStoreColMap(headerRow) {
     var map = {};
     (headerRow || []).forEach(function(h, idx) {
-        var s = String(h || '').trim();
-        if (s === '目标ROAS') map.roas = idx;
-        else if (s === '曝光数上涨') map.imprGrowth = idx;
-        else if (s === '点击量上涨') map.clickGrowth = idx;
-        else if (s === '点击率') map.ctr = idx;
-        else if (s === '转化率') map.cvr = idx;
-        else if (s === '花费') map.spend = idx;
-        else if (s === '今日销量' && map.sales === undefined) map.sales = idx;
-        else if (s === '销售额') map.revenue = idx;
-        else if (s === '预计利润') map.profit = idx;
-        else if (s === '曝光量') map.impressions = idx;
-        else if (s === '点击量') map.clicks = idx;
-        else if (s === '成交率') map.orderRate = idx;
-        else if (s === '上品数量') map.products = idx;
+        var raw = String(h || '').trim();
+        var s = cleanHeaderKey(h);
+        if (/目标roas/.test(s) || raw === '目标ROAS') map.roas = idx;
+        else if (/曝光数上涨|曝光上涨/.test(raw)) map.imprGrowth = idx;
+        else if (/点击量上涨|点击上涨/.test(raw)) map.clickGrowth = idx;
+        else if (/点击率/.test(raw)) map.ctr = idx;
+        else if (/转化率/.test(raw)) map.cvr = idx;
+        else if (raw === '花费') map.spend = idx;
+        else if (raw === '今日销量' && map.sales === undefined) map.sales = idx;
+        else if (raw === '销售额') map.revenue = idx;
+        else if (/预计利润/.test(raw) || (raw === '利润')) map.profit = idx;
+        else if (/曝光量/.test(raw)) map.impressions = idx;
+        else if (/点击量/.test(raw) && !/上涨/.test(raw)) map.clicks = idx;
+        else if (/成交率/.test(raw)) map.orderRate = idx;
+        else if (/上品数量/.test(raw)) map.products = idx;
     });
     return map;
 }
@@ -1714,8 +2926,8 @@ var StoreDataPipeline = {
                         roas: colMap.roas !== undefined ? storeCellNum(dataRow, colMap.roas) : null,
                         imprGrowth: storeCellNum(dataRow, colMap.imprGrowth),
                         clickGrowth: storeCellNum(dataRow, colMap.clickGrowth),
-                        ctr: storeCellNum(dataRow, colMap.ctr),
-                        cvr: storeCellNum(dataRow, colMap.cvr),
+                        ctr: colMap.ctr !== undefined ? normalizeRateToRatio(storeCellNum(dataRow, colMap.ctr)) : null,
+                        cvr: colMap.cvr !== undefined ? normalizeRateToRatio(storeCellNum(dataRow, colMap.cvr)) : null,
                         spend: storeCellNum(dataRow, colMap.spend),
                         sales: storeCellNum(dataRow, colMap.sales),
                         revenue: storeCellNum(dataRow, colMap.revenue),
@@ -1745,7 +2957,19 @@ window.renderImportPage = (function() {
             alertEl.innerHTML='<span class="alert-icon">📂</span><span>请上传 Excel：利润统计 .xls 或 数据记录 .xlsx</span>';
         }
     }
+    var oldInsights=pg.querySelector('.import-insights'); if(oldInsights) oldInsights.remove();
     var old=pg.querySelector('.parsed'); if(old) old.remove();
+    if (hasProductData() || hasStoreData()) {
+        var ins = document.createElement('div');
+        ins.className = 'import-insights';
+        ins.innerHTML = buildInsightsBarHTML() +
+            '<div class="btn-row" style="margin-bottom:8px;">' +
+            '<button type="button" class="btn" onclick="switchPage(\'products\')">📊 商品画像</button>' +
+            '<button type="button" class="btn" onclick="switchPage(\'diagnosis\')">📈 个人诊断</button>' +
+            (hasStoreData() ? '<button type="button" class="btn" onclick="switchPage(\'store\')">🏪 店铺运营</button>' : '') +
+            '</div>';
+        pg.insertBefore(ins, pg.querySelector('#uploadZone'));
+    }
     if(ST.files.length===0 && !(ST.storeData && ST.storeData.length)) return;
     var div=document.createElement('div'); div.className='parsed';
     var total=ST.files.reduce(function(s,f){return s+f.rowCount;},0);
@@ -1768,6 +2992,8 @@ window.renderImportPage = (function() {
         div.appendChild(storeExp);
     }
     pg.appendChild(div);
+    renderParseReportsPanel();
+    renderEventLogViews('');
 }
     return renderImportPage;
 })();
@@ -1778,9 +3004,20 @@ window.renderImportPage = (function() {
 window.renderProducts = (function() {
     function renderProducts() {
     var pg=document.getElementById('page-products'); if(!pg) return;
+    if (!hasProductData()) {
+        mountEmptyState(pg, 'pc', {
+            icon: '📊',
+            title: '还没有商品数据',
+            desc: '请上传「店铺利润统计」.xls，系统会自动聚类为黄金/白银/观察品。',
+            extra: hasTeam ? '<span style="color:var(--text-dim);font-size:0.85rem;">已加载团队基准 ' + ST.teamProducts.length + ' 条，上传个人数据后可对比</span>' : ''
+        });
+        return;
+    }
     var alertEl=pg.querySelector('.alert.alert-info'); if(alertEl) alertEl.style.display='none';
     var old=pg.querySelector('.pc'); if(old) old.remove();
     var div=document.createElement('div'); div.className='pc';
+    var ib = buildInsightsBarHTML();
+    if (ib) { var ibEl = document.createElement('div'); ibEl.innerHTML = ib; div.appendChild(ibEl); }
     var cnt={}; ST.clusters.forEach(function(p){cnt[p.cluster_label]=(cnt[p.cluster_label]||0)+1;});
     div.innerHTML='<div class="btn-row"><div class="step"><div class="emoji">🟡</div><div class="title">黄金品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--gold);">'+(cnt['黄金品']||0)+'</div></div><div class="step"><div class="emoji">⚪</div><div class="title">白银品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:#a0a0a0;">'+(cnt['白银品']||0)+'</div></div><div class="step"><div class="emoji">🔵</div><div class="title">观察品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:#5b9bd5;">'+(cnt['观察品']||0)+'</div></div><div class="step"><div class="title">📦 总计</div><div class="desc" style="font-size:1.5rem;font-weight:700;">'+ST.clusters.length+'</div></div></div>';
     pg.appendChild(div);
@@ -1800,6 +3037,10 @@ window.renderProducts = (function() {
 window.renderRules = (function() {
     function renderRules() {
     var pg=document.getElementById('page-rules'); if(!pg) return;
+    if (!hasProductData()) {
+        mountEmptyState(pg, 'rc', { icon: '📋', title: '选品规则需要商品数据', desc: '上传利润统计后，系统会从黄金品提炼铁律与避坑规则。' });
+        return;
+    }
     var alertEl=pg.querySelector('.alert.alert-info'); if(alertEl) alertEl.style.display='none';
     var old=pg.querySelector('.rc'); if(old) old.remove();
     var div=document.createElement('div'); div.className='rc';
@@ -1824,10 +3065,14 @@ window.renderPredict = (function() {
     var pg=document.getElementById('page-predict'); if(!pg) return;
     var alertEl=pg.querySelector('.alert.alert-info');
     var old=pg.querySelector('.prc'); if(old) old.remove();
+    if (!hasProductData()) {
+        mountEmptyState(pg, 'prc', { icon: '🔮', title: '智能预测需要历史样本', desc: '上传利润统计后，可用相似品匹配评估新品毛利率与风险。' });
+        return;
+    }
+    if(alertEl) alertEl.style.display='none';
     var div=document.createElement('div'); div.className='prc';
-    div.innerHTML='<hr><h3 style="color:var(--gold);margin:16px 0;">🎯 输入新品参数</h3><div class="btn-row"><div><label>采购价($)</label><br><input type="number" id="pred_purchase" value="3" min="0" step="0.5" style="width:120px;"></div><div><label>克重(g)</label><br><input type="number" id="pred_weight" value="200" min="0" step="10" style="width:120px;"></div><div><label>售价($)</label><br><input type="number" id="pred_price" value="15" min="0" step="0.5" style="width:120px;"></div><div><label>日销</label><br><input type="number" id="pred_sales" value="5" min="0" step="0.5" style="width:120px;"></div></div><div class="alert alert-info" style="margin:16px 0;"><span>📐 成本 = 克重 x 0.06 + 采购价（运输+商品成本）</span></div><button class="btn" style="background:var(--gold);color:var(--bg);font-weight:700;margin-bottom:16px;" onclick="doPrediction()">🔍 匹配相似品</button><div id="predResult"></div>';
+    div.innerHTML='<hr><h3 style="color:var(--gold);margin:16px 0;">🎯 输入新品参数</h3><div class="btn-row"><div><label>采购价($)</label><br><input type="number" id="pred_purchase" value="3" min="0" step="0.5" style="width:120px;"></div><div><label>克重(g)</label><br><input type="number" id="pred_weight" value="200" min="0" step="10" style="width:120px;"></div><div><label>售价($)</label><br><input type="number" id="pred_price" value="15" min="0" step="0.5" style="width:120px;"></div><div><label>日销</label><br><input type="number" id="pred_sales" value="5" min="0" step="0.5" style="width:120px;"></div></div><div class="alert alert-info" style="margin:16px 0;"><span>📐 成本 = 克重 × 0.06 + 采购价 + 4（运输+商品+固定+操作费）</span></div><button class="btn" style="background:var(--gold);color:var(--bg);font-weight:700;margin-bottom:16px;" onclick="doPrediction()">🔍 匹配相似品</button><div id="predResult"></div>';
     pg.appendChild(div);
-    if(alertEl){if(ST.products.length===0){alertEl.style.display='block';}else{alertEl.style.display='none';}}
 }
     return renderPredict;
 })();
@@ -1851,6 +3096,10 @@ function doPrediction(){
 window.renderBlacklist = (function() {
     function renderBlacklist() {
     var pg=document.getElementById('page-blacklist'); if(!pg) return;
+    if (!hasProductData()) {
+        mountEmptyState(pg, 'blc', { icon: '🚨', title: '避坑清单暂无数据', desc: '上传利润统计后，自动识别高克重陷阱、低毛利与滞销品。' });
+        return;
+    }
     var alertEl=pg.querySelector('.alert.alert-info'); if(alertEl) alertEl.style.display='none';
     var old=pg.querySelector('.blc'); if(old) old.remove(); var div=document.createElement('div'); div.className='blc';
     var issues = ST._avoidance || checkAvoidance(ST.products);
@@ -1998,9 +3247,34 @@ function generateDirectionAdvice(cmp) {
 function renderDiagnosis() {
     var pg=document.getElementById('page-diagnosis'); if(!pg) return;
     var msg=pg.querySelector('.warn-card'); var old=pg.querySelector('.dc'); if(old) old.remove();
-    if(ST.snapshots.length<2){if(msg) msg.style.display='block';return;}
+    if (!hasProductData()) {
+        if (msg) msg.style.display = 'none';
+        mountEmptyState(pg, 'dc', {
+            icon: '📈',
+            title: '个人诊断需要选品数据',
+            desc: '至少上传一次利润统计。对比上一份数据需保留 2 次以上快照（每次上传会自动存快照）。',
+            extra: '<button type="button" class="btn" onclick="switchPage(\'import\')">去上传</button>'
+        });
+        return;
+    }
+    if(ST.snapshots.length<2){
+        if(msg) msg.style.display='block';
+        mountEmptyState(pg, 'dc', {
+            icon: '📸',
+            title: '还需要再上传一次',
+            desc: '当前快照 ' + ST.snapshots.length + ' 份。再导入一周利润统计，即可看到趋势与「个人 vs 团队」。',
+            cta: '继续上传数据'
+        });
+        return;
+    }
     if(msg) msg.style.display='none';
     var div=document.createElement('div'); div.className='dc';
+    var toolbar = document.createElement('div');
+    toolbar.className = 'page-toolbar';
+    toolbar.innerHTML = '<button type="button" class="btn-primary-sm" onclick="exportDiagnosisReport()">📄 导出诊断周报</button>' +
+        '<button type="button" class="btn" onclick="loadFromCloud()">📥 刷新团队基准</button>' +
+        '<span style="color:var(--text-dim);font-size:0.82rem;">Markdown 可发给主管或 AI 复盘</span>';
+    div.appendChild(toolbar);
     var cmp = compareSnapshots();
     if (!cmp) { pg.appendChild(div); return; }
 
@@ -2064,38 +3338,34 @@ function renderDiagnosis() {
 
     /* ── ⑤ 个人 vs 团队 ── */
     var expVs=document.createElement('details'); expVs.className='expander';
-    var tmGoldPct = 40, tmMargin = 25, tmSales = 3, tmP = [];
+    var tmGoldPct = null, tmMargin = null, tmSales = null, tmP = [];
     if (hasTeam && ST.teamProducts && ST.teamProducts.length > 0) {
         try {
-            ST.teamProducts.forEach(function(r){
-                var spu = String(r.spu_id||'').replace(/\.0$/, '');
-                var cost = parseFloat(r.cost)||0, price = parseFloat(r.price)||0;
-                var ds = parseFloat(r.daily_sales)||0;
-                var gm = parseFloat(r.gross_margin)||(price>0?((price-cost)/price*100):0);
-                tmP.push({spu_id:spu, cost:cost, weight_g:parseFloat(r.weight_g)||0, price:price, daily_sales:ds, gross_margin:gm});
-            });
-            var tmC = doClustering(tmP);
+            tmP = ST.teamProducts.slice();
+            var tmC = doClustering(tmP.slice());
             var tg = tmC.filter(function(p){return p.cluster_label==='黄金品';});
-            tmGoldPct = tmC.length > 0 ? tg.length / tmC.length * 100 : 40;
-            tmMargin = avg(tmP.map(function(p){return p.gross_margin;})) || 25;
-            tmSales = avg(tmP.map(function(p){return p.daily_sales;})) || 3;
+            tmGoldPct = tmC.length > 0 ? tg.length / tmC.length * 100 : null;
+            tmMargin = avgOrNull(tmP.map(function(p){return p.gross_margin;}));
+            tmSales = avgOrNull(tmP.map(function(p){return p.daily_sales;}));
         } catch(e) { console.error('team calc:', e); }
     }
     var vsHTML='<summary>👥 个人 vs 团队</summary><div class="expander-content">';
-    var teamHint = hasTeam ? ('团队基准来自导入的 '+ST.teamProducts.length+' 条真实数据') : '团队基准数据需导入团队 Excel 后自动计算。当前仅展示个人数据，虚线为估算团队中位。';
+    var teamHint = hasTeam ? ('团队基准来自 '+ST.teamProducts.length+' 条已标准化数据（OSS/本地导入）') : '团队基准需 📥 团队 或导入团队 Excel。无团队数据时右侧为估算参考。';
     vsHTML+='<div class="alert alert-info"><span class="alert-icon">ℹ</span><span>'+teamHint+'</span></div>';
-    vsHTML+='<table><thead><tr><th>指标</th><th>个人（最新）</th><th>团队中位（估算）</th><th>差距</th></tr></thead><tbody>';
+    vsHTML+='<table><thead><tr><th>指标</th><th>个人（最新）</th><th>团队基准</th><th>差距</th></tr></thead><tbody>';
     var metrics = [
-        {label:'商品总数', my:cmp.new_count, tm:hasTeam?Math.round(tmP.length):Math.max(15,cmp.new_count*0.8|0), unit:' 个'},
-        {label:'黄金品占比', my:goldPct, tm:Math.round(tmGoldPct), unit:'%'},
-        {label:'均毛利率', my:cmp.new_margin, tm:Math.round(tmMargin), unit:'%'},
-        {label:'均日销量', my:cmp.new_sales, tm:Math.round(tmSales), unit:' 单'},
+        {label:'商品总数', my:cmp.new_count, tm:hasTeam?tmP.length:Math.max(15,cmp.new_count*0.8|0), unit:' 个', est:!hasTeam},
+        {label:'黄金品占比', my:goldPct, tm:hasTeam?(tmGoldPct!==null?tmGoldPct:0):40, unit:'%', est:!hasTeam},
+        {label:'均毛利率', my:cmp.new_margin, tm:hasTeam?(tmMargin!==null?tmMargin:0):25, unit:'%', est:!hasTeam},
+        {label:'均日销量', my:cmp.new_sales, tm:hasTeam?(tmSales!==null?tmSales:0):3, unit:' 单', est:!hasTeam},
     ];
     metrics.forEach(function(m){
-        var gap = m.my - m.tm;
+        var tmShow = (hasTeam && !m.est && m.tm === 0 && m.label !== '商品总数') ? '—' : ('~' + (typeof m.tm === 'number' ? m.tm.toFixed(1) : m.tm) + m.unit);
+        if (m.est) tmShow = '~' + m.tm + m.unit + '（估）';
+        var gap = m.my - (typeof m.tm === 'number' ? m.tm : 0);
         var gapColor = gap >= 0 ? 'var(--success-text)' : 'var(--danger-text)';
         var gapSign = gap >= 0 ? '+' : '';
-        vsHTML+='<tr><td>'+m.label+'</td><td>'+m.my.toFixed(1)+m.unit+'</td><td>~'+m.tm+m.unit+'</td><td style="color:'+gapColor+';font-weight:700;">'+gapSign+gap.toFixed(1)+m.unit+'</td></tr>';
+        vsHTML+='<tr><td>'+m.label+'</td><td>'+m.my.toFixed(1)+m.unit+'</td><td>'+tmShow+'</td><td style="color:'+gapColor+';font-weight:700;">'+gapSign+gap.toFixed(1)+m.unit+'</td></tr>';
     });
     vsHTML+='</tbody></table></div>';
     expVs.innerHTML=vsHTML; div.appendChild(expVs);
@@ -2170,8 +3440,12 @@ window.renderStorePage = (function() {
     var old = pg.querySelector('.sc'); if (old) old.remove();
     var data = ST.storeData || [];
     if (data.length === 0) {
-        var alertEl = pg.querySelector('.alert.alert-info');
-        if (alertEl) alertEl.style.display = 'block';
+        mountEmptyState(pg, 'sc', {
+            icon: '🏪',
+            title: '还没有店铺运营数据',
+            desc: '请上传「店铺数据记录」.xlsx（表头含店铺名称、花费、销售额等），用于 ROAS 与转化分析。',
+            extra: hasProductData() ? '<button type="button" class="btn" onclick="switchPage(\'pk\')">已有选品数据 · 去看个人PK</button>' : ''
+        });
         return;
     }
     var alertEl = pg.querySelector('.alert.alert-info');
@@ -2211,8 +3485,8 @@ window.renderStorePage = (function() {
     Object.keys(storeSummary).sort().forEach(function(store) {
         var s = storeSummary[store];
         var roas = s.spend > 0 ? (s.revenue / s.spend).toFixed(1) : '—';
-        var avgCtr = s.ctrs.length > 0 ? (avg(s.ctrs) * 100).toFixed(2) + '%' : '—';
-        var avgCvr = s.cvrs.length > 0 ? (avg(s.cvrs) * 100).toFixed(2) + '%' : '—';
+        var avgCtr = s.ctrs.length > 0 ? fmtRatePct(avg(s.ctrs)) : '—';
+        var avgCvr = s.cvrs.length > 0 ? fmtRatePct(avg(s.cvrs)) : '—';
         tblHTML += '<tr><td><strong>' + store + '</strong></td><td>' + s.days + '</td><td>' + s.sales + '</td><td>$' + s.revenue.toFixed(0) + '</td><td>$' + s.profit.toFixed(0) + '</td><td>$' + s.spend.toFixed(0) + '</td><td>' + roas + '</td><td>' + avgCtr + '</td><td>' + avgCvr + '</td></tr>';
     });
     tblHTML += '</tbody></table></div></div></details>';
@@ -2223,7 +3497,7 @@ window.renderStorePage = (function() {
     var detailHTML = '<details class="expander"><summary>📋 每日明细（' + sortedDates.length + ' 天）</summary><div class="expander-content"><div class="scroll-box" style="max-height:500px;"><table><thead><tr><th>日期</th><th>店铺</th><th>销量</th><th>营收</th><th>利润</th><th>花费</th><th>ROAS</th><th>曝光</th><th>点击</th><th>CTR</th><th>CVR</th></tr></thead><tbody>';
     data.sort(function(a, b) { return a.date.localeCompare(b.date) || a.store.localeCompare(b.store); }).forEach(function(r) {
         var roas = r.spend > 0 ? (r.revenue / r.spend).toFixed(1) : '—';
-        detailHTML += '<tr><td>' + r.date + '</td><td>' + r.store + '</td><td>' + r.sales + '</td><td>$' + (r.revenue||0).toFixed(0) + '</td><td>$' + (r.profit||0).toFixed(0) + '</td><td>$' + (r.spend||0).toFixed(0) + '</td><td>' + roas + '</td><td>' + (r.impressions||0) + '</td><td>' + (r.clicks||0) + '</td><td>' + ((r.ctr||0)*100).toFixed(2) + '%</td><td>' + ((r.cvr||0)*100).toFixed(2) + '%</td></tr>';
+        detailHTML += '<tr><td>' + r.date + '</td><td>' + r.store + '</td><td>' + r.sales + '</td><td>$' + (r.revenue||0).toFixed(0) + '</td><td>$' + (r.profit||0).toFixed(0) + '</td><td>$' + (r.spend||0).toFixed(0) + '</td><td>' + roas + '</td><td>' + (r.impressions||0) + '</td><td>' + (r.clicks||0) + '</td><td>' + (r.ctr != null && r.ctr > 0 ? fmtRatePct(r.ctr) : '—') + '</td><td>' + (r.cvr != null && r.cvr > 0 ? fmtRatePct(r.cvr) : '—') + '</td></tr>';
     });
     detailHTML += '</tbody></table></div></div></details>';
     div.innerHTML += detailHTML;
@@ -2239,9 +3513,7 @@ window.renderPKPage = (function() {
     function renderPKPage() {
     var pg = document.getElementById("page-pk"); if (!pg) return;
     var old = pg.querySelector(".pc"); if (old) old.remove();
-    console.log("[PK DIAG] products:", ST.products?ST.products.length:0, "store:", ST.storeData?ST.storeData.length:0, "clusters:", ST.clusters?ST.clusters.length:0);
     var hasProducts = ST.products && ST.products.length > 0;
-    console.log("[PK]", "products:", ST.products ? ST.products.length : 0, "store:", ST.storeData ? ST.storeData.length : 0, "clusters:", ST.clusters ? ST.clusters.length : 0);
     var hasStore = ST.storeData && ST.storeData.length > 0;
     if (hasProducts && hasStore) {
         renderPKWithBoth(pg);
