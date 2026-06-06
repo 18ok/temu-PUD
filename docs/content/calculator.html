@@ -1,0 +1,29 @@
+<header class="reader-article-header">
+    <h1 class="section__title" style="font-size:1.5rem;margin-bottom:0.5rem;">毛利粗算</h1>
+    <p class="article-meta">仅粗算示意，不含运费细则、活动折扣与平台扣点</p>
+</header>
+<div class="reader-article-body">
+    <p class="section__desc" style="margin-bottom:1.5rem;">够判断「值不值得往下挖」。采访 #01 案例可参考：采购 $1.20，售价 $5.99。</p>
+    <form class="calc-form" id="margin-form" aria-label="毛利计算器">
+        <label>
+            采购价（美元）
+            <input type="number" id="calc-cost" name="cost" min="0" step="0.01" value="1.20" required>
+        </label>
+        <label>
+            售价（美元）
+            <input type="number" id="calc-price" name="price" min="0.01" step="0.01" value="4.99" required>
+        </label>
+        <label>
+            预估单件运费与扣点（美元，可选）
+            <input type="number" id="calc-fees" name="fees" min="0" step="0.01" value="1.50">
+        </label>
+    </form>
+    <div class="calc-result" id="calc-result" aria-live="polite">
+        粗算毛利率：—
+        <small>公式：(售价 − 采购价 − 费用) ÷ 售价</small>
+    </div>
+    <p style="margin-top:1.5rem;font-size:0.9375rem;color:var(--ink-muted);">
+        低于你的底线？
+        <button type="button" class="reader-inline-link" data-reader-open="interview-01">回去看采访里的判断规则</button>
+    </p>
+</div>

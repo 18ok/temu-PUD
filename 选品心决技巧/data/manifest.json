@@ -1,0 +1,55 @@
+{
+  "interviews": [
+    {
+      "id": "interview-01",
+      "status": "published",
+      "title": "入行第一笔亏了三千，从此看毛利的眼神都变了",
+      "meta": "宠物饰品 · 两年 · 2026-06-06",
+      "category": "宠物饰品",
+      "years": "两年",
+      "role": "个人卖家",
+      "content": "content/interview-01.html"
+    },
+    {
+      "id": "interview-02",
+      "status": "draft",
+      "title": "别人说好做我也不碰的一条红线",
+      "meta": "百货 · 五年 · 2026-06-03",
+      "category": "百货",
+      "years": "五年",
+      "role": "个人卖家"
+    },
+    {
+      "id": "interview-03",
+      "status": "draft",
+      "title": "克重最会骗人，售价第二信",
+      "meta": "潮玩 · 一年 · 2026-05-28",
+      "category": "潮玩",
+      "years": "一年",
+      "role": "个人卖家"
+    }
+  ],
+  "briefs": [
+    {
+      "id": "brief-01",
+      "type": "evening",
+      "title": "晚报样例：轻克重品运费模板变动",
+      "meta": "2026-06-05 · 免费样例",
+      "content": "content/brief-01.html"
+    },
+    {
+      "id": "brief-02",
+      "type": "evening",
+      "title": "晚报样例：$4.9 售价带的百货压力",
+      "meta": "2026-06-04 · 免费样例",
+      "content": "content/brief-02.html"
+    }
+  ],
+  "tools": [
+    {
+      "id": "calculator",
+      "title": "毛利粗算",
+      "content": "content/calculator.html"
+    }
+  ]
+}

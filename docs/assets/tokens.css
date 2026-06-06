@@ -1,0 +1,24 @@
+/* 选品心决 · 独立内容站，金色仅作品牌点缀 */
+:root {
+    --bg: #f6f6f4;
+    --surface: #ffffff;
+    --ink: #2e2e2e;
+    --ink-muted: #5c5c5c;
+    --gold: #e2b87a;
+    --gold-dark: #c99e5e;
+    --gold-bg: rgba(226, 184, 122, 0.08);
+    --border: rgba(46, 46, 46, 0.12);
+    --border-gold: rgba(226, 184, 122, 0.45);
+    --font-display: "Source Serif 4", "Noto Serif SC", "Songti SC", serif;
+    --font-ui: "Source Sans 3", "PingFang SC", "Microsoft YaHei", sans-serif;
+    --read-max: 42rem;
+    --shell-max: 72rem;
+    --space-section: clamp(3rem, 6vw, 4.5rem);
+    --radius: 6px;
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --motion-fast: 200ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :root { --motion-fast: 0ms; }
+}

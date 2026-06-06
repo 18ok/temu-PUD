@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>选品心决 · Temu 选品采访笔记</title>
+    <meta name="description" content="记录 Temu 卖家心里那杆秤：采访口述、同题异构、可带走的判断清单。">
+    <link rel="stylesheet" href="assets/tokens.css">
+    <link rel="stylesheet" href="assets/base.css">
+</head>
+<body>
+    <div class="read-progress" aria-hidden="true"></div>
+
+    <header class="site-header">
+        <div class="shell site-header__inner">
+            <a class="site-brand" href="index.html">选品心决<span>Temu 选品采访笔记</span></a>
+            <nav aria-label="主导航">
+                <ul class="site-nav">
+                    <li><a href="#latest" aria-current="page">采访</a></li>
+                    <li><a href="#signals">简报</a></li>
+                    <li><a href="#read/calculator" data-reader-open="calculator">工具</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="shell hero-split reveal" aria-labelledby="hero-title">
+            <div class="hero-copy">
+                <p class="hero-eyebrow" id="hero-title">Temu 选品采访笔记</p>
+                <blockquote class="hero-quote">
+                    「克重看着轻，毛利一算就穿底。」
+                </blockquote>
+                <p class="hero-lead">
+                    记录不同卖家心里那杆秤。发布前受访者过目，不含公司名称、客户信息与具体 SPU 数据。
+                </p>
+                <div class="hero-actions">
+                    <button type="button" class="btn btn--primary" data-reader-open="interview-01">读最新采访</button>
+                    <button type="button" class="btn" data-reader-open="calculator">粗算一个品的毛利</button>
+                </div>
+            </div>
+            <figure class="hero-visual">
+                <svg viewBox="0 0 320 200" width="100%" height="auto" role="img" aria-labelledby="annot-title annot-desc">
+                    <title id="annot-title">选品手稿标注示意</title>
+                    <desc id="annot-desc">示意克重、采购价与毛利之间的手算关系，非真实商品数据。</desc>
+                    <rect width="320" height="200" fill="#fafafa" rx="4"/>
+                    <path d="M24 40 Q80 28 140 48" fill="none" stroke="#c99e5e" stroke-width="1.2" stroke-dasharray="4 3"/>
+                    <text x="24" y="32" font-family="Source Sans 3, sans-serif" font-size="11" fill="#5c5c5c">克重 38g</text>
+                    <path d="M24 90 L280 90" fill="none" stroke="#2e2e2e" stroke-width="0.8" opacity="0.2"/>
+                    <text x="24" y="82" font-family="Source Sans 3, sans-serif" font-size="11" fill="#5c5c5c">采购价</text>
+                    <text x="24" y="108" font-family="Source Serif 4, serif" font-size="14" fill="#2e2e2e">$1.20</text>
+                    <path d="M24 140 L280 140" fill="none" stroke="#2e2e2e" stroke-width="0.8" opacity="0.2"/>
+                    <text x="24" y="132" font-family="Source Sans 3, sans-serif" font-size="11" fill="#5c5c5c">售价</text>
+                    <text x="24" y="158" font-family="Source Serif 4, serif" font-size="14" fill="#2e2e2e">$4.99</text>
+                    <rect x="200" y="118" width="96" height="52" fill="rgba(226,184,122,0.12)" stroke="#e2b87a" stroke-width="1" rx="4"/>
+                    <text x="212" y="140" font-family="Source Sans 3, sans-serif" font-size="10" fill="#5c5c5c">粗算毛利</text>
+                    <text x="212" y="162" font-family="Source Serif 4, serif" font-size="16" fill="#c99e5e">偏低?</text>
+                    <path d="M210 168 Q240 178 268 152" fill="none" stroke="#c99e5e" stroke-width="1.5"/>
+                </svg>
+                <figcaption>百货类选品 · Temu 运营三年 · 口述整理示意（非真实 SKU）</figcaption>
+            </figure>
+        </section>
+
+        <section class="shell section reveal" id="latest" aria-labelledby="latest-title">
+            <h2 class="section__title" id="latest-title">最新采访</h2>
+            <p class="section__desc">每篇发布前发给受访者过目；署名均为标签化匿名。内容增多后将按类目与年限筛选。</p>
+            <ol class="article-list" id="interview-list">
+                <li class="article-list__item" data-reader-row="interview-01">
+                    <div>
+                        <h3 class="article-list__title">
+                            <button type="button" class="reader-inline-link" style="font-family:var(--font-display);font-size:1.125rem;text-align:left;" data-reader-open="interview-01">入行第一笔亏了三千，从此看毛利的眼神都变了</button>
+                        </h3>
+                        <p class="article-list__meta">宠物饰品 · 两年 · 2026-06-06</p>
+                    </div>
+                    <button type="button" class="article-list__link reader-inline-link" data-reader-open="interview-01">阅读</button>
+                </li>
+                <li class="article-list__item" data-reader-row="interview-02">
+                    <div>
+                        <h3 class="article-list__title">别人说好做我也不碰的一条红线</h3>
+                        <p class="article-list__meta">百货 · 五年 · 2026-06-03</p>
+                    </div>
+                    <span class="article-list__link article-list__link--soon">整理中</span>
+                </li>
+                <li class="article-list__item" data-reader-row="interview-03">
+                    <div>
+                        <h3 class="article-list__title">克重最会骗人，售价第二信</h3>
+                        <p class="article-list__meta">潮玩 · 一年 · 2026-05-28</p>
+                    </div>
+                    <span class="article-list__link article-list__link--soon">整理中</span>
+                </li>
+            </ol>
+        </section>
+
+        <section class="shell section reveal" aria-labelledby="contrast-title">
+            <h2 class="section__title" id="contrast-title">同题异构</h2>
+            <p class="section__desc">同一种问题，不同背景的人，秤上的刻度不一样。</p>
+            <div class="contrast-block read">
+                <p class="contrast-block__question">问：不看数据，你第一个看什么？</p>
+                <ul class="contrast-voices">
+                    <li>
+                        <strong>A · 百货 · 五年</strong>
+                        先看主图有没有同质化到恶心。
+                    </li>
+                    <li>
+                        <strong>B · 宠物饰品 · 两年</strong>
+                        先看能不能做差异化图案。
+                    </li>
+                    <li>
+                        <strong>C · 潮玩 · 一年</strong>
+                        先看评论区有没有差评集中点。
+                    </li>
+                </ul>
+                <p style="margin-top:1.75rem;">
+                    <button type="button" class="btn" data-reader-open="interview-01" data-reader-hash="rules">看采访中的完整判断规则</button>
+                </p>
+            </div>
+        </section>
+
+        <section class="shell section reveal" id="signals" aria-labelledby="signals-title">
+            <h2 class="section__title" id="signals-title">今日信号</h2>
+            <p class="section__desc">早报三十秒扫完；晚报一篇深度。下方为免费样例，订阅方式筹备中。</p>
+            <ul class="signal-list read">
+                <li>宠物类挂件本周上新密度偏高</li>
+                <li>部分百货链接售价下探至 $4.9 区间</li>
+                <li>轻克重品需注意运费模板变动</li>
+            </ul>
+            <ul class="brief-list read">
+                <li class="brief-list__item" data-reader-row="brief-01">
+                    <button type="button" class="reader-inline-link" data-reader-open="brief-01">晚报样例：轻克重品运费模板变动</button>
+                    <span class="brief-list__meta">2026-06-05</span>
+                </li>
+                <li class="brief-list__item" data-reader-row="brief-02">
+                    <button type="button" class="reader-inline-link" data-reader-open="brief-02">晚报样例：$4.9 售价带的百货压力</button>
+                    <span class="brief-list__meta">2026-06-04</span>
+                </li>
+            </ul>
+            <p style="margin-top:1.5rem;">
+                <a class="btn" href="about.html#brief">了解简报订阅方式</a>
+            </p>
+        </section>
+
+        <section class="shell section reveal" id="calc" aria-labelledby="calc-title">
+            <h2 class="section__title" id="calc-title">自己算一遍</h2>
+            <div class="cta-band">
+                <p class="cta-band__title">读完别人的秤，拿一个你在看的品试算毛利。</p>
+                <p class="cta-band__text">
+                    在浮层里输入采购价和售价即可粗算。读完关闭会回到你刚才浏览的位置。
+                </p>
+                <button type="button" class="btn btn--primary" data-reader-open="calculator">打开毛利粗算</button>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="shell site-footer__inner">
+            <p>选品心决 · 个人业余时间整理 · 受访者发布前过目 · 无真实姓名与公司数据</p>
+            <nav aria-label="页脚">
+                <a href="about.html">关于与合规</a>
+                <button type="button" class="reader-inline-link" data-reader-open="calculator">毛利粗算</button>
+            </nav>
+        </div>
+    </footer>
+
+    <div id="reader" class="reader" aria-hidden="true" hidden role="dialog" aria-modal="true" aria-label="阅读面板">
+        <div class="reader__backdrop" aria-hidden="true"></div>
+        <p class="reader__backdrop-hint" hidden>再点暗处关闭</p>
+        <div class="reader__frame">
+            <button type="button" class="reader__back" aria-label="返回首页">← 返回</button>
+            <div class="reader__panel">
+                <div class="reader__progress" aria-hidden="true"></div>
+                <div class="reader__scroll" tabindex="-1">
+                    <div class="reader__content"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/site.js" defer></script>
+    <script src="assets/reader.js" defer></script>
+</body>
+</html>
