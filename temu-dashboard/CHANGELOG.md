@@ -1,5 +1,15 @@
 # Changelog — Temu 运营数据看板
 
+## V10.2.5 — 2026-06-06
+
+### 网页版 OSS / 联调
+
+- **🧪 联调** 在 GitHub Pages 可用（不再强制 bat）
+- **OSS 诊断**：网页版说明 CORS；增加「签名 GET」测试（与 📥 团队 同路径）；私有桶匿名 GET 403 不再误报
+- **未改** `buildCloudSummary` / `uploadToCloud` / `fetchOssJson` 核心逻辑
+
+---
+
 ## V10.2.4 — 2026-06-05
 
 ### 分发：GitHub Pages 为主入口（降低 bat 门槛）

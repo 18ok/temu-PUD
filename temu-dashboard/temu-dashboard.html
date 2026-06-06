@@ -736,7 +736,7 @@
             </div>
 
             <footer class="app-footer">
-                <strong>Temu 运营数据看板 V10.2.4</strong> · 跨境团队选品与运营一体化<br>
+                <strong>Temu 运营数据看板 V10.2.5</strong> · 跨境团队选品与运营一体化<br>
                 本地解析 · 团队 OSS · 运行日志 · 面向企业内训与能力沉淀（小程序 / 付费版规划中）
             </footer>
         </div>
@@ -840,7 +840,7 @@ var EVENT_LOG_KEY = 'temu_v6_event_log';
 var EVENT_LOG_MAX = 200;
 var PARSE_REPORT_KEY = 'temu_v6_parse_reports';
 var PARSE_REPORT_MAX = 30;
-var DASHBOARD_VERSION = 'V10.2.4';
+var DASHBOARD_VERSION = 'V10.2.5';
 /** 同事主入口：GitHub Pages（改 repo 后同步改 meta temu-hosted-url） */
 var HOSTED_PAGES_URL = (function() {
     var m = document.querySelector('meta[name="temu-hosted-url"]');
@@ -2532,10 +2532,15 @@ function diagnoseOssConnection(overlay) {
     var region = normalizeOssRegion(cfg.region || '');
     var lines = [
         '当前页面: ' + location.href,
-        'Bucket: ' + (cfg.bucket || '（待填）') + ' · Region: ' + (region || '（待填）'),
-        '',
-        '⏳ 正在检测 Key 托管 / OSS 代理…'
+        'Bucket: ' + (cfg.bucket || '（待填）') + ' · Region: ' + (region || '（待填）')
     ];
+    if (isHostedWebApp() && !isLocalDevServer()) {
+        lines.push('模式: 网页版 · 浏览器直传 OSS（无 bat 代理）');
+        lines.push('CORS 来源须含: ' + location.origin);
+    } else {
+        lines.push('');
+        lines.push('⏳ 正在检测 Key 托管 / OSS 代理…');
+    }
     var live = createLiveResultModal('OSS 诊断结果', lines);
     function pushLine(s) { live.push(s); }
     var urlList = ossObjectUrls(cfg, (cfg.prefix || 'temu/') + 'manifest.json');
@@ -2550,7 +2555,11 @@ function diagnoseOssConnection(overlay) {
         var hasErr = allLines.some(function(l) { return l.indexOf('❌') >= 0; });
         var hasOk = allLines.some(function(l) { return l.indexOf('✅') >= 0; });
         logEvent(hasErr ? 'warn' : 'info', 'oss', 'diagnose', 'OSS 诊断完成' + (hasOk && !hasErr ? '（通过）' : hasErr ? '（有问题）' : ''), {
-            bucket: cfg.bucket, region: region, hasServer: allLines.some(function(l){ return l.indexOf('Key 托管') >= 0; }), hasProxy: allLines.some(function(l){ return l.indexOf('代理已启用') >= 0; }), summary: allLines.slice(0, 12)
+            bucket: cfg.bucket, region: region,
+            hasServer: allLines.some(function(l){ return l.indexOf('✅ Key 托管') >= 0; }),
+            hasProxy: allLines.some(function(l){ return l.indexOf('✅ 本地 OSS 代理') >= 0; }),
+            hosted: isHostedWebApp() && !isLocalDevServer(),
+            summary: allLines.slice(0, 16)
         });
     }
     var safetyTimer = setTimeout(function() {
@@ -2626,18 +2635,30 @@ function diagnoseOssConnection(overlay) {
         }
 
         pushLine('⚠️ 未检测到本地 OSS 代理');
-        pushLine('   请关闭浏览器，重新双击「启动本地看板.bat」');
-        pushLine('   窗口应显示「含 OSS 代理」，不要用手动 python -m http.server');
+        if (isHostedWebApp()) {
+            pushLine('   网页版正常：无 bat / 无 Python 代理');
+            pushLine('   → 必须在 OSS 控制台 CORS 加入本页来源');
+        } else {
+            pushLine('   请关闭浏览器，重新双击「启动本地看板.bat」');
+            pushLine('   窗口应显示「含 OSS 代理」，不要用手动 python -m http.server');
+        }
         pushLine('');
-        pushLine('【浏览器直传】需配 CORS。新标签页打开：');
-        urlList.forEach(function(u) { pushLine('  ' + u.label + ': ' + u.url); });
-        pushLine('');
+        if (isHostedWebApp() && !isLocalDevServer()) {
+            pushLine('【网页版】匿名 GET manifest 对私有桶常返回 403，不代表 CORS 一定错');
+        } else {
+            pushLine('【浏览器直传】需配 CORS。新标签页打开：');
+            urlList.forEach(function(u) { pushLine('  ' + u.label + ': ' + u.url); });
+            pushLine('');
+        }
 
-        var stepGet = urlList.reduce(function(chain, item) {
+        var stepGet = isHostedWebApp() && !isLocalDevServer()
+            ? Promise.resolve(false)
+            : urlList.reduce(function(chain, item) {
             return chain.then(function(gotOk) {
                 if (gotOk) return true;
                 return promiseWithTimeout(ossTryCorsGet(item.url), 8000, 'GET 超时').then(function(res) {
-                    pushLine('GET+CORS [' + item.label + ']: HTTP ' + res.status + (res.status === 404 ? ' ✅' : res.status === 200 ? ' ✅' : ''));
+                    var note = res.status === 403 ? '（私有桶匿名 GET，可忽略）' : (res.status === 404 || res.status === 200 ? ' ✅' : '');
+                    pushLine('GET+CORS [' + item.label + ']: HTTP ' + res.status + note);
                     return res.status === 200 || res.status === 404;
                 }).catch(function(e) {
                     pushLine('GET+CORS [' + item.label + ']: ❌ ' + e.message);
@@ -2646,19 +2667,50 @@ function diagnoseOssConnection(overlay) {
             });
         }, Promise.resolve(false));
 
+        function testSignedGetAfterUpload() {
+            pushLine('⏳ 签名 GET（与 📥 团队 相同）…');
+            return promiseWithTimeout(ossGetDirect(cfg, testKey), 12000, '签名 GET 超时').then(function(body) {
+                if (body && body.indexOf('"ping"') >= 0) {
+                    pushLine('签名 GET: ✅ 成功 → 📥 团队 / ⬆ 同步可用');
+                } else {
+                    pushLine('签名 GET: ⚠️ 响应异常');
+                }
+            }).catch(function(e) {
+                pushLine('签名 GET: ❌ ' + e.message);
+                if (isHostedWebApp()) {
+                    pushLine('   → OSS CORS 来源加: ' + location.origin);
+                    pushLine('   → Allow-Headers 含 * 或 authorization, date, content-type');
+                }
+            });
+        }
+
         return stepGet.then(function(corsOk) {
-            if (!corsOk) {
+            if (!corsOk && !(isHostedWebApp() && !isLocalDevServer())) {
                 pushLine('');
-                pushLine('CORS 规则（数据安全 → 跨域设置）：');
-                pushLine('  来源: http://localhost:8080 和 http://127.0.0.1:8080');
+                pushLine('CORS 规则（Bucket → 数据安全 → 跨域设置）：');
+                if (isHostedWebApp()) {
+                    pushLine('  来源（必加）: ' + location.origin);
+                    pushLine('  来源（本地开发）: http://localhost:8080 · http://127.0.0.1:8080');
+                } else {
+                    pushLine('  来源: http://localhost:8080 和 http://127.0.0.1:8080');
+                }
                 pushLine('  Methods: GET PUT POST HEAD');
+                pushLine('  Allow-Headers: * · 暴露 Headers: ETag');
+            } else if (isHostedWebApp() && !isLocalDevServer()) {
+                pushLine('');
+                pushLine('CORS 规则（Bucket → 数据安全 → 跨域设置）：');
+                pushLine('  来源（必加）: ' + location.origin);
+                pushLine('  Methods: GET PUT POST HEAD');
+                pushLine('  Allow-Headers: *');
             }
             return promiseWithTimeout(ossPostDirect(cfg, testKey, testBody), 12000, 'POST 上传超时').then(function() {
                 pushLine('POST 上传: ✅ 成功');
+                return testSignedGetAfterUpload();
             }).catch(function(e1) {
                 pushLine('POST 上传: ❌ ' + e1.message);
                 return promiseWithTimeout(ossPutDirect(cfg, testKey, testBody), 12000, 'PUT 上传超时').then(function() {
                     pushLine('PUT 上传: ✅ 成功');
+                    return testSignedGetAfterUpload();
                 }).catch(function(e2) {
                     pushLine('PUT 上传: ❌ ' + e2.message);
                 });
@@ -2792,19 +2844,55 @@ function loadFromCloud() {
     });
 }
 
+function executeTeamDrillUploadPull(cfg, myOwner, pushLine) {
+    var summary = buildTeamDrillSummary();
+    var slug = ownerPathSlug(TEAM_DRILL_OWNER);
+    var key = cfg.prefix + 'uploads/' + slug + '/drill/' + Date.now() + '.json';
+    var entry = {
+        owner: TEAM_DRILL_OWNER,
+        date: summary.date,
+        key: key,
+        spuCount: summary.products.length,
+        storeCount: 0,
+        uploaded_at: summary.uploaded_at
+    };
+    return ossUploadObject(cfg, key, JSON.stringify(summary)).then(function() {
+        pushLine('✅ 已上传虚拟同事 JSON: ' + TEAM_DRILL_OWNER);
+        pushLine('⏳ 更新 manifest 索引…');
+        return updateCloudManifest(null, cfg, entry);
+    }).then(function() {
+        pushLine('✅ manifest 索引已更新');
+        pushLine('⏳ 拉取团队数据…');
+        return fetchOssJson(cfg, cfg.prefix + 'manifest.json');
+    }).then(function(manifest) {
+        var list = collectTeamEntriesFromManifest(manifest, myOwner);
+        var hasDrill = list.some(function(e) { return e.owner === TEAM_DRILL_OWNER; });
+        if (!hasDrill) {
+            pushLine('❌ manifest 里找不到虚拟同事（归属人过滤可能有问题）');
+            return Promise.reject(new Error('no-drill'));
+        }
+        pushLine('✅ manifest 含其他成员: ' + list.map(function(e) { return e.owner; }).join('、'));
+        return Promise.all(list.map(function(e) { return fetchOssJson(cfg, e.key); }));
+    }).then(function(summaries) {
+        var r = applyTeamSummaries(summaries);
+        pushLine('✅ 团队拉取成功: ' + r.people + ' 人 · ' + r.count + ' 条 SPU');
+        pushLine('');
+        pushLine('下一步: 打开「诊断」页查看「个人 vs 团队」');
+        pushLine('真实同事同步后，📥 团队 会拉取他们的数据（不含你自己）');
+    });
+}
+
 function runTeamSyncDrill() {
     if (!isOssConfigured()) { showOssConfigModal(runTeamSyncDrill); return; }
-    if (!isLocalDevServer()) {
-        toast('联调请用「启动本地看板.bat」打开 localhost:8080', 'warning');
-        return;
-    }
     var cfg = getOssConfig();
     var myOwner = getCloudOwner();
+    var hosted = isHostedWebApp() && !isLocalDevServer();
     var live = createLiveResultModal('🧪 团队联调结果', [
         '团队联调（模拟第二人上传 + 拉取）',
         '你的归属人: ' + myOwner,
+        hosted ? ('模式: 网页版 · ' + location.origin) : '模式: 本地 bat / Key 托管',
         '',
-        '⏳ 正在检测本地 OSS 代理…'
+        hosted ? '⏳ 准备浏览器直传 OSS…' : '⏳ 正在检测本地 OSS 代理…'
     ]);
     function pushLine(s) { live.push(s); }
     var finished = false;
@@ -2814,7 +2902,7 @@ function runTeamSyncDrill() {
         live.setTitle('🧪 团队联调结果');
         var allLines = live.getLines();
         var ok = allLines.some(function(l) { return l.indexOf('团队拉取成功') >= 0; });
-        logEvent(ok ? 'info' : 'warn', 'oss', 'team_drill', ok ? '团队联调通过' : '团队联调未完全通过', { lines: allLines });
+        logEvent(ok ? 'info' : 'warn', 'oss', 'team_drill', ok ? '团队联调通过' : '团队联调未完全通过', { lines: allLines, hosted: hosted });
     }
     var safetyTimer = setTimeout(function() {
         pushLine('');
@@ -2822,57 +2910,43 @@ function runTeamSyncDrill() {
         finishDrill();
     }, OSS_DRILL_MAX_MS);
 
-    checkOssServerSync().then(function(hasServer) {
-        return checkOssLocalProxy().then(function(hasProxy) {
-        if (!hasServer && !hasProxy) {
-            pushLine('❌ 未检测到 Key 托管（/api/sync）或 OSS 本地代理');
-            pushLine('   → 请重启 启动本地看板.bat');
-            pushLine('   → 推荐配置 .env（见 .env.example）');
-            return Promise.reject(new Error('no-proxy'));
+    var drillPromise;
+    if (hosted) {
+        if (!cfg.accessKeyId || !cfg.accessKeySecret) {
+            pushLine('❌ 网页版需在 ⚙ OSS 填写 AccessKey（.env 只在 bat 里生效）');
+            pushLine('   CORS 来源须含: ' + location.origin);
+            drillPromise = Promise.resolve();
+        } else {
+            pushLine('ℹ️ 网页版无 bat 代理，走浏览器签名');
+            pushLine('   若失败：OSS → 跨域 CORS → 来源加 ' + location.origin);
+            pushLine('⏳ 上传虚拟同事数据…');
+            drillPromise = executeTeamDrillUploadPull(cfg, myOwner, pushLine);
         }
-        if (hasServer) pushLine('✅ Key 托管模式（/api/sync）');
-        else pushLine('✅ 本地 OSS 代理正常');
-        pushLine('⏳ 上传虚拟同事数据…');
-        var summary = buildTeamDrillSummary();
-        var slug = ownerPathSlug(TEAM_DRILL_OWNER);
-        var key = cfg.prefix + 'uploads/' + slug + '/drill/' + Date.now() + '.json';
-        var entry = {
-            owner: TEAM_DRILL_OWNER,
-            date: summary.date,
-            key: key,
-            spuCount: summary.products.length,
-            storeCount: 0,
-            uploaded_at: summary.uploaded_at
-        };
-        return ossUploadObject(cfg, key, JSON.stringify(summary)).then(function() {
-            pushLine('✅ 已上传虚拟同事 JSON: ' + TEAM_DRILL_OWNER);
-            pushLine('⏳ 更新 manifest 索引…');
-            return updateCloudManifest(null, cfg, entry);
-        }).then(function() {
-            pushLine('✅ manifest 索引已更新');
-            pushLine('⏳ 拉取团队数据…');
-            return fetchOssJson(cfg, cfg.prefix + 'manifest.json');
-        }).then(function(manifest) {
-            var list = collectTeamEntriesFromManifest(manifest, myOwner);
-            var hasDrill = list.some(function(e) { return e.owner === TEAM_DRILL_OWNER; });
-            if (!hasDrill) {
-                pushLine('❌ manifest 里找不到虚拟同事（归属人过滤可能有问题）');
-                return Promise.reject(new Error('no-drill'));
+    } else {
+        drillPromise = checkOssServerSync().then(function(hasServer) {
+            return checkOssLocalProxy().then(function(hasProxy) {
+            if (!hasServer && !hasProxy) {
+                pushLine('❌ 未检测到 Key 托管（/api/sync）或 OSS 本地代理');
+                pushLine('   → 请重启 启动本地看板.bat');
+                pushLine('   → 推荐配置 .env（见 .env.example）');
+                return Promise.reject(new Error('no-proxy'));
             }
-            pushLine('✅ manifest 含其他成员: ' + list.map(function(e) { return e.owner; }).join('、'));
-            return Promise.all(list.map(function(e) { return fetchOssJson(cfg, e.key); }));
-        }).then(function(summaries) {
-            var r = applyTeamSummaries(summaries);
-            pushLine('✅ 团队拉取成功: ' + r.people + ' 人 · ' + r.count + ' 条 SPU');
-            pushLine('');
-            pushLine('下一步: 打开「诊断」页查看「个人 vs 团队」');
-            pushLine('真实同事同步后，📥 团队 会拉取他们的数据（不含你自己）');
+            if (hasServer) pushLine('✅ Key 托管模式（/api/sync）');
+            else pushLine('✅ 本地 OSS 代理正常');
+            pushLine('⏳ 上传虚拟同事数据…');
+            return executeTeamDrillUploadPull(cfg, myOwner, pushLine);
+            });
         });
-        });
-    }).catch(function(e) {
+    }
+
+    drillPromise.catch(function(e) {
         if (e && e.message === 'no-proxy') { /* lines already set */ }
         else if (e && e.message !== 'no-drill') {
             pushLine('❌ ' + (e.message || String(e)));
+            if (hosted) {
+                pushLine('   → 检查 OSS CORS 是否含 ' + location.origin);
+                pushLine('   → Methods: GET PUT POST HEAD · Allow-Headers: *');
+            }
         }
     }).then(function() {
         clearTimeout(safetyTimer);
