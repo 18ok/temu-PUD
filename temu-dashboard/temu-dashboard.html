@@ -736,7 +736,7 @@
             </div>
 
             <footer class="app-footer">
-                <strong>Temu 运营数据看板 V10.2.5</strong> · 跨境团队选品与运营一体化<br>
+                <strong>Temu 运营数据看板 V10.2.6</strong> · 跨境团队选品与运营一体化<br>
                 本地解析 · 团队 OSS · 运行日志 · 面向企业内训与能力沉淀（小程序 / 付费版规划中）
             </footer>
         </div>
@@ -840,7 +840,7 @@ var EVENT_LOG_KEY = 'temu_v6_event_log';
 var EVENT_LOG_MAX = 200;
 var PARSE_REPORT_KEY = 'temu_v6_parse_reports';
 var PARSE_REPORT_MAX = 30;
-var DASHBOARD_VERSION = 'V10.2.5';
+var DASHBOARD_VERSION = 'V10.2.6';
 /** 同事主入口：GitHub Pages（改 repo 后同步改 meta temu-hosted-url） */
 var HOSTED_PAGES_URL = (function() {
     var m = document.querySelector('meta[name="temu-hosted-url"]');
@@ -2376,7 +2376,29 @@ function ossHmacSha1Base64(secret, message) {
     });
 }
 
+function parseOssXmlError(text) {
+    if (!text) return { code: '', message: '' };
+    var codeM = String(text).match(/<Code>([^<]+)<\/Code>/);
+    var msgM = String(text).match(/<Message>([^<]+)<\/Message>/);
+    return {
+        code: codeM ? codeM[1] : '',
+        message: msgM ? msgM[1] : String(text).slice(0, 160)
+    };
+}
+
 function ossGetDirect(cfg, key) {
+    if (typeof OSS !== 'undefined' && cfg.accessKeyId && cfg.accessKeySecret) {
+        try {
+            var client = createOssClient(cfg);
+            return client.get(key).then(function(result) {
+                if (!result || result.content == null) return '';
+                if (typeof result.content.toString === 'function') return result.content.toString();
+                return String(result.content);
+            });
+        } catch (sdkErr) {
+            console.warn('OSS SDK get:', sdkErr);
+        }
+    }
     var bucket = cfg.bucket;
     var url = ossPublicUrl(cfg, key);
     var date = new Date().toUTCString();
@@ -2385,12 +2407,15 @@ function ossGetDirect(cfg, key) {
     return ossHmacSha1Base64(cfg.accessKeySecret, stringToSign).then(function(sig) {
         return fetch(url, {
             method: 'GET',
-            headers: { 'Date': date, 'Authorization': 'OSS ' + cfg.accessKeyId + ':' + sig }
+            mode: 'cors',
+            headers: { 'x-oss-date': date, 'Authorization': 'OSS ' + cfg.accessKeyId + ':' + sig }
         });
     }).then(function(r) {
         if (!r.ok) {
             return r.text().then(function(t) {
-                throw new Error('GET HTTP ' + r.status + (t ? ': ' + t.slice(0, 120) : ''));
+                var ox = parseOssXmlError(t);
+                var detail = ox.code ? (ox.code + (ox.message ? ': ' + ox.message : '')) : (t ? t.slice(0, 120) : '');
+                throw new Error('GET HTTP ' + r.status + (detail ? ': ' + detail : ''));
             });
         }
         return r.text();
@@ -2410,7 +2435,7 @@ function ossPutDirect(cfg, key, bodyStr) {
             method: 'PUT',
             headers: {
                 'Content-Type': contentType,
-                'Date': date,
+                'x-oss-date': date,
                 'Authorization': 'OSS ' + cfg.accessKeyId + ':' + sig
             },
             body: bodyStr
@@ -2440,8 +2465,14 @@ function formatOssUploadError(e) {
         }
         return hint;
     }
-    if (/403|AccessDenied|InvalidAccessKeyId|SignatureDoesNotMatch|AccessDenied/i.test(msg)) {
-        return msg + ' — 请检查 AccessKey 权限（需 PutObject）和 Region 是否与 Bucket 一致。';
+    if (/403|AccessDenied|InvalidAccessKeyId|SignatureDoesNotMatch/i.test(msg)) {
+        if (/security token/i.test(msg)) {
+            return msg + ' — 临时 Key 需 security-token，请用长期 RAM 子账号 Key 或本地 bat。';
+        }
+        if (/SignatureDoesNotMatch|InvalidAccessKeyId/i.test(msg)) {
+            return msg + ' — 请核对 AccessKeyId/Secret 是否与控制台一致。';
+        }
+        return msg + ' — 若 ⬆ 同步已成功：多为 RAM 缺 oss:GetObject（上传只需 PutObject）。';
     }
     if (/NoSuchBucket/i.test(msg)) {
         return 'Bucket 不存在：当前配置可能仍是旧名字 temu-pod-data。请 ⚙ OSS 改为 temu-shujufenxi-data 后重新保存。';
@@ -2677,9 +2708,20 @@ function diagnoseOssConnection(overlay) {
                 }
             }).catch(function(e) {
                 pushLine('签名 GET: ❌ ' + e.message);
-                if (isHostedWebApp()) {
-                    pushLine('   → OSS CORS 来源加: ' + location.origin);
-                    pushLine('   → Allow-Headers 含 * 或 authorization, date, content-type');
+                var em = e.message || '';
+                if (/Failed to fetch|NetworkError|CORS/i.test(em)) {
+                    pushLine('   → 这才是 CORS：OSS 来源加 ' + location.origin);
+                    pushLine('   → Allow-Headers: * 或 authorization, date, content-type');
+                } else if (/403|AccessDenied|SignatureDoesNotMatch|InvalidAccessKeyId/i.test(em)) {
+                    pushLine('   → 请求已到 OSS（不是 CORS 拦截）');
+                    if (/security token/i.test(em)) {
+                        pushLine('   → 若用 STS 临时 Key，需配 x-oss-security-token（当前未支持）');
+                    } else if (/SignatureDoesNotMatch|InvalidAccessKeyId/i.test(em)) {
+                        pushLine('   → 检查 AccessKeyId / Secret 是否完整、无空格');
+                    } else {
+                        pushLine('   → POST 能过、GET 403：RAM 常缺 oss:GetObject');
+                        pushLine('   → 策略需同时含 PutObject + GetObject，Resource: temu-shujufenxi-data/temu/*');
+                    }
                 }
             });
         }
