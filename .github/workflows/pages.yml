@@ -6,7 +6,7 @@ on:
     paths:
       - 'temu-dashboard/temu-dashboard.html'
       - 'temu-dashboard/docs/**'
-      - 'temu-dashboard/.github/workflows/pages.yml'
+      - '.github/workflows/pages.yml'
   workflow_dispatch:
 
 permissions:
