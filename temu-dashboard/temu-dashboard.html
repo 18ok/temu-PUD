@@ -96,6 +96,7 @@
             background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
             border-radius: var(--radius-xl); padding: 18px 14px; margin: 12px;
             text-align: center;
+            position: relative;
         }
         .sidebar-brand .title { font-size: 1.3rem; font-weight: 800; color: var(--bg); }
         .sidebar-brand .sub   { font-size: 0.7rem; color: var(--text-faded); margin-top: 2px; }
@@ -453,9 +454,31 @@
         #toast .toast-msg { pointer-events: auto; padding: 12px 16px; border-radius: var(--radius); font-size: 0.9rem; animation: slideIn 0.3s ease; }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
-        /* ── Modal ── */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 10001; display: flex; align-items: center; justify-content: center; }
-        .modal-box { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 28px; max-width: 480px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+        /* ── Modal · 深色毛玻璃 ── */
+        .modal-overlay {
+            position: fixed; inset: 0; z-index: 10001;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.7); opacity: 0;
+        }
+        .modal-overlay.is-open { opacity: 1; }
+        .modal-overlay.is-glass {
+            background: rgba(15, 15, 23, 0.58);
+            backdrop-filter: blur(16px) saturate(1.12);
+            -webkit-backdrop-filter: blur(16px) saturate(1.12);
+        }
+        .modal-box {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: var(--radius-xl); padding: 28px; max-width: 480px;
+            width: 90%; max-height: 80vh; overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+        .modal-box.is-glass {
+            background: rgba(26, 26, 36, 0.84);
+            backdrop-filter: blur(20px) saturate(1.2);
+            -webkit-backdrop-filter: blur(20px) saturate(1.2);
+            border: 1px solid rgba(226, 184, 122, 0.2);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        }
         .modal-box h2 { margin-bottom: 16px; color: var(--gold); font-size: 1.3rem; }
 
         /* ── 运行日志 ── */
@@ -487,12 +510,17 @@
         /* ── 全局加载 / 移动端侧栏 ── */
         .global-loading {
             position: fixed; inset: 0; z-index: 10000;
-            background: rgba(15, 15, 23, 0.55); backdrop-filter: blur(4px);
+            background: rgba(15, 15, 23, 0.55);
+            backdrop-filter: blur(12px) saturate(1.1);
+            -webkit-backdrop-filter: blur(12px) saturate(1.1);
             display: none; align-items: center; justify-content: center;
         }
         .global-loading.show { display: flex; }
         .global-loading-card {
-            background: var(--card); border: 1px solid var(--border);
+            background: rgba(26, 26, 36, 0.82);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
             border-radius: var(--radius-xl); padding: 28px 36px; text-align: center;
             box-shadow: var(--shadow-lg); min-width: 200px;
         }
@@ -504,7 +532,10 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         .global-loading-card p { font-size: 0.9rem; color: var(--text-dim); }
         .sidebar-backdrop {
-            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.45);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             z-index: 90;
         }
         .app-footer {
@@ -518,6 +549,20 @@
             font-size: 0.76rem; color: var(--text-dim);
         }
         .style-compare a { color: var(--gold); font-weight: 600; }
+
+        /* ── 主界面 · 角标（与异位面对称）── */
+        .main-badge {
+            position: absolute; top: 10px; right: 10px;
+            font-size: 0.62rem; font-weight: 700; letter-spacing: 0.08em;
+            padding: 3px 8px; border-radius: 999px;
+            background: rgba(15, 15, 23, 0.55);
+            border: 1px solid rgba(226, 184, 122, 0.38);
+            color: var(--gold);
+            backdrop-filter: blur(10px) saturate(1.15);
+            -webkit-backdrop-filter: blur(10px) saturate(1.15);
+            box-shadow: 0 1px 10px rgba(0, 0, 0, 0.35);
+        }
+        .sidebar.collapsed .main-badge { display: none; }
 
         /* ── 界面对切换过渡（主界面侧）── */
         .alter-veil {
@@ -542,6 +587,7 @@
         .alter-veil.is-to-alter .alter-veil__label { color: #2e2e2e; }
         @media (prefers-reduced-motion: reduce) {
             .alter-veil { backdrop-filter: none; }
+            .modal-overlay.is-glass, .modal-box.is-glass { backdrop-filter: none; }
         }
         @media (max-width: 900px) {
             .sidebar {
@@ -559,7 +605,7 @@
         }
     </style>
 </head>
-<body>
+<body class="main-surface">
 <div id="alterVeil" class="alter-veil" aria-hidden="true">
     <div class="alter-veil__inner">
         <div class="alter-veil__glyph" aria-hidden="true">◑</div>
@@ -578,6 +624,7 @@
 <div class="app">
     <aside class="sidebar">
         <div class="sidebar-brand">
+            <span class="main-badge" title="深色主界面 · 与异位面数据互通">主界面</span>
             <div class="title">🛒 Temu 数据看板</div>
             <div class="sub">主界面 · V10</div>
         </div>
@@ -1985,15 +2032,16 @@ function toast(msg, type, opts) {
 
 function showModal(title, bodyHTML, confirmText, onConfirm, onMount) {
     document.querySelectorAll('.modal-overlay').forEach(function(el) { el.remove(); });
-    var o = document.createElement('div'); o.className = 'modal-overlay';
-    o.innerHTML = '<div class="modal-box"><h2>'+title+'</h2>'+bodyHTML+'<div style="display:flex;gap:12px;margin-top:16px;justify-content:flex-end;"><button type="button" class="btn modal-cancel-btn">取消</button><button type="button" class="btn modal-confirm-btn" style="background:var(--gold);color:var(--bg);">'+confirmText+'</button></div></div>';
+    var o = document.createElement('div'); o.className = 'modal-overlay is-glass';
+    o.innerHTML = '<div class="modal-box is-glass"><h2>'+title+'</h2>'+bodyHTML+'<div style="display:flex;gap:12px;margin-top:16px;justify-content:flex-end;"><button type="button" class="btn modal-cancel-btn">取消</button><button type="button" class="btn modal-confirm-btn" style="background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:var(--bg);">'+confirmText+'</button></div></div>';
     document.body.appendChild(o);
-    o.querySelector('.modal-cancel-btn').addEventListener('click', function() { o.remove(); });
-    o.addEventListener('click', function(e) { if (e.target === o) o.remove(); });
+    o.querySelector('.modal-cancel-btn').addEventListener('click', function() { closeModalAnimated(o); });
+    o.addEventListener('click', function(e) { if (e.target === o) closeModalAnimated(o); });
     o.querySelector('.modal-confirm-btn').addEventListener('click', function() {
         if (onConfirm && onConfirm(o) === false) return;
-        o.remove();
+        closeModalAnimated(o);
     });
+    mountModalAnimated(o);
     if (onMount) onMount(o);
 }
 
@@ -2001,9 +2049,9 @@ function showTextResultModal(title, text, confirmText) {
     confirmText = confirmText || '关闭';
     document.querySelectorAll('.modal-overlay').forEach(function(el) { el.remove(); });
     var o = document.createElement('div');
-    o.className = 'modal-overlay';
+    o.className = 'modal-overlay is-glass';
     var box = document.createElement('div');
-    box.className = 'modal-box';
+    box.className = 'modal-box is-glass';
     var h2 = document.createElement('h2');
     h2.textContent = title;
     var pre = document.createElement('pre');
@@ -2014,16 +2062,17 @@ function showTextResultModal(title, text, confirmText) {
     var okBtn = document.createElement('button');
     okBtn.type = 'button';
     okBtn.className = 'btn';
-    okBtn.style.cssText = 'background:var(--gold);color:var(--bg);';
+    okBtn.style.cssText = 'background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:var(--bg);';
     okBtn.textContent = confirmText;
-    okBtn.addEventListener('click', function() { o.remove(); });
+    okBtn.addEventListener('click', function() { closeModalAnimated(o); });
     footer.appendChild(okBtn);
     box.appendChild(h2);
     box.appendChild(pre);
     box.appendChild(footer);
     o.appendChild(box);
-    o.addEventListener('click', function(e) { if (e.target === o) o.remove(); });
+    o.addEventListener('click', function(e) { if (e.target === o) closeModalAnimated(o); });
     document.body.appendChild(o);
+    mountModalAnimated(o);
 }
 
 /** 可实时追加文字的结果弹窗（诊断/联调用） */
@@ -2031,9 +2080,9 @@ function createLiveResultModal(title, seedLines) {
     document.querySelectorAll('.modal-overlay').forEach(function(el) { el.remove(); });
     var lines = (seedLines || []).slice();
     var o = document.createElement('div');
-    o.className = 'modal-overlay';
+    o.className = 'modal-overlay is-glass';
     var box = document.createElement('div');
-    box.className = 'modal-box';
+    box.className = 'modal-box is-glass';
     box.style.maxWidth = '520px';
     var h2 = document.createElement('h2');
     h2.textContent = title;
@@ -2049,16 +2098,17 @@ function createLiveResultModal(title, seedLines) {
     var okBtn = document.createElement('button');
     okBtn.type = 'button';
     okBtn.className = 'btn';
-    okBtn.style.cssText = 'background:var(--gold);color:var(--bg);';
+    okBtn.style.cssText = 'background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:var(--bg);';
     okBtn.textContent = '关闭';
-    okBtn.addEventListener('click', function() { o.remove(); });
+    okBtn.addEventListener('click', function() { closeModalAnimated(o); });
     footer.appendChild(okBtn);
     box.appendChild(h2);
     box.appendChild(pre);
     box.appendChild(footer);
     o.appendChild(box);
-    o.addEventListener('click', function(e) { if (e.target === o) o.remove(); });
+    o.addEventListener('click', function(e) { if (e.target === o) closeModalAnimated(o); });
     document.body.appendChild(o);
+    mountModalAnimated(o);
     return {
         push: function(line) { lines.push(line); refresh(); },
         getLines: function() { return lines.slice(); },
@@ -4747,6 +4797,35 @@ function prefersReducedMotion() {
     return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
+function mountModalAnimated(overlay) {
+    if (!overlay) return;
+    var box = overlay.querySelector('.modal-box');
+    overlay.classList.add('is-open');
+    if (prefersReducedMotion() || typeof gsap === 'undefined') {
+        overlay.style.opacity = '1';
+        if (box) { box.style.opacity = '1'; box.style.transform = 'none'; }
+        return;
+    }
+    gsap.set(overlay, { autoAlpha: 0 });
+    if (box) gsap.set(box, { autoAlpha: 0, y: 16, scale: 0.97 });
+    gsap.to(overlay, { autoAlpha: 1, duration: 0.28, ease: 'power2.out' });
+    if (box) gsap.to(box, { autoAlpha: 1, y: 0, scale: 1, duration: 0.34, ease: 'power2.out', delay: 0.05 });
+}
+
+function closeModalAnimated(overlay) {
+    if (!overlay || !overlay.parentNode) return;
+    if (prefersReducedMotion() || typeof gsap === 'undefined') {
+        overlay.remove();
+        return;
+    }
+    var box = overlay.querySelector('.modal-box');
+    if (box) gsap.to(box, { autoAlpha: 0, y: 12, scale: 0.98, duration: 0.2, ease: 'power2.in' });
+    gsap.to(overlay, {
+        autoAlpha: 0, duration: 0.24, ease: 'power2.in', delay: box ? 0.05 : 0,
+        onComplete: function() { overlay.remove(); }
+    });
+}
+
 function playAlterVeil(toAlter, href) {
     var veil = document.getElementById('alterVeil');
     if (!veil) { location.href = href; return; }
@@ -4788,6 +4867,8 @@ function initAlterPageEnter() {
     if (mode === 'enter-main' && !isAlter) {
         if (label) label.textContent = '主界面';
         if (glyph) glyph.textContent = '◑';
+    } else if (mode === 'enter-alter' && !isAlter) {
+        return;
     } else {
         return;
     }
