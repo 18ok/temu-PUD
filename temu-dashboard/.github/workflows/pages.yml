@@ -5,20 +5,40 @@ on:
     branches: [main, master]
     paths:
       - 'temu-dashboard/temu-dashboard.html'
+      - 'temu-dashboard/docs/**'
+      - 'temu-dashboard/.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
 
 jobs:
   deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
     steps:
-      - uses: actions/checkout@v4
-      - name: Copy dashboard to docs
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Prepare docs/index.html
         run: |
           mkdir -p docs
-          cp temu-dashboard/temu-dashboard.html docs/index.html
-      - uses: actions/upload-pages-artifact@v3
+          if [ -f temu-dashboard/docs/index.html ]; then
+            cp temu-dashboard/docs/index.html docs/index.html
+          else
+            cp temu-dashboard/temu-dashboard.html docs/index.html
+          fi
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
           path: docs
-      - uses: actions/deploy-pages@v4
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

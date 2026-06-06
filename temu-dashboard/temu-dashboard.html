@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="temu-hosted-url" content="https://18ok.github.io/temu-PUD/">
     <title>Temu 运营数据分析面板 — V10</title>
     <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
     <script src="https://gosspublic.alicdn.com/aliyun-oss-sdk-6.18.0.min.js"></script>
 
     <!-- ============================================================
@@ -192,7 +194,7 @@
             transition: border-color 0.15s, transform 0.15s;
         }
         .insight-card:hover { border-color: var(--border-hover); transform: translateY(-2px); }
-        .insight-card .label { font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+        .insight-card .label { font-size: 0.72rem; color: var(--text-dim); font-weight: 600; }
         .insight-card .value { font-size: 1.35rem; font-weight: 700; margin-top: 4px; color: var(--gold); }
         .insight-card .sub { font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; }
         #toast { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
@@ -209,17 +211,75 @@
         .page-toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; align-items: center; }
         .content { padding: 20px 32px 32px; max-width: 1100px; margin: 0 auto; width: 100%; }
         .page { display: none; }
-        .page.active { display: block; animation: pageIn 0.35s ease-out; }
+        .page.active { display: block; animation: pageIn 0.2s ease-out; }
         @keyframes pageIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
         @media (prefers-reduced-motion: reduce) {
             .page.active { animation: none; }
             .upload-zone, .btn, .sidebar-nav a { transition: none; }
         }
 
-        /* ── Hero ── */
+        /* ── Product UI（impeccable · 导入/PK/诊断）── */
+        .hero-compact {
+            padding: 18px 22px; margin-bottom: 16px;
+            border-radius: var(--radius-lg);
+            background: var(--card); border: 1px solid var(--border);
+        }
+        .hero-compact h1 { font-size: 1.35rem; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+        .hero-compact p { font-size: 0.88rem; color: var(--text-dim); max-width: 65ch; line-height: 1.55; }
+        .import-route-hint {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            padding: 10px 14px; margin-bottom: 16px;
+            border-radius: var(--radius); background: var(--card-alt);
+            border: 1px solid var(--border-light); font-size: 0.82rem;
+        }
+        .import-route-hint strong { color: var(--gold); font-weight: 600; }
+        .import-route-hint .dim { color: var(--text-dim); }
+        .stat-grid { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+        .stat-cell {
+            flex: 1; min-width: 130px;
+            background: var(--card-alt); border: 1px solid var(--border-light);
+            border-radius: var(--radius); padding: 12px 14px;
+        }
+        .stat-cell.is-gold { border-color: rgba(226, 184, 122, 0.35); background: var(--gold-bg); }
+        .stat-cell.is-muted { border-color: var(--border); }
+        .stat-cell.is-watch { border-color: rgba(91, 155, 213, 0.35); }
+        .stat-cell.is-ok { border-color: var(--success-border); }
+        .stat-cell.is-warn { border-color: var(--warning-border); }
+        .stat-cell.is-bad { border-color: var(--danger-border); }
+        .stat-label { font-size: 0.72rem; color: var(--text-dim); font-weight: 600; }
+        .stat-value { font-size: 1.15rem; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; }
+        .stat-value.is-sm { font-size: 0.92rem; font-weight: 600; }
+        .gate-cell {
+            flex: 1; min-width: 130px;
+            background: var(--card); border: 1px solid var(--border-light);
+            border-radius: var(--radius); padding: 10px 14px;
+        }
+        .gate-cell.is-ok { border-color: var(--success-border); background: var(--success); }
+        .pk-score-card {
+            flex: 2; min-width: 200px;
+            padding: 16px 18px; border-radius: var(--radius-lg);
+            background: var(--card); border: 1px solid var(--border);
+        }
+        .pk-score-num {
+            font-size: 2.35rem; font-weight: 800; line-height: 1.1;
+            margin-top: 4px; font-variant-numeric: tabular-nums;
+        }
+        .pk-score-unit { font-size: 0.9rem; font-weight: 600; }
+        .pk-score-caption { font-size: 0.82rem; color: var(--text-dim); margin-top: 4px; }
+        .pk-score-row { align-items: stretch; }
+        .alert-tip { border-left: 2px solid var(--gold); margin-bottom: 8px; }
+        .pk-gap-pick { box-shadow: inset 2px 0 0 rgba(226, 184, 122, 0.35); }
+        .pk-gap-ops { box-shadow: inset 2px 0 0 var(--success-border); }
+        #page-import .upload-zone { padding: 40px 32px; }
+        .btn:focus-visible, .btn-ghost:focus-visible, .btn-primary-sm:focus-visible,
+        .sidebar-nav a:focus-visible, .expander summary:focus-visible, .workflow-step:focus-visible {
+            outline: 2px solid var(--gold); outline-offset: 2px;
+        }
+
+        /* ── Hero（其他页面保留）── */
         .hero {
             background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
             border-radius: var(--radius-2xl); padding: 28px 32px; margin-bottom: 24px;
@@ -241,7 +301,18 @@
             border-color: var(--border-hover); background: var(--card-hover);
         }
         .btn:active { transform: translateY(0); }
+        .btn:disabled, .btn.btn-disabled {
+            opacity: 0.42; cursor: not-allowed; pointer-events: none;
+            transform: none !important; box-shadow: none !important;
+        }
         .btn-row { display: flex; gap: 12px; margin: 18px 0; flex-wrap: wrap; }
+        .pk-expect-bar {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 12px; flex-wrap: wrap; padding: 12px 16px; margin-bottom: 16px;
+            border-radius: var(--radius); background: var(--card); border: 1px solid var(--border);
+        }
+        .pk-expect-label { font-size: 0.92rem; font-weight: 600; color: var(--gold); }
+        .pk-expect-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
         /* ── Alert 提示条 ── */
         .alert {
@@ -527,9 +598,14 @@
 
             <!-- ═══ 页面 1: 数据导入 ═══ -->
             <div class="page active" id="page-import">
-                <div class="hero">
+                <div class="hero hero-compact">
                     <h1>📥 数据导入</h1>
-                    <p>批量上传利润统计 Excel 文件（.xls / .xlsx），系统自动识别文件类型和归属人并解析数据。导入后自动保存，下次打开无需重新上传。</p>
+                    <p>上传利润统计与店铺数据记录，系统自动分流解析并本地保存。双管线齐备后可进入个人 PK 与诊断。</p>
+                </div>
+                <div class="import-route-hint" id="importRouteHint" aria-label="试用路径">
+                    <span>推荐</span>
+                    <strong>拖 Excel → 🏆 个人 PK</strong>
+                    <span class="dim">· 团队摘要 OSS 📥 · 团队 PK 未开放</span>
                 </div>
                 <div class="alert alert-info">
                     <span class="alert-icon">💾</span>
@@ -545,9 +621,9 @@
                         <div class="steps">
                             <div class="step"><div class="emoji">📤</div><div class="title">1. 上传文件</div><div class="desc">利润统计 .xls + 数据记录 .xlsx 可混拖</div></div>
                             <div class="step"><div class="emoji">🔍</div><div class="title">2. 自动分流</div><div class="desc">商品SPU→选品页 · 店铺名称→运营/PK</div></div>
-                            <div class="step"><div class="emoji">📊</div><div class="title">3. 查看分析</div><div class="desc">本地看板 + 侧边栏 ⬆同步 OSS</div></div>
+                            <div class="step"><div class="emoji">📊</div><div class="title">3. 查看分析</div><div class="desc">个人 PK / 诊断 · 可选 ⬆同步 OSS</div></div>
                         </div>
-                        <div class="alert alert-info" style="margin-top:12px;"><span class="alert-icon">☁️</span><span><strong>OSS 同步</strong>：解析后点顶栏 <strong>⬆ 同步</strong>。请双击 <strong>启动本地看板.bat</strong>，打开 <code style="color:var(--gold);">http://localhost:8080/temu-dashboard.html</code></span></div>
+                        <div class="alert alert-info" style="margin-top:12px;" id="importOssHint"><span class="alert-icon">☁️</span><span id="importOssHintText"><strong>云端（可选）</strong>：侧边栏 ⚙ 配置一次 → ⬆ 同步 / 📥 团队。网页版打开链接即可，<strong>不必</strong>安装 Python。</span></div>
                         <p style="font-size:0.8rem;color:var(--text-dim);margin-top:10px;">快捷键：<kbd style="padding:2px 6px;border-radius:4px;background:var(--card-alt);border:1px solid var(--border);">1</kbd>–<kbd style="padding:2px 6px;border-radius:4px;background:var(--card-alt);border:1px solid var(--border);">8</kbd> 切换页面 · <kbd style="padding:2px 6px;border-radius:4px;background:var(--card-alt);border:1px solid var(--border);">M</kbd> 菜单 · <kbd style="padding:2px 6px;border-radius:4px;background:var(--card-alt);border:1px solid var(--border);">L</kbd> 日志</p>
                     </div>
                 </details>
@@ -626,9 +702,9 @@
 
             <!-- ═══ 页面 6: 个人诊断 ═══ -->
             <div class="page" id="page-diagnosis">
-                <div class="hero">
+                <div class="hero hero-compact">
                     <h1>📈 个人诊断</h1>
-                    <p>基于历史快照对比，追踪你的选品质量变化，给出个性化优化建议。</p>
+                    <p>对比历史快照，追踪选品质量变化；可导出 Markdown 周报供复盘。</p>
                 </div>
                 <div class="warn-card">
                     <div class="title">📂 需要至少 2 次数据上传</div>
@@ -646,14 +722,21 @@
             </div>
             <!-- ═══ 页面 8: 个人PK ═══ -->
             <div class="page" id="page-pk">
-                <div class="hero">
+                <div class="hero hero-compact">
                     <h1>🏆 个人选品 vs 店铺运营</h1>
-                    <p>选品是输入，运营是输出。将个人选品指标与店铺运营数据并列对比，看清二者的因果链。</p>
+                    <p>对齐分衡量选品输入与运营输出是否匹配；数据均在本地，分享链接不含 Excel。</p>
+                </div>
+                <div class="pk-expect-bar">
+                    <div class="pk-expect-label">这是你个人的选品×运营对齐分</div>
+                    <div class="pk-expect-actions">
+                        <button type="button" class="btn" onclick="copyPkShareLink()" title="复制 PK 页链接（对方需自行导入 Excel）">🔗 复制分享链接</button>
+                        <button type="button" class="btn btn-disabled" disabled title="协作版规划中，敬请期待">团队对比（协作版）</button>
+                    </div>
                 </div>
             </div>
 
             <footer class="app-footer">
-                <strong>Temu 运营数据看板 V10</strong> · 跨境团队选品与运营一体化<br>
+                <strong>Temu 运营数据看板 V10.2.4</strong> · 跨境团队选品与运营一体化<br>
                 本地解析 · 团队 OSS · 运行日志 · 面向企业内训与能力沉淀（小程序 / 付费版规划中）
             </footer>
         </div>
@@ -757,7 +840,12 @@ var EVENT_LOG_KEY = 'temu_v6_event_log';
 var EVENT_LOG_MAX = 200;
 var PARSE_REPORT_KEY = 'temu_v6_parse_reports';
 var PARSE_REPORT_MAX = 30;
-var DASHBOARD_VERSION = 'V10';
+var DASHBOARD_VERSION = 'V10.2.4';
+/** 同事主入口：GitHub Pages（改 repo 后同步改 meta temu-hosted-url） */
+var HOSTED_PAGES_URL = (function() {
+    var m = document.querySelector('meta[name="temu-hosted-url"]');
+    return (m && m.getAttribute('content') || 'https://18ok.github.io/temu-PUD/').replace(/\/?$/, '/');
+})();
 var PRODUCT_REQUIRED_COLS = ['spu_id', 'gross_margin', 'daily_sales', 'cost', 'weight_g'];
 
 function productQualityStats(products) {
@@ -1328,8 +1416,13 @@ function normalizeOssRegion(region) {
 }
 
 function isOssConfigured() {
+    if (_ossServerSyncAvailable) return true;
     var c = getOssConfig();
     return !!(c.bucket && c.region && c.accessKeyId && c.accessKeySecret);
+}
+
+function isOssServerKeyMode() {
+    return _ossServerSyncAvailable === true;
 }
 
 function getActiveOssFormOverlay() {
@@ -1421,7 +1514,8 @@ function updateSidebar() {
         } else {
             var up = JSON.parse(localStorage.getItem('temu_v6_cloud_last_upload') || 'null');
             var ld = JSON.parse(localStorage.getItem('temu_v6_cloud_last_load') || 'null');
-            var parts = ['☁️ ' + getOssConfig().bucket];
+            var parts = ['☁️ ' + (getOssConfig().bucket || '云端')];
+            if (isOssServerKeyMode()) parts.push('Key·服务端');
             if (up && up.time) parts.push('↑' + up.time.slice(0, 16));
             if (ld && ld.count) parts.push('↓' + ld.count + '条');
             cs.innerHTML = parts.join(' · ');
@@ -1495,6 +1589,124 @@ function updateWorkflowStrip() {
         return '<div class="' + cls + '" role="button" tabindex="0" title="点击跳转" onclick="workflowGo(' + l.id + ')">' + l.text + '</div>';
     }).join('');
 }
+
+function getPageHitsSummary() {
+    try {
+        var raw = localStorage.getItem('temu_v6_page_hits');
+        var hits = raw ? JSON.parse(raw) : {};
+        return (typeof hits === 'object' && hits) ? hits : {};
+    } catch (e) { return {}; }
+}
+
+function countEventLogAction(action, module) {
+    return getEventLogsRaw().filter(function(e) {
+        if (e.action !== action) return false;
+        if (module && e.module !== module) return false;
+        return true;
+    }).length;
+}
+
+function buildStageGateStatusHTML() {
+    var hits = getPageHitsSummary();
+    var pkVisits = hits.pk || 0;
+    var shareCopies = countEventLogAction('share_copy', 'pk');
+    var uploadOk = countEventLogAction('upload_ok', 'oss');
+    var w = getWorkflowState();
+    var keyHint = isOssServerKeyMode() ? 'Key·.env 托管' : (isOssConfigured() ? '浏览器 Key' : '未配置');
+    var lastUp = null;
+    try { lastUp = JSON.parse(localStorage.getItem('temu_v6_cloud_last_upload') || 'null'); } catch (e) { lastUp = null; }
+    var snapN = (ST.snapshots && ST.snapshots.length) || 0;
+    var dualOk = hasProductData() && hasStoreData();
+
+    function gateRow(label, ok, hint) {
+        return '<div class="step" style="flex:1;min-width:130px;text-align:left;padding:10px 14px;border-left:3px solid ' +
+            (ok ? 'var(--success-text)' : 'rgba(226,184,122,0.35)') + ';"><div style="font-size:0.72rem;color:var(--text-dim);">' +
+            label + '</div><div style="font-weight:600;font-size:0.88rem;margin-top:2px;">' + (ok ? '✅ ' : '⏳ ') +
+            escHtml(hint) + '</div></div>';
+    }
+
+    var s0 = [
+        gateRow('OSS 可用', w.ossOk, keyHint),
+        gateRow('曾成功 ⬆ 同步', !!(lastUp && lastUp.time), (lastUp && lastUp.time) ? lastUp.time.slice(0, 16) : '尚未'),
+        gateRow('云端上传', uploadOk > 0, uploadOk + ' 次成功')
+    ].join('');
+    var s1 = [
+        gateRow('PK 页访问', pkVisits > 0, pkVisits + ' 次'),
+        gateRow('PK 分享复制', shareCopies > 0, shareCopies + ' 次'),
+        gateRow('诊断快照', snapN >= 2, snapN + ' 份（≥2 可导出周报）'),
+        gateRow('双管线 Excel', dualOk, dualOk ? '利润+店铺齐备' : '缺一侧文件')
+    ].join('');
+
+    return '<p style="color:var(--text-dim);font-size:0.85rem;margin-bottom:10px;">阶段 0/1 本地计数（<strong>不上云</strong>）。「5 人理解 PK / 2 人付费意愿」请访谈后人工记录。</p>' +
+        '<div style="font-size:0.78rem;color:var(--gold);margin-bottom:6px;font-weight:600;">阶段 0 · 信任地基</div>' +
+        '<div class="btn-row" style="margin-bottom:12px;">' + s0 + '</div>' +
+        '<div style="font-size:0.78rem;color:var(--gold);margin-bottom:6px;font-weight:600;">阶段 1 · 市场验证（14 天）</div>' +
+        '<div class="btn-row" style="margin-bottom:12px;flex-wrap:wrap;">' + s1 + '</div>' +
+        '<div class="alert alert-info" style="margin-bottom:10px;"><span class="alert-icon">🏆</span><span>外发 PK 前：页顶已有「个人对齐分」说明。分享后对方需<strong>自行导入 Excel</strong>，不会看到你的数据。</span></div>' +
+        '<div class="btn-row">' +
+        '<button type="button" class="btn" onclick="switchPage(\'pk\')">🏆 打开 PK</button>' +
+        '<button type="button" class="btn" onclick="copyPkShareLink()">🔗 复制 PK 链接</button>' +
+        '<button type="button" class="btn" onclick="copyStageGateSummary()">📋 复制验证摘要</button>' +
+        '</div>';
+}
+
+function renderStageGatePanel() {
+    var pg = document.getElementById('page-import');
+    if (!pg) return;
+    var panel = document.getElementById('stageGatePanel');
+    if (!panel) {
+        panel = document.createElement('details');
+        panel.className = 'expander';
+        panel.id = 'stageGatePanel';
+        panel.style.marginTop = '12px';
+        panel.open = true;
+        panel.innerHTML = '<summary>📈 阶段验证进度（本地 · 14 天）</summary><div class="expander-content" id="stageGatePanelBody"></div>';
+        var anchor = pg.querySelector('#parseReportsPanel');
+        if (anchor) pg.insertBefore(panel, anchor);
+        else pg.appendChild(panel);
+    }
+    var body = document.getElementById('stageGatePanelBody');
+    if (body) body.innerHTML = buildStageGateStatusHTML();
+}
+window.renderStageGatePanel = renderStageGatePanel;
+
+function copyStageGateSummary() {
+    var hits = getPageHitsSummary();
+    var lastUp = null;
+    try { lastUp = JSON.parse(localStorage.getItem('temu_v6_cloud_last_upload') || 'null'); } catch (e) { lastUp = null; }
+    var lines = [
+        '# Temu 看板 · 阶段验证摘要',
+        '',
+        '- 生成: ' + new Date().toLocaleString('zh-CN'),
+        '- 版本: ' + DASHBOARD_VERSION,
+        '- 归属人: ' + (typeof getCloudOwner === 'function' ? getCloudOwner() : ''),
+        '',
+        '## 阶段 0',
+        '- OSS: ' + (isOssServerKeyMode() ? '.env 托管' : (isOssConfigured() ? '浏览器 Key' : '未配置')),
+        '- 云端上传成功: ' + countEventLogAction('upload_ok', 'oss') + ' 次',
+        '- 上次同步: ' + ((lastUp && lastUp.time) ? lastUp.time : '无'),
+        '',
+        '## 阶段 1',
+        '- PK 页访问: ' + (hits.pk || 0),
+        '- PK 分享复制: ' + countEventLogAction('share_copy', 'pk'),
+        '- 诊断快照: ' + ((ST.snapshots && ST.snapshots.length) || 0),
+        '- 双管线: ' + (hasProductData() && hasStoreData() ? '齐备' : '未齐备'),
+        '',
+        '## 人工闸门（访谈后填）',
+        '- 5 人中理解 PK: __ / 5',
+        '- 2 人付费/试点意愿: __ / 5'
+    ];
+    var text = lines.join('\n');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+            toast('阶段验证摘要已复制（可贴到笔记/Notion）', 'success');
+            logEvent('info', 'system', 'stage_summary_copy', '复制阶段验证摘要', {});
+        }).catch(function() { toast('复制失败，请手动复制运行日志', 'warning'); });
+    } else {
+        toast('请手动复制：' + text.slice(0, 120) + '…', 'info');
+    }
+}
+window.copyStageGateSummary = copyStageGateSummary;
 
 function hasProductData() {
     return ST.products && ST.products.length > 0;
@@ -1589,69 +1801,6 @@ function undoLastUpload() {
     }
 }
 
-function buildDiagnosisReportMarkdown() {
-    if (ST.snapshots.length < 2) return null;
-    var cmp = compareSnapshots();
-    if (!cmp) return null;
-    var lines = [];
-    var owner = typeof getCloudOwner === 'function' ? getCloudOwner() : '';
-    lines.push('# Temu 选品诊断周报');
-    lines.push('');
-    lines.push('- 归属人：' + owner);
-    lines.push('- 生成时间：' + new Date().toLocaleString('zh-CN'));
-    lines.push('- 看板版本：' + DASHBOARD_VERSION);
-    lines.push('');
-    lines.push('## 概览对比（最新 vs 上一份）');
-    lines.push('| 指标 | 旧 | 新 |');
-    lines.push('|------|-----|-----|');
-    lines.push('| 商品数 | ' + cmp.old_count + ' | ' + cmp.new_count + ' |');
-    lines.push('| 黄金品 | ' + cmp.old_gold + ' | ' + cmp.new_gold + ' |');
-    lines.push('| 均毛利率 | ' + cmp.old_margin.toFixed(1) + '% | ' + cmp.new_margin.toFixed(1) + '% |');
-    lines.push('| 均日销 | ' + cmp.old_sales.toFixed(1) + ' | ' + cmp.new_sales.toFixed(1) + ' |');
-    if (cmp.degraded.length) {
-        lines.push('');
-        lines.push('## 在变差的品（' + cmp.degraded.length + '）');
-        cmp.degraded.slice(0, 30).forEach(function(d) {
-            lines.push('- **' + d.spu_id + '** ' + d.old_label + '→' + d.new_label + '，毛利 ' + d.old_margin.toFixed(1) + '%→' + d.new_margin.toFixed(1) + '%（' + d.suggestion + '）');
-        });
-    }
-    if (hasTeam && ST.teamProducts.length) {
-        lines.push('');
-        lines.push('## 团队基准');
-        lines.push('- 团队 SPU 样本：' + ST.teamProducts.length);
-        lines.push('- 团队均毛利率：' + avg(ST.teamProducts.map(function(p) { return p.gross_margin; })).toFixed(1) + '%');
-    }
-    var advice = generateDirectionAdvice(cmp);
-    if (advice && advice.length) {
-        lines.push('');
-        lines.push('## 方向建议');
-        advice.forEach(function(a) {
-            lines.push('- **' + a.priority + ' ' + a.title + '**：' + a.detail + ' → ' + a.action);
-        });
-    }
-    lines.push('');
-    lines.push('---');
-    lines.push('*由 Temu 数据看板自动导出*');
-    return lines.join('\n');
-}
-
-function exportDiagnosisReport() {
-    var md = buildDiagnosisReportMarkdown();
-    if (!md) {
-        toast('需要至少 2 次上传快照才能导出周报', 'warning');
-        switchPage('import');
-        return;
-    }
-    var blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'temu-diagnosis-' + new Date().toISOString().slice(0, 10) + '.md';
-    a.click();
-    URL.revokeObjectURL(a.href);
-    logEvent('info', 'export', 'diagnosis_md', '导出诊断周报 Markdown', { owner: getCloudOwner() });
-    toast('诊断周报已下载（Markdown）', 'success');
-}
-
 function setGlobalLoading(show, message) {
     var el = document.getElementById('globalLoading');
     var txt = document.getElementById('globalLoadingText');
@@ -1742,6 +1891,8 @@ function initKeyboardShortcuts() {
 }
 
 function initUX() {
+    if (typeof initUiMotion === 'function') initUiMotion();
+    if (typeof updateHostedImportUX === 'function') updateHostedImportUX();
     initUploadZoneDragDrop();
     initKeyboardShortcuts();
     updateWorkflowStrip();
@@ -1947,7 +2098,185 @@ function isLocalDevServer() {
     return (h === 'localhost' || h === '127.0.0.1') && (location.port === '8080' || location.port === '');
 }
 
+function isHostedWebApp() {
+    if (isLocalFilePage()) return false;
+    var h = location.hostname;
+    if (h === 'localhost' || h === '127.0.0.1') return false;
+    return location.protocol === 'https:' || location.protocol === 'http:';
+}
+
+function isGitHubPagesHost() {
+    return /\.github\.io$/i.test(location.hostname);
+}
+
+function updateHostedImportUX() {
+    var hint = document.getElementById('importRouteHint');
+    if (hint) {
+        if (isLocalFilePage()) {
+            hint.innerHTML = '<span class="dim">⚠ 勿双击 HTML</span> <strong>请用网页版</strong> ' +
+                '<button type="button" class="btn" style="padding:4px 10px;font-size:0.78rem;margin-left:4px;" onclick="window.open(HOSTED_PAGES_URL,\'_blank\')">打开链接</button>' +
+                '<span class="dim"> · ' + escHtml(HOSTED_PAGES_URL) + '</span>';
+        } else if (isHostedWebApp()) {
+            hint.innerHTML = '<span>网页版</span> <strong>拖 Excel → 🏆 个人 PK</strong> ' +
+                '<span class="dim">· 浏览器本地缓存 · 团队摘要 📥（⚙ OSS 一次）</span>';
+        } else if (isLocalDevServer()) {
+            hint.innerHTML = '<span>本地模式</span> <strong>导入双 Excel → PK</strong> ' +
+                '<span class="dim">· .env Key 托管（管理员）</span>';
+        }
+    }
+    var ossText = document.getElementById('importOssHintText');
+    if (ossText) {
+        if (isLocalDevServer()) {
+            ossText.innerHTML = '<strong>OSS（管理员）</strong>：解析后 ⬆ 同步。Key 放 <code style="color:var(--gold);">.env</code>，用 <strong>启动本地看板.bat</strong> 打开 <code style="color:var(--gold);">localhost:8080</code>。';
+        } else if (isHostedWebApp()) {
+            ossText.innerHTML = '<strong>云端（可选）</strong>：侧边栏 ⚙ 填<strong>归属人</strong> + 玉成私发的 Key → ⬆ 同步 / 📥 团队。数据在 OSS，<strong>不用 bat</strong>。';
+        } else if (isLocalFilePage()) {
+            ossText.innerHTML = '<strong>请改用网页版</strong>：' + escHtml(HOSTED_PAGES_URL) + ' — 直接拖 Excel；云端走 OSS，无需 Python。';
+        }
+    }
+}
+window.updateHostedImportUX = updateHostedImportUX;
+
 var _ossProxyReady = null;
+var _ossServerSyncReady = null;
+var _ossServerSyncAvailable = false;
+var _ossServerSyncMeta = null;
+
+function resetOssServerSyncCache() {
+    _ossServerSyncReady = null;
+    _ossServerSyncAvailable = false;
+    _ossServerSyncMeta = null;
+}
+
+function mergeServerSyncMetaIntoConfig() {
+    if (!_ossServerSyncMeta || !_ossServerSyncMeta.bucket) return;
+    var c = getOssConfig();
+    var merged = normalizeSavedOssKeys(Object.assign({}, c, {
+        bucket: _ossServerSyncMeta.bucket,
+        region: _ossServerSyncMeta.region,
+        prefix: _ossServerSyncMeta.prefix || c.prefix || 'temu/'
+    }));
+    if (_ossServerSyncAvailable) {
+        merged.accessKeyId = '';
+        merged.accessKeySecret = '';
+    }
+    try { safeSetItem('temu_v6_oss_config', JSON.stringify(merged)); } catch (e) { /* ignore */ }
+}
+
+function checkOssServerSync() {
+    if (!isLocalDevServer()) return Promise.resolve(false);
+    if (_ossServerSyncReady != null) return _ossServerSyncReady;
+    _ossServerSyncReady = promiseWithTimeout(
+        fetch('/api/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'ping' })
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            if (d && d.ok && d.serverSync) {
+                _ossServerSyncAvailable = true;
+                _ossServerSyncMeta = d;
+                mergeServerSyncMetaIntoConfig();
+                return true;
+            }
+            _ossServerSyncAvailable = false;
+            _ossServerSyncMeta = null;
+            return false;
+        }),
+        OSS_PING_TIMEOUT_MS,
+        '连接 Key 托管服务超时（请确认 启动本地看板.bat 窗口未关闭）'
+    ).catch(function() {
+        resetOssServerSyncCache();
+        return false;
+    });
+    return _ossServerSyncReady;
+}
+
+function migrateOssKeysToEnv(opts) {
+    opts = opts || {};
+    if (!isLocalDevServer()) {
+        if (!opts.silent) toast('Key 迁移需用「启动本地看板.bat」打开 localhost:8080', 'warning');
+        return Promise.resolve(false);
+    }
+    return checkOssServerSync().then(function(hasServer) {
+        if (hasServer) {
+            if (!opts.silent) {
+                toast('Key 已在本地 .env 托管，无需再迁移（OSS 诊断通过即表示正常）', 'success');
+            }
+            localStorage.setItem('temu_v6_env_migrated', '1');
+            return true;
+        }
+        var overlay = opts.overlay || getActiveOssFormOverlay();
+        var fromForm = overlay ? readOssFormFromOverlay(overlay) : null;
+        var c = getOssConfig();
+        var ak = (fromForm && fromForm.accessKeyId) || c.accessKeyId;
+        var sk = (fromForm && fromForm.accessKeySecret) || c.accessKeySecret;
+        var bucket = (fromForm && fromForm.bucket) || c.bucket || OSS_DEFAULT.bucket;
+        var region = (fromForm && fromForm.region) || c.region || OSS_DEFAULT.region;
+        var prefix = c.prefix || 'temu/';
+        var owner = (fromForm && fromForm.owner) || c.owner;
+        if (!ak || !sk) {
+            if (!opts.silent) {
+                toast('浏览器里没有 AccessKey。若刚迁移过，请重启 bat 后看侧边栏是否显示 Key·服务端', 'info');
+            }
+            return false;
+        }
+        if (!opts.silent) toast('正在把 Key 写入本地 .env…', 'info');
+        return fetch('/api/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'write-env',
+                accessKeyId: ak,
+                accessKeySecret: sk,
+                bucket: bucket,
+                region: region,
+                prefix: prefix
+            })
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            if (!d || !d.ok) throw new Error((d && d.error) || 'write-env 失败');
+            var kept = normalizeSavedOssKeys({
+                owner: owner,
+                bucket: d.bucket || bucket,
+                region: d.region || region,
+                prefix: d.prefix || prefix,
+                accessKeyId: '',
+                accessKeySecret: ''
+            });
+            saveOssConfig(kept);
+            resetOssServerSyncCache();
+            logEvent('info', 'oss', 'env_migrate', 'AccessKey 已迁移到本地 .env', { bucket: kept.bucket });
+            return checkOssServerSync().then(function(ok) {
+                updateSidebar();
+                if (ok) localStorage.setItem('temu_v6_env_migrated', '1');
+                if (!opts.silent) toast('Key 已写入 .env，浏览器 Secret 已清除 · 请重启 bat 窗口后长期生效', 'success', { duration: 9000 });
+                return ok;
+            });
+        }).catch(function(e) {
+            if (!opts.silent) toast('写入 .env 失败：' + (e.message || String(e)), 'error');
+            logEvent('error', 'oss', 'env_migrate_fail', '迁移 .env 失败：' + (e.message || String(e)), {});
+            return false;
+        });
+    });
+}
+window.migrateOssKeysToEnv = migrateOssKeysToEnv;
+
+function tryAutoMigrateOssKeysToEnv() {
+    if (!isLocalDevServer()) return Promise.resolve(false);
+    if (localStorage.getItem('temu_v6_env_migrated') === '1') return Promise.resolve(false);
+    var c = getOssConfig();
+    if (!c.accessKeyId || !c.accessKeySecret) return Promise.resolve(false);
+    return checkOssServerSync().then(function(hasServer) {
+        if (hasServer) {
+            localStorage.setItem('temu_v6_env_migrated', '1');
+            return false;
+        }
+        return migrateOssKeysToEnv({ silent: false }).then(function(ok) {
+            if (ok) localStorage.setItem('temu_v6_env_migrated', '1');
+            return ok;
+        });
+    });
+}
+
 function resetOssProxyCache() {
     _ossProxyReady = null;
 }
@@ -1967,6 +2296,36 @@ function checkOssLocalProxy() {
         return false;
     });
     return _ossProxyReady;
+}
+
+function ossUploadViaServerSync(key, bodyStr) {
+    return promiseWithTimeout(
+        fetch('/api/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'put', key: key, body: bodyStr })
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            if (!d || !d.ok) throw new Error((d && d.error) || 'server sync put failed');
+            return d;
+        }),
+        OSS_PROXY_IO_TIMEOUT_MS,
+        'OSS 上传超时（15秒）'
+    );
+}
+
+function ossGetViaServerSync(key) {
+    return promiseWithTimeout(
+        fetch('/api/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'get', key: key })
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            if (!d || !d.ok) throw new Error((d && d.error) || 'server sync get failed');
+            return d.body;
+        }),
+        OSS_PROXY_IO_TIMEOUT_MS,
+        'OSS 读取超时（15秒）'
+    );
 }
 
 function ossUploadViaProxy(cfg, key, bodyStr) {
@@ -2071,9 +2430,11 @@ function formatOssUploadError(e) {
     if (/XHR error|connected: false|Failed to fetch|NetworkError/i.test(msg)) {
         var hint = '网络/CORS 被浏览器拦截。';
         if (isLocalFilePage()) {
-            hint += ' 请双击「启动本地看板.bat」，用 http://localhost:8080 打开。';
+            hint += ' 请打开网页版：' + HOSTED_PAGES_URL + '（勿双击 HTML）。';
         } else if (isLocalDevServer()) {
             hint += ' 请关闭旧窗口，重新双击「启动本地看板.bat」（新版含 OSS 代理，可绕过 CORS）。';
+        } else if (isGitHubPagesHost()) {
+            hint += ' OSS 跨域：控制台 CORS 来源填 ' + location.origin + ' ，Methods 含 GET/POST/PUT。';
         } else {
             hint += ' OSS 跨域需单独建规则，来源填 ' + location.origin + ' ，Methods 含 POST 和 PUT。';
         }
@@ -2122,13 +2483,16 @@ function ossPostDirect(cfg, key, bodyStr) {
 }
 
 function ossUploadObject(cfg, key, bodyStr) {
-    return checkOssLocalProxy().then(function(hasProxy) {
-        if (hasProxy) {
-            return ossUploadViaProxy(cfg, key, bodyStr);
-        }
-        return ossPostDirect(cfg, key, bodyStr).catch(function(postErr) {
-            console.warn('PostObject 失败，尝试 PUT:', postErr);
-            return ossPutDirect(cfg, key, bodyStr);
+    return checkOssServerSync().then(function(hasServer) {
+        if (hasServer) return ossUploadViaServerSync(key, bodyStr);
+        return checkOssLocalProxy().then(function(hasProxy) {
+            if (hasProxy) {
+                return ossUploadViaProxy(cfg, key, bodyStr);
+            }
+            return ossPostDirect(cfg, key, bodyStr).catch(function(postErr) {
+                console.warn('PostObject 失败，尝试 PUT:', postErr);
+                return ossPutDirect(cfg, key, bodyStr);
+            });
         });
     });
 }
@@ -2165,21 +2529,17 @@ function ossTryCorsGet(url) {
 function diagnoseOssConnection(overlay) {
     overlay = overlay || getActiveOssFormOverlay();
     var cfg = readOssFormOrSaved(overlay);
-    if (!cfg.bucket || !cfg.region || !cfg.accessKeyId || !cfg.accessKeySecret) {
-        toast('请先填完整 OSS 配置（Secret 可留空若已保存过）', 'warning');
-        return;
-    }
-    var region = normalizeOssRegion(cfg.region);
+    var region = normalizeOssRegion(cfg.region || '');
     var lines = [
         '当前页面: ' + location.href,
-        'Bucket: ' + cfg.bucket + ' · Region: ' + region,
+        'Bucket: ' + (cfg.bucket || '（待填）') + ' · Region: ' + (region || '（待填）'),
         '',
-        '⏳ 正在检测本地 OSS 代理…'
+        '⏳ 正在检测 Key 托管 / OSS 代理…'
     ];
     var live = createLiveResultModal('OSS 诊断结果', lines);
     function pushLine(s) { live.push(s); }
-    var urlList = ossObjectUrls(cfg, cfg.prefix + 'manifest.json');
-    var testKey = cfg.prefix + '_diag/' + Date.now() + '.json';
+    var urlList = ossObjectUrls(cfg, (cfg.prefix || 'temu/') + 'manifest.json');
+    var testKey = (cfg.prefix || 'temu/') + '_diag/' + Date.now() + '.json';
     var testBody = '{"ping":1}';
     var finished = false;
     function finishDiagnose() {
@@ -2190,7 +2550,7 @@ function diagnoseOssConnection(overlay) {
         var hasErr = allLines.some(function(l) { return l.indexOf('❌') >= 0; });
         var hasOk = allLines.some(function(l) { return l.indexOf('✅') >= 0; });
         logEvent(hasErr ? 'warn' : 'info', 'oss', 'diagnose', 'OSS 诊断完成' + (hasOk && !hasErr ? '（通过）' : hasErr ? '（有问题）' : ''), {
-            bucket: cfg.bucket, region: region, hasProxy: allLines.some(function(l){ return l.indexOf('代理已启用') >= 0; }), summary: allLines.slice(0, 10)
+            bucket: cfg.bucket, region: region, hasServer: allLines.some(function(l){ return l.indexOf('Key 托管') >= 0; }), hasProxy: allLines.some(function(l){ return l.indexOf('代理已启用') >= 0; }), summary: allLines.slice(0, 12)
         });
     }
     var safetyTimer = setTimeout(function() {
@@ -2199,7 +2559,45 @@ function diagnoseOssConnection(overlay) {
         finishDiagnose();
     }, OSS_DIAGNOSE_MAX_MS);
 
-    checkOssLocalProxy().then(function(hasProxy) {
+    checkOssServerSync().then(function(hasServer) {
+        if (hasServer) {
+            cfg.bucket = _ossServerSyncMeta.bucket || cfg.bucket;
+            cfg.region = _ossServerSyncMeta.region || cfg.region;
+            cfg.prefix = _ossServerSyncMeta.prefix || cfg.prefix || 'temu/';
+            region = normalizeOssRegion(cfg.region);
+            pushLine('✅ Key 托管（/api/sync · ' + cfg.bucket + '）');
+            pushLine('   AccessKey 不在浏览器（阶段 0）');
+            pushLine('');
+            pushLine('⏳ 测试服务端 PUT 上传…');
+            return ossUploadViaServerSync(testKey, testBody).then(function() {
+                pushLine('① 服务端 PUT: ✅ 成功');
+                pushLine('⏳ 测试服务端签名 GET…');
+                return ossGetViaServerSync(testKey).then(function(body) {
+                    if (body && body.indexOf('"ping"') >= 0) {
+                        pushLine('② 服务端 GET: ✅ 成功（私有 Bucket 可用）');
+                    } else {
+                        pushLine('② 服务端 GET: ⚠️ 响应异常');
+                    }
+                    pushLine('');
+                    pushLine('→ 可以 ⬆ 同步；团队拉取用 📥 或 🧪 联调');
+                }).catch(function(ge) {
+                    pushLine('② 服务端 GET: ❌ ' + ge.message);
+                    pushLine('   → 检查 .env 中 RAM 用户是否有 GetObject 权限');
+                });
+            }).catch(function(e) {
+                pushLine('① 服务端 PUT: ❌ ' + e.message);
+                pushLine('   → 检查 .env 中 AccessKey / Bucket / Region');
+            });
+        }
+
+        if (!cfg.bucket || !cfg.region || !cfg.accessKeyId || !cfg.accessKeySecret) {
+            pushLine('❌ 未启用 Key 托管，且浏览器 OSS 配置不完整');
+            pushLine('   → 推荐：复制 .env.example 为 .env 并填写 Key');
+            pushLine('   → 或：在 ⚙ OSS 弹窗完整填写 AccessKey');
+            return;
+        }
+
+        return checkOssLocalProxy().then(function(hasProxy) {
         if (hasProxy) {
             pushLine('✅ 本地 OSS 代理已启用（启动本地看板.bat 新版）');
             pushLine('   ⬆ 同步走代理，不依赖浏览器 CORS');
@@ -2225,7 +2623,6 @@ function diagnoseOssConnection(overlay) {
                 pushLine('   → 检查 AccessKey 是否有 PutObject 权限');
                 pushLine('   → 检查 Bucket/Region 是否与控制台一致');
             });
-            return;
         }
 
         pushLine('⚠️ 未检测到本地 OSS 代理');
@@ -2267,6 +2664,7 @@ function diagnoseOssConnection(overlay) {
                 });
             });
         });
+        });
     }).catch(function(e) {
         pushLine('❌ 诊断过程异常: ' + (e && e.message ? e.message : String(e)));
     }).then(function() {
@@ -2284,11 +2682,16 @@ function fetchPublicJson(url) {
 }
 
 function fetchOssJson(cfg, key) {
-    return checkOssLocalProxy().then(function(hasProxy) {
-        if (hasProxy) {
-            return ossGetViaProxy(cfg, key).then(function(text) { return JSON.parse(text); });
+    return checkOssServerSync().then(function(hasServer) {
+        if (hasServer) {
+            return ossGetViaServerSync(key).then(function(text) { return JSON.parse(text); });
         }
-        return ossGetDirect(cfg, key).then(function(text) { return JSON.parse(text); });
+        return checkOssLocalProxy().then(function(hasProxy) {
+            if (hasProxy) {
+                return ossGetViaProxy(cfg, key).then(function(text) { return JSON.parse(text); });
+            }
+            return ossGetDirect(cfg, key).then(function(text) { return JSON.parse(text); });
+        });
     });
 }
 
@@ -2419,12 +2822,16 @@ function runTeamSyncDrill() {
         finishDrill();
     }, OSS_DRILL_MAX_MS);
 
-    checkOssLocalProxy().then(function(hasProxy) {
-        if (!hasProxy) {
-            pushLine('❌ 未检测到 OSS 本地代理 → 请重启 启动本地看板.bat');
+    checkOssServerSync().then(function(hasServer) {
+        return checkOssLocalProxy().then(function(hasProxy) {
+        if (!hasServer && !hasProxy) {
+            pushLine('❌ 未检测到 Key 托管（/api/sync）或 OSS 本地代理');
+            pushLine('   → 请重启 启动本地看板.bat');
+            pushLine('   → 推荐配置 .env（见 .env.example）');
             return Promise.reject(new Error('no-proxy'));
         }
-        pushLine('✅ 本地 OSS 代理正常');
+        if (hasServer) pushLine('✅ Key 托管模式（/api/sync）');
+        else pushLine('✅ 本地 OSS 代理正常');
         pushLine('⏳ 上传虚拟同事数据…');
         var summary = buildTeamDrillSummary();
         var slug = ownerPathSlug(TEAM_DRILL_OWNER);
@@ -2437,7 +2844,7 @@ function runTeamSyncDrill() {
             storeCount: 0,
             uploaded_at: summary.uploaded_at
         };
-        return ossUploadViaProxy(cfg, key, JSON.stringify(summary)).then(function() {
+        return ossUploadObject(cfg, key, JSON.stringify(summary)).then(function() {
             pushLine('✅ 已上传虚拟同事 JSON: ' + TEAM_DRILL_OWNER);
             pushLine('⏳ 更新 manifest 索引…');
             return updateCloudManifest(null, cfg, entry);
@@ -2460,6 +2867,7 @@ function runTeamSyncDrill() {
             pushLine('');
             pushLine('下一步: 打开「诊断」页查看「个人 vs 团队」');
             pushLine('真实同事同步后，📥 团队 会拉取他们的数据（不含你自己）');
+        });
         });
     }).catch(function(e) {
         if (e && e.message === 'no-proxy') { /* lines already set */ }
@@ -2606,17 +3014,19 @@ function showOssConfigModal(onSaved) {
         ? '<div class="alert alert-success" style="margin-bottom:12px;">✅ 已配置：' + cfg.bucket + ' · ' + normalizeOssRegion(cfg.region) + (cfg.owner ? ' · ' + cfg.owner : '') + '</div>'
         : '<div class="alert alert-warning" style="margin-bottom:12px;">⚠️ 尚未保存有效配置。填完点「保存」后，侧边栏应显示 Bucket 名称（不是「云端未配置」）。</div>';
     var body = statusLine +
+        '<div class="oss-server-mode-note alert alert-info" style="display:none;margin-bottom:12px;"><span class="alert-icon">🔐</span><span><strong>Key 托管已启用</strong>：AccessKey 保存在本地 <code>.env</code>，浏览器无需 Secret（阶段 0）</span></div>' +
         '<p style="color:var(--text-dim);font-size:0.85rem;margin-bottom:12px;"><strong>Bucket 名和 Region 必须与阿里云控制台「Bucket 列表」里完全一致。</strong>若浏览器打开 <code>https://你的Bucket.oss-cn-xxx.aliyuncs.com/</code> 出现 <code>NoSuchBucket</code>，说明名字或地域填错了（不是 CORS 问题）。</p>' +
-        '<p style="color:var(--text-dim);font-size:0.85rem;margin-bottom:8px;"><strong>推荐</strong>：双击 <code>启动本地看板.bat</code>（含 OSS 代理，<strong>Bucket 可设私有</strong>，无需公共读/CORS）。</p>' +
-        '<p style="color:var(--text-dim);font-size:0.85rem;margin-bottom:8px;"><strong>安全</strong>：建议 RAM 子账号，仅授予 <code>GetObject</code> + <code>PutObject</code>（详见传话文件夹 OSS 私有配置说明）。</p>' +
+        '<p style="color:var(--text-dim);font-size:0.85rem;margin-bottom:8px;"><strong>推荐</strong>：复制 <code>.env.example</code> 为 <code>.env</code> 并填写 Key；双击 <code>启动本地看板.bat</code>（<strong>Bucket 可设私有</strong>）。</p>' +
+        '<p class="oss-key-field" style="color:var(--text-dim);font-size:0.85rem;margin-bottom:8px;"><strong>兼容模式</strong>：未配置 .env 时，仍可在下方填写 AccessKey（旧版浏览器存 Key）。</p>' +
+        '<button type="button" class="btn oss-migrate-env-btn" style="width:100%;margin-bottom:8px;">🔐 一键迁移 Key 到 .env（推荐）</button>' +
         '<button type="button" class="btn oss-diag-btn" style="width:100%;margin-bottom:8px;">🔍 诊断 OSS 连接</button>' +
         '<button type="button" class="btn oss-drill-btn" style="width:100%;margin-bottom:12px;">🧪 团队联调（模拟第二人）</button>' +
         '<div style="display:grid;gap:10px;">' +
         '<label>归属人（姓名）<br><input id="oss_owner" value="'+escHtml(cfg.owner||'')+'" placeholder="如：胡安康" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
-        '<label>Region（填 oss-cn-hangzhou）<br><input id="oss_region" value="'+escHtml(cfg.region)+'" placeholder="oss-cn-hangzhou" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
-        '<label>Bucket 名称（控制台 Bucket 列表里复制的 exact 名字）<br><input id="oss_bucket" value="'+escHtml(cfg.bucket)+'" placeholder="temu-shujufenxi-data" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
-        '<label>AccessKey ID<br><input id="oss_ak" value="'+escHtml(cfg.accessKeyId)+'" autocomplete="off" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
-        '<label>AccessKey Secret（仅保存在本机浏览器）<br><input id="oss_sk" type="text" autocomplete="off" spellcheck="false" placeholder="粘贴 Secret，保存后可被浏览器记住" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-family:monospace;"></label>' +
+        '<label class="oss-bucket-field">Region（填 oss-cn-hangzhou）<br><input id="oss_region" value="'+escHtml(cfg.region)+'" placeholder="oss-cn-hangzhou" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
+        '<label class="oss-bucket-field">Bucket 名称（控制台 Bucket 列表里复制的 exact 名字）<br><input id="oss_bucket" value="'+escHtml(cfg.bucket)+'" placeholder="temu-shujufenxi-data" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
+        '<label class="oss-key-field">AccessKey ID<br><input id="oss_ak" value="'+escHtml(cfg.accessKeyId)+'" autocomplete="off" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
+        '<label class="oss-key-field">AccessKey Secret（仅保存在本机浏览器）<br><input id="oss_sk" type="text" autocomplete="off" spellcheck="false" placeholder="粘贴 Secret，保存后可被浏览器记住" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-family:monospace;"></label>' +
         '</div>';
     showModal('☁ 阿里云 OSS 配置', body, '保存', function(overlay) {
         var next = readOssFormFromOverlay(overlay);
@@ -2625,6 +3035,24 @@ function showOssConfigModal(onSaved) {
             return false;
         }
         next.owner = next.owner.trim();
+        if (isOssServerKeyMode()) {
+            next.bucket = (_ossServerSyncMeta && _ossServerSyncMeta.bucket) || next.bucket;
+            next.region = (_ossServerSyncMeta && _ossServerSyncMeta.region) || next.region;
+            next.prefix = (_ossServerSyncMeta && _ossServerSyncMeta.prefix) || next.prefix || 'temu/';
+            next.accessKeyId = '';
+            next.accessKeySecret = '';
+            try {
+                saveOssConfig(next);
+            } catch (e) {
+                toast('配置保存失败：' + (e.message || String(e)), 'error');
+                return false;
+            }
+            updateSidebar();
+            toast('已保存归属人 · Key 由服务端托管', 'success');
+            logEvent('info', 'oss', 'config_save', 'OSS 配置已保存（Key 托管模式）', { bucket: next.bucket, region: next.region, owner: next.owner });
+            if (onSaved) setTimeout(onSaved, 300);
+            return;
+        }
         if (!next.bucket || !next.region || !next.accessKeyId || !next.accessKeySecret) {
             toast('请填完整：Bucket、Region、AccessKey ID 和 Secret', 'warning');
             logEvent('warn', 'oss', 'config_incomplete', 'OSS 配置未填完整', {
@@ -2673,6 +3101,43 @@ function showOssConfigModal(onSaved) {
     }, function(overlay) {
         var skEl = overlay.querySelector('#oss_sk');
         if (skEl && cfg.accessKeySecret) skEl.value = cfg.accessKeySecret;
+        checkOssServerSync().then(function(hasServer) {
+            var note = overlay.querySelector('.oss-server-mode-note');
+            var keyFields = overlay.querySelectorAll('.oss-key-field');
+            var bucketFields = overlay.querySelectorAll('.oss-bucket-field');
+            var migrateBtn = overlay.querySelector('.oss-migrate-env-btn');
+            if (hasServer) {
+                if (note) note.style.display = 'flex';
+                keyFields.forEach(function(el) { el.style.display = 'none'; });
+                if (migrateBtn) {
+                    migrateBtn.textContent = '✅ Key 已在 .env 托管（无需再迁移）';
+                    migrateBtn.disabled = true;
+                    migrateBtn.classList.add('btn-disabled');
+                }
+                if (_ossServerSyncMeta) {
+                    var bucketEl = overlay.querySelector('#oss_bucket');
+                    var regionEl = overlay.querySelector('#oss_region');
+                    if (bucketEl && _ossServerSyncMeta.bucket) {
+                        bucketEl.value = _ossServerSyncMeta.bucket;
+                        bucketEl.readOnly = true;
+                    }
+                    if (regionEl && _ossServerSyncMeta.region) {
+                        regionEl.value = _ossServerSyncMeta.region;
+                        regionEl.readOnly = true;
+                    }
+                    bucketFields.forEach(function(el) {
+                        el.style.opacity = '0.85';
+                        el.title = '由 .env 托管，无需修改';
+                    });
+                }
+            } else if (migrateBtn) {
+                migrateBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    migrateOssKeysToEnv({ silent: false, overlay: overlay });
+                });
+            }
+        });
         var diagBtn = overlay.querySelector('.oss-diag-btn');
         var drillBtn = overlay.querySelector('.oss-drill-btn');
         if (diagBtn) {
@@ -2695,6 +3160,41 @@ function showOssConfigModal(onSaved) {
 // ═══════════════════════════════════════════════
 // 页面切换
 // ═══════════════════════════════════════════════
+function recordPageVisit(pageName) {
+    if (!pageName) return;
+    try {
+        var raw = localStorage.getItem('temu_v6_page_hits');
+        var hits = raw ? JSON.parse(raw) : {};
+        if (typeof hits !== 'object' || !hits) hits = {};
+        hits[pageName] = (hits[pageName] || 0) + 1;
+        hits._last = { page: pageName, at: new Date().toISOString() };
+        safeSetItem('temu_v6_page_hits', JSON.stringify(hits));
+    } catch (e) { /* 沉默统计，不打扰用户 */ }
+}
+
+function getPkShareUrl() {
+    if (isGitHubPagesHost() || (isHostedWebApp() && !isLocalDevServer())) {
+        return location.href.split('#')[0] + '#pk';
+    }
+    return HOSTED_PAGES_URL + '#pk';
+}
+
+function copyPkShareLink() {
+    var url = getPkShareUrl();
+    function onOk() {
+        toast('PK 链接已复制（对方需自行导入 Excel）', 'success');
+        logEvent('info', 'pk', 'share_copy', '复制 PK 分享链接', { url: url });
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(onOk).catch(function() {
+            toast('请手动复制：' + url, 'warning');
+        });
+    } else {
+        toast('请手动复制：' + url, 'info');
+    }
+}
+window.copyPkShareLink = copyPkShareLink;
+
 function switchPage(name) {
     closeMobileSidebar();
     document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
@@ -2715,6 +3215,12 @@ function switchPage(name) {
     if (name==='import') renderImportPage();
     if (name==='store') renderStorePage();
     if (name==='pk') renderPKPage();
+    recordPageVisit(name);
+    if (name === 'import' && typeof renderStageGatePanel === 'function') renderStageGatePanel();
+    var activePg = document.getElementById('page-' + name);
+    if (activePg && typeof animatePageContent === 'function') {
+        requestAnimationFrame(function() { animatePageContent(activePg); });
+    }
 }
 
 // ═══════════════════════════════════════════════
@@ -3204,6 +3710,7 @@ window.renderImportPage = (function() {
     var oldInsights=pg.querySelector('.import-insights'); if(oldInsights) oldInsights.remove();
     var old=pg.querySelector('.parsed'); if(old) old.remove();
     if (hasProductData() || hasStoreData()) {
+        var dualOk = hasProductData() && hasStoreData();
         var ins = document.createElement('div');
         ins.className = 'import-insights';
         ins.innerHTML = buildInsightsBarHTML() +
@@ -3211,9 +3718,12 @@ window.renderImportPage = (function() {
             '<button type="button" class="btn" onclick="switchPage(\'products\')">📊 商品画像</button>' +
             '<button type="button" class="btn" onclick="switchPage(\'diagnosis\')">📈 个人诊断</button>' +
             (hasStoreData() ? '<button type="button" class="btn" onclick="switchPage(\'store\')">🏪 店铺运营</button>' : '') +
+            (dualOk ? '<button type="button" class="btn" onclick="switchPage(\'pk\')" style="border-color:var(--gold);">🏆 个人 PK</button>' : '') +
             '</div>';
         pg.insertBefore(ins, pg.querySelector('#uploadZone'));
     }
+    renderStageGatePanel();
+    if (typeof updateHostedImportUX === 'function') updateHostedImportUX();
     if(ST.files.length===0 && !(ST.storeData && ST.storeData.length)) return;
     var div=document.createElement('div'); div.className='parsed';
     var total=ST.files.reduce(function(s,f){return s+f.rowCount;},0);
@@ -3485,9 +3995,81 @@ function generateDirectionAdvice(cmp) {
     return advice.sort(function(a,b){var o={'🔴 高':0,'🟡 中':1,'🟢 好':2,'🟢':2};return (o[a.priority]||9)-(o[b.priority]||9);});
 }
 
-// ═══════════════════════════════════════════════
-// 页面 ⑥ 个人诊断（7个expander模块）
-// ═══════════════════════════════════════════════
+function buildDiagnosisReportMarkdown() {
+    if (ST.snapshots.length < 2) return null;
+    var cmp = compareSnapshots();
+    if (!cmp) return null;
+    var lines = [];
+    var owner = typeof getCloudOwner === 'function' ? getCloudOwner() : '';
+    lines.push('# Temu 选品诊断周报');
+    lines.push('');
+    lines.push('- 归属人：' + owner);
+    lines.push('- 生成时间：' + new Date().toLocaleString('zh-CN'));
+    lines.push('- 看板版本：' + DASHBOARD_VERSION);
+    lines.push('');
+    lines.push('## 概览对比（最新 vs 上一份）');
+    lines.push('| 指标 | 旧 | 新 |');
+    lines.push('|------|-----|-----|');
+    lines.push('| 商品数 | ' + cmp.old_count + ' | ' + cmp.new_count + ' |');
+    lines.push('| 黄金品 | ' + cmp.old_gold + ' | ' + cmp.new_gold + ' |');
+    lines.push('| 均毛利率 | ' + cmp.old_margin.toFixed(1) + '% | ' + cmp.new_margin.toFixed(1) + '% |');
+    lines.push('| 均日销 | ' + cmp.old_sales.toFixed(1) + ' | ' + cmp.new_sales.toFixed(1) + ' |');
+    if (cmp.degraded.length) {
+        lines.push('');
+        lines.push('## 在变差的品（' + cmp.degraded.length + '）');
+        cmp.degraded.slice(0, 30).forEach(function(d) {
+            lines.push('- **' + d.spu_id + '** ' + d.old_label + '→' + d.new_label + '，毛利 ' + d.old_margin.toFixed(1) + '%→' + d.new_margin.toFixed(1) + '%（' + d.suggestion + '）');
+        });
+    }
+    if (hasTeam && ST.teamProducts.length) {
+        lines.push('');
+        lines.push('## 团队基准');
+        lines.push('- 团队 SPU 样本：' + ST.teamProducts.length);
+        lines.push('- 团队均毛利率：' + avg(ST.teamProducts.map(function(p) { return p.gross_margin; })).toFixed(1) + '%');
+    }
+    var advice = generateDirectionAdvice(cmp);
+    if (advice && advice.length) {
+        lines.push('');
+        lines.push('## 方向建议');
+        advice.forEach(function(a) {
+            lines.push('- **' + a.priority + ' ' + a.title + '**：' + a.detail + ' → ' + a.action);
+        });
+    }
+    lines.push('');
+    lines.push('---');
+    lines.push('*由 Temu 数据看板自动导出*');
+    return lines.join('\n');
+}
+
+function exportDiagnosisReport() {
+    var md = buildDiagnosisReportMarkdown();
+    if (!md) {
+        toast('需要至少 2 次上传快照才能导出周报', 'warning');
+        switchPage('import');
+        return;
+    }
+    try {
+        var blob = new Blob(['\ufeff' + md], { type: 'text/markdown;charset=utf-8' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'temu-diagnosis-' + new Date().toISOString().slice(0, 10) + '.md';
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function() {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 200);
+        logEvent('info', 'export', 'diagnosis_md', '导出诊断周报 Markdown', { owner: getCloudOwner() });
+        toast('诊断周报已下载（Markdown）', 'success');
+    } catch (e) {
+        console.error('exportDiagnosisReport:', e);
+        logEvent('error', 'export', 'diagnosis_md_fail', '导出诊断周报失败：' + (e.message || String(e)), {});
+        toast('导出失败：' + (e.message || '未知错误'), 'error');
+    }
+}
+
 function renderDiagnosis() {
     var pg=document.getElementById('page-diagnosis'); if(!pg) return;
     var msg=pg.querySelector('.warn-card'); var old=pg.querySelector('.dc'); if(old) old.remove();
@@ -3528,15 +4110,15 @@ function renderDiagnosis() {
     /* ── ① 概览对比（默认展开）── */
     var exp1=document.createElement('details'); exp1.className='expander'; exp1.open=true;
     var ovHTML='<summary>📊 概览对比 — 最新 vs 上一份</summary><div class="expander-content">';
-    ovHTML+='<div class="btn-row">';
-    ovHTML+='<div class="step"><div class="title">商品总数</div><div class="desc" style="font-size:1.3rem;font-weight:700;">'+cmp.old_count+' → '+cmp.new_count+'</div></div>';
-    ovHTML+='<div class="step"><div class="title">黄金品占比</div><div class="desc" style="font-size:1.3rem;font-weight:700;color:var(--gold);">'+(oldGoldPct).toFixed(0)+'% → '+(goldPct).toFixed(0)+'%</div></div>';
-    ovHTML+='<div class="step"><div class="title">均毛利率</div><div class="desc" style="font-size:1.3rem;font-weight:700;color:var(--success-text);">'+(cmp.old_margin).toFixed(1)+'% → '+(cmp.new_margin).toFixed(1)+'%</div></div>';
-    ovHTML+='<div class="step"><div class="title">均日销</div><div class="desc" style="font-size:1.3rem;font-weight:700;">'+(cmp.old_sales).toFixed(1)+' → '+(cmp.new_sales).toFixed(1)+' 单</div></div>';
-    ovHTML+='</div><div class="btn-row">';
-    ovHTML+='<div class="step" style="border-left:3px solid var(--gold);"><div class="title">黄金品</div><div class="desc" style="font-size:1.1rem;font-weight:700;color:var(--gold);">'+cmp.old_gold+' → '+cmp.new_gold+'</div></div>';
-    ovHTML+='<div class="step" style="border-left:3px solid #a0a0a0;"><div class="title">白银品</div><div class="desc" style="font-size:1.1rem;font-weight:700;color:#a0a0a0;">'+cmp.old_silver+' → '+cmp.new_silver+'</div></div>';
-    ovHTML+='<div class="step" style="border-left:3px solid #5b9bd5;"><div class="title">观察品</div><div class="desc" style="font-size:1.1rem;font-weight:700;color:#5b9bd5;">'+cmp.old_watch+' → '+cmp.new_watch+'</div></div>';
+    ovHTML+='<div class="stat-grid">';
+    ovHTML+='<div class="stat-cell"><div class="stat-label">商品总数</div><div class="stat-value">'+cmp.old_count+' → '+cmp.new_count+'</div></div>';
+    ovHTML+='<div class="stat-cell is-gold"><div class="stat-label">黄金品占比</div><div class="stat-value" style="color:var(--gold);">'+(oldGoldPct).toFixed(0)+'% → '+(goldPct).toFixed(0)+'%</div></div>';
+    ovHTML+='<div class="stat-cell is-ok"><div class="stat-label">均毛利率</div><div class="stat-value" style="color:var(--success-text);">'+(cmp.old_margin).toFixed(1)+'% → '+(cmp.new_margin).toFixed(1)+'%</div></div>';
+    ovHTML+='<div class="stat-cell"><div class="stat-label">均日销</div><div class="stat-value">'+(cmp.old_sales).toFixed(1)+' → '+(cmp.new_sales).toFixed(1)+' 单</div></div>';
+    ovHTML+='</div><div class="stat-grid">';
+    ovHTML+='<div class="stat-cell is-gold"><div class="stat-label">黄金品</div><div class="stat-value" style="color:var(--gold);">'+cmp.old_gold+' → '+cmp.new_gold+'</div></div>';
+    ovHTML+='<div class="stat-cell is-muted"><div class="stat-label">白银品</div><div class="stat-value" style="color:#a0a0a0;">'+cmp.old_silver+' → '+cmp.new_silver+'</div></div>';
+    ovHTML+='<div class="stat-cell is-watch"><div class="stat-label">观察品</div><div class="stat-value" style="color:#5b9bd5;">'+cmp.old_watch+' → '+cmp.new_watch+'</div></div>';
     ovHTML+='</div></div>';
     exp1.innerHTML=ovHTML; div.appendChild(exp1);
 
@@ -3632,7 +4214,7 @@ function renderDiagnosis() {
     if (cmp.new_prods.length > 0 || cmp.gone_prods.length > 0) {
         var expChg=document.createElement('details'); expChg.className='expander';
         var chgHTML='<summary>🔄 商品变动 — 新增 '+cmp.new_prods.length+' · 下架 '+cmp.gone_prods.length+'</summary><div class="expander-content">';
-        chgHTML+='<div class="btn-row"><div class="step" style="border-left:3px solid var(--success-text);"><div class="title">新增品</div><div class="desc" style="font-size:1.2rem;font-weight:700;">'+cmp.new_prods.length+'</div></div><div class="step" style="border-left:3px solid var(--danger-text);"><div class="title">消失品</div><div class="desc" style="font-size:1.2rem;font-weight:700;">'+cmp.gone_prods.length+'</div></div></div>';
+        chgHTML+='<div class="stat-grid"><div class="stat-cell is-ok"><div class="stat-label">新增品</div><div class="stat-value">'+cmp.new_prods.length+'</div></div><div class="stat-cell is-bad"><div class="stat-label">消失品</div><div class="stat-value">'+cmp.gone_prods.length+'</div></div></div>';
         if (cmp.new_prods.length > 0) {
             chgHTML+='<div class="scroll-box" style="max-height:300px;"><table><thead><tr><th>新增 SPU</th><th>名称</th><th>毛利率</th><th>日销</th><th>克重</th></tr></thead><tbody>';
             cmp.new_prods.forEach(function(p){chgHTML+='<tr><td>'+p.spu_id+'</td><td>'+p.name+'</td><td>'+(p.gross_margin||0).toFixed(1)+'%</td><td>'+(p.daily_sales||0).toFixed(1)+'</td><td>'+Math.round(p.weight_g||0)+'g</td></tr>';});
@@ -3672,6 +4254,7 @@ function renderDiagnosis() {
         }, 300);
     }
 }
+    window.exportDiagnosisReport = exportDiagnosisReport;
     return renderDiagnosis;
 })();
 
@@ -3822,35 +4405,40 @@ function renderPKWithBoth(pg) {
     if (avgSales > avgDaySales * 1.5) tips.push({emoji:'📏', text:'商品日均销量 '+sf(avgSales, 1)+' 单远高于店铺日均销量 '+sf(avgDaySales, 1)+' 单，数据口径可能存在差异（选品统计 vs 实销统计）。建议确认两个数据源的样本范围和计算方式。'});
     if (tips.length === 0) tips.push({emoji:'📊', text: '当前 '+(ST.products?ST.products.length:0)+' 个选品 vs '+(ST.storeData?ST.storeData.length:0)+' 个运营记录，各项指标偏差不大。<br><br>建议持续积累更多数据以获得更精准的对齐分析。'});
     tips.push({emoji:'💡', text:'以上建议基于当前数据自动生成，请结合实际运营情况综合判断。建议定期做 PK 对比，追踪改善效果。'});
-    var tipsHTML = tips.map(function(t){return '<div class="alert alert-info" style="margin-bottom:8px;border-left:3px solid var(--gold);"><strong>'+t.emoji+'</strong> '+t.text+'</div>';}).join("");
+    var tipsHTML = tips.map(function(t){return '<div class="alert alert-info alert-tip"><strong>'+t.emoji+'</strong> '+t.text+'</div>';}).join("");
     // === 构建 HTML（标题由 page-pk 静态 hero 提供，此处不再重复）===
     var h = '';
     // 评分卡片
-    h += '<div class="btn-row" style="margin-bottom:14px;"><div class="step" style="flex:2;text-align:left;padding:16px 20px;border:2px solid '+scoreColor+';">';
-    h += '<div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:4px;">选品 vs 运营对齐度</div>';
-    h += '<div style="font-size:2.2rem;font-weight:800;color:'+scoreColor+';">'+alignScore+'<span style="font-size:0.9rem;font-weight:600;"> 分</span></div>';
-    h += '<div style="font-size:0.82rem;color:var(--text-dim);margin-top:2px;">'+scoreLabel+'</div></div>';
-    h += '<div class="step" style="flex:3;text-align:left;padding:16px 20px;"><div style="font-size:0.75rem;color:var(--text-dim);">评分说明</div>';
-    h += '<div style="font-size:0.8rem;color:var(--text-dim);line-height:1.6;margin-top:4px;">';
+    h += '<div class="btn-row pk-score-row" style="margin-bottom:14px;">';
+    h += '<div class="pk-score-card" style="border-color:'+scoreColor+';">';
+    h += '<div class="stat-label">选品 vs 运营对齐度</div>';
+    h += '<div class="pk-score-num" style="color:'+scoreColor+';"><span id="pkAlignScoreValue">0</span><span class="pk-score-unit"> 分</span></div>';
+    h += '<div class="pk-score-caption">'+scoreLabel+'</div></div>';
+    h += '<div class="stat-cell" style="flex:3;"><div class="stat-label">评分说明</div>';
+    h += '<div class="stat-value is-sm" style="color:var(--text-dim);font-weight:400;line-height:1.6;margin-top:6px;">';
     h += '6 个选品指标 vs 6 个运营指标交叉评分<br>';
     h += '≥80 分 = 选品与运营对齐良好<br>';
     h += '≥50 分 = 部分偏差，有改进空间</div></div></div>';
     // 差距分析表（带 scroll-box）
-    h += '<details class="expander" open><summary>📊 差距分析表</summary><div class="expander-content"><div class="scroll-box"><table><thead><tr><th style="width:22%;">维度</th><th style="width:30%;border-left:3px solid var(--gold);">选品</th><th style="width:18%;">差距</th><th style="width:30%;border-left:3px solid var(--success-text);">运营</th></tr></thead><tbody>';
+    h += '<details class="expander" open><summary>📊 差距分析表</summary><div class="expander-content"><div class="scroll-box"><table><thead><tr><th style="width:22%;">维度</th><th class="pk-gap-pick" style="width:30%;">选品</th><th style="width:18%;">差距</th><th class="pk-gap-ops" style="width:30%;">运营</th></tr></thead><tbody>';
     gaps.forEach(function(g){
         var gapDir = g.pVal > g.sVal ? '选品↑' : g.pVal < g.sVal ? '运营↑' : '持平';
         var gapCls = g.gap === maxGap ? 'color:var(--danger-text);font-weight:700;' : 'color:var(--text-dim);';
-        h += '<tr><td><strong>'+g.label+'</strong></td><td style="border-left:3px solid var(--gold);">'+g.fmtP+'</td><td style="font-size:0.82rem;'+gapCls+'">'+gapDir+'<br>'+sf(g.gap, 1)+g.unit+'</td><td style="border-left:3px solid var(--success-text);">'+g.fmtS+'</td></tr>';
+        h += '<tr><td><strong>'+g.label+'</strong></td><td class="pk-gap-pick">'+g.fmtP+'</td><td style="font-size:0.82rem;'+gapCls+'">'+gapDir+'<br>'+sf(g.gap, 1)+g.unit+'</td><td class="pk-gap-ops">'+g.fmtS+'</td></tr>';
     });
     h += '</tbody></table></div></div></details>';
     // 运营建议 expander
     h += '<details class="expander" open><summary>💡 运营建议（'+tips.length+' 条）</summary><div class="expander-content"><div class="scroll-box">'+tipsHTML+'</div></div></details>';
     div.innerHTML = h;
     pg.appendChild(div);
+    var scoreEl = document.getElementById('pkAlignScoreValue');
+    if (typeof animatePkScore === 'function') {
+        requestAnimationFrame(function() { animatePkScore(scoreEl, alignScore); });
+    }
 }
 function renderPKNoStore(pg) {
     var div = document.createElement("div"); div.className = "pc";
-    div.innerHTML = '<div class="alert alert-info"><span class="alert-icon">📂</span><span>有 '+ST.products.length+' 条选品数据，但未导入店铺运营数据。<strong>导入店铺数据记录 Excel 后可查看对比。</strong></span></div><details class="expander" open><summary>📊 当前个人数据一览</summary><div class="expander-content"><div class="btn-row"><div class="step"><div class="title">商品总数</div><div class="desc" style="font-size:1.3rem;font-weight:700;">'+ST.clusters.length+'</div></div><div class="step" style="border-left:3px solid var(--gold);"><div class="title">黄金品占比</div><div class="desc" style="font-size:1.3rem;font-weight:700;color:var(--gold);">'+(ST.clusters.filter(function(p){return p.cluster_label==="黄金品";}).length/ST.clusters.length*100).toFixed(0)+'%</div></div><div class="step" style="border-left:3px solid var(--success-text);"><div class="title">均毛利率</div><div class="desc" style="font-size:1.3rem;font-weight:700;color:var(--success-text);">'+avg(ST.products.map(function(p){return p.gross_margin;})).toFixed(1)+'%</div></div></div></div></details>';
+    div.innerHTML = '<div class="alert alert-info"><span class="alert-icon">📂</span><span>有 '+ST.products.length+' 条选品数据，但未导入店铺运营数据。<strong>导入店铺数据记录 Excel 后可查看对比。</strong></span></div><details class="expander" open><summary>📊 当前个人数据一览</summary><div class="expander-content"><div class="stat-grid"><div class="stat-cell"><div class="stat-label">商品总数</div><div class="stat-value">'+ST.clusters.length+'</div></div><div class="stat-cell is-gold"><div class="stat-label">黄金品占比</div><div class="stat-value" style="color:var(--gold);">'+(ST.clusters.filter(function(p){return p.cluster_label==="黄金品";}).length/ST.clusters.length*100).toFixed(0)+'%</div></div><div class="stat-cell is-ok"><div class="stat-label">均毛利率</div><div class="stat-value" style="color:var(--success-text);">'+avg(ST.products.map(function(p){return p.gross_margin;})).toFixed(1)+'%</div></div></div></div></details>';
     pg.appendChild(div);
 }
 
@@ -3862,7 +4450,15 @@ function renderPKNoProducts(pg) {
 
 function renderPKNoData(pg) {
     var div = document.createElement("div"); div.className = "pc";
-    div.innerHTML = '<div class="warn-card"><div class="title">📂</div><div class="desc">还没数据呢。导入利润统计（选品数据）和店铺运营（店铺数据）后，这里会显示两条管线的对比分析。</div></div>';
+    var viaPkLink = (location.hash || '').replace('#', '').trim() === 'pk';
+    div.innerHTML = '<div class="warn-card"><div class="title">' + (viaPkLink ? '🔗 通过分享链接打开' : '📂') + '</div><div class="desc">' +
+        (viaPkLink
+            ? '这是<strong>个人选品×运营对齐分</strong>页面。数据在本地解析，<strong>不会</strong>从链接里读取你的 Excel。<br><br>请先在「数据导入」上传：<strong>利润统计 .xls</strong> + <strong>店铺数据记录 .xlsx</strong>，再回来看 PK 分数。'
+            : '还没数据呢。导入利润统计（选品）和店铺运营（店铺数据）后，这里会显示两条管线的对比分析。') +
+        '</div></div>' +
+        '<div class="btn-row"><button type="button" class="btn-primary-sm" onclick="switchPage(\'import\')">📥 去导入 Excel</button>' +
+        (viaPkLink ? '' : '<button type="button" class="btn" onclick="copyPkShareLink()">🔗 复制 PK 分享链接</button>') +
+        '</div>';
     pg.appendChild(div);
 }
     return renderPKPage;
@@ -3875,8 +4471,49 @@ var renderRules = window.renderRules;
 var renderPredict = window.renderPredict;
 var renderBlacklist = window.renderBlacklist;
 var renderDiagnosis = window.renderDiagnosis;
+var exportDiagnosisReport = window.exportDiagnosisReport;
 var renderStorePage = window.renderStorePage;
 var renderPKPage = window.renderPKPage;
+
+// ── UI Motion（GSAP · 仅导入/PK/诊断 · 不动 OSS）──
+var _uiMotionReady = false;
+var _reduceMotion = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function initUiMotion() {
+    if (typeof gsap === 'undefined') return;
+    if (window.matchMedia) {
+        var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+        _reduceMotion = mq.matches;
+        if (mq.addEventListener) mq.addEventListener('change', function(e) { _reduceMotion = e.matches; });
+        else if (mq.addListener) mq.addListener(function(e) { _reduceMotion = e.matches; });
+    }
+    _uiMotionReady = true;
+}
+
+function animatePageContent(pageEl) {
+    if (!_uiMotionReady || _reduceMotion || !pageEl) return;
+    var pageId = pageEl.id ? pageEl.id.replace('page-', '') : '';
+    if (['import', 'diagnosis', 'pk'].indexOf(pageId) === -1) return;
+    var targets = pageEl.querySelectorAll('.hero-compact, .import-route-hint, .pk-expect-bar, .stat-grid, .pk-score-card, .upload-zone, .page-toolbar');
+    if (!targets.length) return;
+    gsap.fromTo(targets, { autoAlpha: 0, y: 5 }, { autoAlpha: 1, y: 0, duration: 0.2, stagger: 0.03, ease: 'power2.out', overwrite: 'auto' });
+}
+
+function animatePkScore(scoreEl, targetScore) {
+    if (!scoreEl) return;
+    if (!_uiMotionReady || _reduceMotion || typeof gsap === 'undefined') {
+        scoreEl.textContent = String(targetScore);
+        return;
+    }
+    var obj = { v: 0 };
+    gsap.to(obj, {
+        v: targetScore,
+        duration: 0.45,
+        ease: 'power2.out',
+        onUpdate: function() { scoreEl.textContent = String(Math.round(obj.v)); },
+        onComplete: function() { scoreEl.textContent = String(targetScore); }
+    });
+}
 
 function runStartupSelfCheck() {
     var issues = [];
@@ -3932,6 +4569,21 @@ function runStartupSelfCheck() {
         document.querySelector('.sidebar').classList.add('collapsed');
     }
     initUX();
+    if (isHostedWebApp() && !isLocalDevServer()) {
+        checkOssServerSync().then(function() { updateSidebar(); });
+        if (!localStorage.getItem('temu_v6_hosted_welcome')) {
+            toast('网页版：拖 Excel 即用 · 团队数据侧边栏 📥（⚙ 配置 OSS）', 'info', { duration: 9000 });
+            localStorage.setItem('temu_v6_hosted_welcome', '1');
+        }
+    }
+    if (isLocalDevServer()) {
+        tryAutoMigrateOssKeysToEnv().finally(function() {
+            checkOssServerSync().then(function() {
+                updateSidebar();
+                if (typeof renderStageGatePanel === 'function') renderStageGatePanel();
+            });
+        });
+    }
 })();
 
 </script>

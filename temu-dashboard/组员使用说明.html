@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Temu 运营看板 — 组员使用说明</title>
+    <title>Temu 选品助手 V10.2.2 — 组员试用说明</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         :root {
@@ -13,7 +13,6 @@
             --text: #f1f0ee;
             --text-dim: #a1a09c;
             --border: rgba(226,184,122,0.14);
-            --shadow: 0 4px 20px rgba(0,0,0,0.35);
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -22,10 +21,11 @@
             font-family: 'Inter', 'Microsoft YaHei', sans-serif;
             line-height: 1.7;
             padding: 40px 20px;
-            max-width: 800px;
+            max-width: 820px;
             margin: 0 auto;
         }
         h1 { font-size: 1.8rem; color: var(--gold); margin-bottom: 8px; }
+        .ver { color: var(--text-dim); font-size: 0.9rem; margin-bottom: 20px; }
         h2 { font-size: 1.2rem; color: var(--gold); margin: 32px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
         h3 { font-size: 1rem; color: var(--text); margin: 16px 0 8px; }
         p, li { font-size: 0.92rem; color: var(--text-dim); margin-bottom: 8px; }
@@ -68,10 +68,17 @@
             color: #fca5a5;
             font-size: 0.88rem;
         }
-        .warn strong { color: #f87171; }
+        .info {
+            background: rgba(59,130,246,0.1);
+            border: 1px solid rgba(59,130,246,0.25);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin: 12px 0;
+            color: #93c5fd;
+            font-size: 0.88rem;
+        }
         ul { padding-left: 20px; }
         li { margin-bottom: 4px; }
-        a { color: var(--gold); }
         table { width: 100%; border-collapse: collapse; margin: 12px 0; }
         td, th { padding: 8px 12px; text-align: left; font-size: 0.88rem; border-bottom: 1px solid var(--border); }
         th { color: var(--gold); font-weight: 600; }
@@ -79,122 +86,231 @@
 </head>
 <body>
 
-<p style="text-align:center;color:var(--gold);font-size:1.1rem;margin-bottom:24px;font-style:italic;opacity:0.85;">「依托真实，不闭门造车。」</p>
+<p style="text-align:center;color:var(--gold);font-size:1.05rem;margin-bottom:24px;font-style:italic;opacity:0.85;">「选品是输入，运营是输出。」</p>
 
-<h1>📊 Temu 运营看板 — 组员使用说明</h1>
-<p>跟着做，5 分钟上手。有问题找玉成。</p>
+<h1>📊 Temu 选品助手 — 组员试用说明</h1>
+<p class="ver">版本 V10.2.4 · 2026-06-05 · 有问题找玉成</p>
+<p>主入口：<strong>网页链接</strong>（见下文）· 个人 PK 对齐分 · OSS 存团队摘要。</p>
 
 <div class="card">
-    <h3>📂 你拿到的文件夹里应该有</h3>
+    <h3>📂 压缩包里有什么</h3>
     <ul>
         <li><span class="code">temu-dashboard.html</span> — 主看板</li>
-        <li><span class="code">local_server.py</span> — 本地代理（不直接打开）</li>
-        <li><span class="code">启动本地看板.bat</span> — 双击这个启动</li>
+        <li><span class="code">local_server.py</span> — 本地服务（不要删）</li>
+        <li><span class="code">启动本地看板.bat</span> — <strong>双击这个启动</strong></li>
+        <li><span class="code">组员使用说明.html</span> — 本文件</li>
+        <li><span class="code">OSS与协作版说明.html</span> — <strong>为什么有同步还说协作版未开放</strong></li>
+        <li><span class="code">先看这里.txt</span> — 3 步速览</li>
+        <li><span class="code">.env.example</span> — 云端 Key 模板（需玉成单独发 <span class="code">.env</span>）</li>
     </ul>
 </div>
 
-<h2>一、怎么打开</h2>
+<h2>一、怎么打开（推荐：网页版）</h2>
+
+<div class="info">
+    <strong>主入口（发给同事）</strong>：<br>
+    <span class="code">https://18ok.github.io/temu-PUD/</span><br>
+    微信/浏览器打开 → 拖 Excel → 🏆 个人 PK。<strong>不用装 Python，不用 bat。</strong>
+</div>
 
 <div class="step">
     <span class="step-num">1</span>
-    <div>双击 <span class="code">启动本地看板.bat</span></div>
+    <div>打开上面的链接（或玉成发的 PK 分享链接 <span class="code">…#pk</span>）</div>
 </div>
 <div class="step">
     <span class="step-num">2</span>
-    <div>浏览器自动打开 <span class="code">http://localhost:8080/temu-dashboard.html</span></div>
+    <div>左侧 <strong>数据导入</strong> → 拖入两份 Excel</div>
 </div>
 
 <div class="warn">
-    <strong>⚠ 不要直接双击 HTML 文件。</strong> 必须走 bat 启动，否则云端同步会报错（CORS）。
+    <strong>⚠ 不要直接双击压缩包里的 HTML。</strong> 请用网页链接打开；本地 HTML 容易 CORS 报错。
 </div>
 
-<h2>二、第一次配置 OSS（每人做一次）</h2>
+<h3 style="margin-top:24px;color:var(--text-dim);font-size:0.95rem;">备选：本地 bat（管理员 / 无网）</h3>
 
 <div class="step">
-    <span class="step-num">1</span>
-    <div>看板左侧 → 点 <span class="code">⚙ OSS 配置</span></div>
+    <span class="step-num">A</span>
+    <div>双击 <span class="code">启动本地看板.bat</span> → <span class="code">localhost:8080</span></div>
 </div>
-<div class="step">
-    <span class="step-num">2</span>
-    <div>填写以下信息：</div>
-</div>
+<p style="font-size:0.85rem;color:var(--text-dim);">仅玉成维护 .env Key 时需要；普通同事用网页版即可。</p>
 
-<table>
-    <tr><th>字段</th><th>填什么</th></tr>
-    <tr><td>Bucket</td><td><span class="code">temu-shujufenxi-data</span></td></tr>
-    <tr><td>Region</td><td><span class="code">oss-cn-hangzhou</span></td></tr>
-    <tr><td>AccessKey ID</td><td>找玉成私聊要（全组同一套）</td></tr>
-    <tr><td>AccessKey Secret</td><td>找玉成私聊要（全组同一套）</td></tr>
-    <tr><td>归属人</td><td><strong>你自己的名字</strong>（如 林祥旭、石磊）— 每人必须不同</td></tr>
-</table>
+<h2>二、试用核心：个人 PK（不需要云端）</h2>
 
-<div class="step">
-    <span class="step-num">3</span>
-    <div>点 <strong>保存</strong></div>
-</div>
-
-<div class="warn">
-    <strong>⚠ 不要把 AccessKey 发到微信群。</strong> Key 是全组共用的一套——泄露了别人也能读写团队数据。有问题私聊玉成。
-</div>
-
-<h2>三、日常流程</h2>
+<p>第一次试用建议只做下面几步，<strong>不必配置 OSS</strong>：</p>
 
 <div class="step">
     <span class="step-num">①</span>
-    <div><strong>拖入数据</strong>：把「店铺利润统计」.xls 拖进看板上传区</div>
+    <div>左侧点 <strong>数据导入</strong></div>
 </div>
 <div class="step">
     <span class="step-num">②</span>
-    <div><strong>（可选）拖入店铺数据</strong>：把「店铺数据记录」.xlsx 也拖进去（自动分开解析）</div>
+    <div>拖入 <strong>店铺利润统计</strong> <span class="code">.xls</span></div>
 </div>
 <div class="step">
     <span class="step-num">③</span>
-    <div>点 <span class="code">⬆ 同步</span> — 把你的数据上传到云端</div>
+    <div>再拖入 <strong>店铺数据记录</strong> <span class="code">.xlsx</span>（两份都导入才能看 PK）</div>
 </div>
 <div class="step">
     <span class="step-num">④</span>
-    <div>点 <span class="code">📥 团队</span> — 拉取其他同事的数据</div>
+    <div>左侧点 <strong>🏆 个人 PK</strong> — 查看 0–100 对齐分与建议</div>
 </div>
+
+<div class="info">
+    页顶说明：<strong>「这是你个人的选品×运营对齐分」</strong> — 不是团队排名。<br>
+    灰色按钮「团队对比（协作版）」尚未开放，敬请期待。
+</div>
+
 <div class="step">
     <span class="step-num">⑤</span>
-    <div>切到 <strong>诊断</strong> 页面，看「个人 vs 团队」对比</div>
+    <div>（可选）PK 页点 <strong>复制分享链接</strong> — 对方打开后需<strong>自己导入 Excel</strong>，看不到你的数据</div>
 </div>
 
-<h2>四、常见错误</h2>
+<h2>三、可选：团队云端同步（OSS）</h2>
+
+<p>数据摘要存在阿里云 OSS。网页版与 bat 均可同步，<strong>Key 由玉成私聊</strong>，勿发群。</p>
+
+<h3>网页版（同事常用）</h3>
+<div class="step">
+    <span class="step-num">1</span>
+    <div>打开 <span class="code">https://18ok.github.io/temu-PUD/</span></div>
+</div>
+<div class="step">
+    <span class="step-num">2</span>
+    <div>侧边栏 <span class="code">⚙ OSS</span> → 填<strong>归属人</strong> + 玉成发的 AccessKey → 保存</div>
+</div>
+<div class="step">
+    <span class="step-num">3</span>
+    <div>导入 Excel 后 <span class="code">⬆ 同步</span>；看别人 <span class="code">📥 团队</span></div>
+</div>
+
+<h3>本地 bat（管理员 · .env 托管）</h3>
+
+<div class="step">
+    <span class="step-num">1</span>
+    <div>把玉成发的 <span class="code">.env</span> 放到与 bat 同一文件夹</div>
+</div>
+<div class="step">
+    <span class="step-num">2</span>
+    <div>关闭 bat 窗口后重新双击 <span class="code">启动本地看板.bat</span></div>
+</div>
+<div class="step">
+    <span class="step-num">3</span>
+    <div>左侧 <span class="code">⚙ OSS 配置</span> → 只填 <strong>归属人</strong>（你自己的名字，每人不同）→ 保存</div>
+</div>
+<div class="step">
+    <span class="step-num">4</span>
+    <div>导入 Excel 后点 <span class="code">⬆ 同步</span>；需要看别人时点 <span class="code">📥 团队</span></div>
+</div>
+
+<div class="warn">
+    <strong>⚠ 不要把 .env、AccessKey 发到微信群。</strong> 原始 Excel 不会上传云端，只上传处理后的 JSON 摘要。
+</div>
+
+<p style="margin-top:12px;font-size:0.85rem;color:var(--text-dim);">若暂时没有 .env：可只用本地 PK / 诊断，不影响试用。</p>
+
+<h2>四、各页面速查</h2>
 
 <table>
-    <tr><th>报错</th><th>原因</th><th>解决</th></tr>
+    <tr><th>页面</th><th>用途</th></tr>
+    <tr><td>数据导入</td><td>上传 Excel；可看「阶段验证进度」（本地统计）</td></tr>
+    <tr><td>🏆 个人 PK</td><td><strong>试用重点</strong> — 对齐分 + 差距说明</td></tr>
+    <tr><td>商品画像</td><td>黄金/白银/观察品聚类</td></tr>
+    <tr><td>个人诊断</td><td>趋势与快照；≥2 份快照可导出周报</td></tr>
+    <tr><td>店铺运营</td><td>店铺数据记录明细</td></tr>
+</table>
+
+<h2>五、常见错误</h2>
+
+<table>
+    <tr><th>现象</th><th>原因</th><th>解决</th></tr>
     <tr>
         <td>CORS / 网络拦截</td>
         <td>没用 bat 启动</td>
         <td>双击 <span class="code">启动本地看板.bat</span></td>
     </tr>
     <tr>
-        <td>NoSuchBucket</td>
-        <td>Bucket 名填错了</td>
-        <td>应为 <span class="code">temu-shujufenxi-data</span></td>
-    </tr>
+        <td>PK 页空白 / 提示去导入</td>
+        <td>缺 profit 或 store 一侧 Excel</td>
+        <td>数据导入页两份都拖入</td></tr>
+    <tr>
+        <td>分享链接打开没分数</td>
+        <td>链接不含 Excel，设计如此</td>
+        <td>对方在自己电脑导入两份表后再看 PK</td></tr>
+    <tr>
+        <td>同步失败</td>
+        <td>无 .env 或归属人未填</td>
+        <td>找玉成要 .env；或暂不同步，只用本地 PK</td></tr>
     <tr>
         <td>云端只有你自己</td>
-        <td>其他同事还没同步</td>
-        <td>等同事也同步，或点 <span class="code">🧪 联调</span> 自测</td>
+        <td>同事尚未同步</td>
+        <td>等同事同步或先忽略团队功能</td></tr>
+</table>
+
+<h2>六、试用反馈（帮玉成改进）</h2>
+<ul>
+    <li>30 秒内能不能理解 PK 分数在说什么？</li>
+    <li>更常用电脑还是手机？</li>
+    <li>愿意每周上传 Excel 看一次分吗？</li>
+    <li>有问题直接微信找玉成，或导入页复制「验证摘要」发给他</li>
+</ul>
+
+<h2>七、使用限制（试用必读）</h2>
+
+<div class="warn">
+    <strong>本包为内部试用版，请勿转发压缩包或 Key 给团队外人员。</strong>
+</div>
+
+<table>
+    <tr><th>限制项</th><th>说明</th></tr>
+    <tr>
+        <td>适用范围</td>
+        <td><strong>内部同事试用</strong>；非对外产品、非公开下载</td>
     </tr>
     <tr>
-        <td>AccessKey 报错</td>
-        <td>Key 填错或没保存</td>
-        <td>找玉成重新要 Key</td>
+        <td>运行环境</td>
+        <td><strong>Windows + Python 3</strong>；须双击 bat 启动；<strong>暂无手机/小程序版</strong></td>
+    </tr>
+    <tr>
+        <td>数据格式</td>
+        <td>仅支持指定两份 Excel：<span class="code">利润统计 .xls</span> + <span class="code">数据记录 .xlsx</span>；表头需与团队现用模板一致</td>
+    </tr>
+    <tr>
+        <td>PK 分数</td>
+        <td><strong>仅本人</strong>两份表的对齐分；<strong>不是</strong>团队排名、<strong>不是</strong>考核淘汰依据</td>
+    </tr>
+    <tr>
+        <td>协作版</td>
+        <td>「团队对比（协作版）」<strong>尚未开放</strong>；主管不能通过本版一眼看全员 — 详见 <span class="code">OSS与协作版说明.html</span></td>
+    </tr>
+    <tr>
+        <td>分享链接</td>
+        <td><span class="code">#pk</span> 链接<strong>不含 Excel</strong>；对方须在自己电脑导入数据后才能看分</td>
+    </tr>
+    <tr>
+        <td>云端同步</td>
+        <td>可选；无 .env 时<strong>仅本地使用</strong>。同步只传 JSON 摘要，<strong>不传原始 Excel</strong></td>
+    </tr>
+    <tr>
+        <td>数据与保密</td>
+        <td>公司利润/店铺/客户信息<strong>不得</strong>发群、发 AI、上传公开网盘；试用完毕可清除浏览器本地数据</td>
+    </tr>
+    <tr>
+        <td>稳定性</td>
+        <td>试用版界面仍在加固；<strong>请勿依赖为唯一生产工具</strong>，Excel 原件请自行备份</td>
     </tr>
 </table>
 
-<h2>五、安全提醒</h2>
+<p style="font-size:0.88rem;color:var(--text-dim);">定位：<strong>个人辅导 / 自我对照</strong>用的镜子，不是人事考核系统。试用问题与反馈统一找玉成。</p>
+
+<h2>八、安全提醒</h2>
 <ul>
-    <li>AccessKey 是私密信息，<strong>不要发到任何群里</strong></li>
-    <li>每人用自己名字当「归属人」，数据不会混</li>
-    <li>你的 Excel 原始文件 <strong>不会上传到云端</strong>，只上传处理后的数据摘要</li>
+    <li>试用数据留在本机浏览器；勿在公共电脑留 Key</li>
+    <li>每人用自己的名字当「归属人」</li>
+    <li>不要把真实利润表发到群聊或 AI 对话</li>
 </ul>
 
 <p style="margin-top:40px;color:var(--text-dim);font-size:0.8rem;text-align:center;">
-    有问题找玉成 · 2026-06-03
+    Temu 选品助手 V10.2.2 · 有问题找玉成
 </p>
 
 </body>

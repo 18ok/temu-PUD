@@ -1,6 +1,77 @@
 # Changelog — Temu 运营数据看板
 
-## V10.1 — 2026-06-04
+## V10.2.4 — 2026-06-05
+
+### 分发：GitHub Pages 为主入口（降低 bat 门槛）
+
+- **同事主路径**：打开 `https://18ok.github.io/temu-PUD/` → 拖 Excel → PK（无需 Python/bat）
+- 修复 **GitHub Actions Pages** 部署（`docs/index.html`）
+- 导入页 / 分享链接 / 组员说明改为网页版优先；bat 标注为管理员本地模式
+- PK 分享链接默认指向 Pages URL（不再发 localhost）
+- **OSS 逻辑未改**；网页版同步需 OSS 控制台 CORS 允许 `https://18ok.github.io`
+
+---
+
+## V10.2.3 — 2026-06-05
+
+### UI（product register · 不动数据流 / OSS）
+
+- **导入 / PK / 诊断**：紧凑 hero、stat 卡片、对比度与 `focus-visible`
+- **个人 PK**：对齐分卡片 + GSAP 计分（200ms，尊重 `prefers-reduced-motion`）
+- **切页**：导入 / PK / 诊断轻 fade，无整页编排
+- 新增 `DESIGN.md`、`.cursor/rules/temu-ui.mdc` 供后续 Agent 对齐规范
+- **未改**：`buildCloudSummary`、`temu_v6_*`、OSS 同步逻辑、阶段验证面板逻辑
+
+---
+
+## V10.2.2 — 2026-06-05
+
+### 组员试用包
+
+- 打包脚本输出：`Temu选品助手-V10.2.2-组员试用包.zip`（不含 `.env` / Key）
+- 试用路径：bat 启动 → 导入双 Excel → 🏆 个人 PK；云端同步需单独索取 `.env`
+- 新增说明文档：`OSS与协作版说明.html`（云端同步 vs 协作版未开放）
+
+### 阶段 1（稳步推进）
+
+- **阶段验证进度面板**（导入页）：本地统计 PK 访问、分享复制、快照、双管线、OSS 状态；可复制摘要给访谈记录
+- **PK 深链空状态**：`#pk` 无数据时说明「分享链接不含 Excel，需自行导入」+ 一键去导入
+- 双管线齐备时导入页快捷按钮 **🏆 个人 PK**
+
+### 修复
+
+- **一键迁移 .env**：已托管时提示「无需再迁移」；迁移按钮变灰
+
+---
+
+## V10.2.1 — 2026-06-05
+
+### 修复
+
+- **导出诊断周报**：`compareSnapshots` 在诊断 IIFE 内导致导出报错；已移入同一模块
+- **一键迁移 .env**：浏览器已存 Key 时刷新自动写入 `.env`；或 ⚙ OSS →「一键迁移 Key 到 .env」
+
+---
+
+## V10.2 — 2026-06-05
+
+### 阶段 1（市场验证 · 不动数据流）
+
+- **PK 预期管理 UI**：页顶「这是你个人的选品×运营对齐分」+ disabled「团队对比（协作版）」（C1-5 门禁）
+- **PK 分享**：`#pk` 深链 +「复制分享链接」（对方需自行导入 Excel）
+- **沉默统计**：`temu_v6_page_hits` 记录各页访问次数（localStorage，不上云）
+
+### 阶段 0（Key 托管 · OSS 谨慎改动）
+
+- **`POST /api/sync`**：`local_server.py` 从 `.env` 读取 Key；请求体 **不得** 含 `accessKeySecret`（C0-1）
+- **兼容**：未配置 `.env` 时仍走 `/__temu_oss__` + 浏览器内 Key（旧行为不变）
+- **上传/拉取路径**：`ossUploadObject` / `fetchOssJson` 优先 Key 托管，再回退代理/直传
+- **OSS 配置弹窗**：检测到 Key 托管时隐藏 AccessKey 字段；侧边栏显示「Key·服务端」
+- 新增 `.env.example`、`.gitignore`（忽略 `.env`）
+
+---
+
+## V10.1 — 2026-06-05
 
 ### 修复（P0）
 

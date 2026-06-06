@@ -1,11 +1,11 @@
 @echo off
 chcp 65001 >nul
 cd /d "%~dp0"
-title Temu 看板 V10
+title Temu 选品助手 V10.2.4 — 本地开发
 
 echo.
 echo   ╔══════════════════════════════════════╗
-echo   ║     Temu 运营看板 V10 — 启动中...    ║
+echo   ║  Temu 选品助手 V10.2.4 — 本地开发      ║
 echo   ╚══════════════════════════════════════╝
 echo.
 
@@ -35,11 +35,16 @@ echo   ✅ 使用 Python 标准库，无需额外安装
 :: ========== 3. 启动服务 ==========
 echo [3/3] 启动本地服务...
 echo.
-start "" http://localhost:8080/temu-dashboard.html
+start "" http://localhost:8080/temu-dashboard.html#import
 
 echo   ╔══════════════════════════════════════╗
 echo   ║  浏览器已打开看板                     ║
 echo   ║  http://localhost:8080               ║
+echo   ║                                      ║
+echo   ║  同事请用网页版（无需 bat）：           ║
+echo   ║  https://18ok.github.io/temu-PUD/     ║
+echo   ║                                      ║
+echo   ║  本窗口：.env Key 托管 / OSS 代理     ║
 echo   ║                                      ║
 echo   ║  关闭此窗口 = 停止服务                ║
 echo   ╚══════════════════════════════════════╝
