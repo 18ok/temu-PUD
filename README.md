@@ -4,17 +4,15 @@
 
 | 文件夹 / 入口 | 是什么 | 谁用 |
 |--------|--------|------|
-| `选品心决技巧/` · 见 `选品心决技巧.txt` | Temu 选品采访内容站 — 获客与干货 | 公域读者 / 同行 |
-| `temu-dashboard/` | Temu 选品看板 V10 — 团队日常选品+数据分析 | 组员 |
+| `temu-dashboard/` | Temu 选品助手 V10 — 团队日常选品+数据分析 | 成员 |
 | `pod-ai-mvp/` | POD AI 平台原型 — 商业演示 | 老板/投资人 |
 
-选品心决与看板**不捆绑部署**。内容站先积累流量，看板仍是内部工具。
+选品心决请看**公开站点**（与本仓库内的保密 dashboard 分离）。
 
-### 选品心决 · 读者网址（GitHub Pages）
+**选品心决** 已迁至独立公开仓库：
 
-```text
-https://18ok.github.io/temu-PUD/
-```
+- 仓库：https://github.com/18ok/xuanpin-site
+- 站点：https://18ok.github.io/xuanpin-site/
+- 本地开发：`Desktop\xuanpin-site`（原仓库内 `选品心决技巧/`）
 
-首次启用见 `选品心决技巧/启用GitHub-Pages说明.txt`（仅玉成操作一次）。
-
+详见根目录 `选品心决-已迁出.txt`。

@@ -1,0 +1,4 @@
+选品心决网站已迁至独立公开仓库，与 temu 助手（保密）分离。
+仓库: https://github.com/18ok/xuanpin-site
+网址: https://18ok.github.io/xuanpin-site/
+本地文件夹: Desktop\xuanpin-site
