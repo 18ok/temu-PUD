@@ -533,7 +533,7 @@
         .log-map-table th, .log-map-table td { padding: 4px 8px; border: 1px solid var(--border-light); text-align: left; }
         .log-map-table th { color: var(--text-dim); background: var(--card-alt); }
         .log-map-miss { color: #f87171; }
-        .log-map-ok { color: #4ade80; }
+        .log-map-ok { color: #15803d; }
         .parse-report-card { padding: 10px 12px; border: 1px solid var(--border-light); border-radius: var(--radius); margin-bottom: 10px; background: var(--card-alt); }
         .parse-report-card.warn { border-left: 3px solid #fbbf24; }
         .parse-report-card.err { border-left: 3px solid #f87171; }
@@ -542,12 +542,17 @@
         /* ── 全局加载 / 移动端侧栏 ── */
         .global-loading {
             position: fixed; inset: 0; z-index: 10000;
-            background: rgba(46, 46, 46, 0.35); backdrop-filter: blur(4px);
+            background: rgba(246, 246, 244, 0.55);
+            backdrop-filter: blur(12px) saturate(1.08);
+            -webkit-backdrop-filter: blur(12px) saturate(1.08);
             display: none; align-items: center; justify-content: center;
         }
         .global-loading.show { display: flex; }
         .global-loading-card {
-            background: var(--card); border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.82);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
             border-radius: var(--radius-xl); padding: 28px 36px; text-align: center;
             box-shadow: var(--shadow-lg); min-width: 200px;
         }
@@ -559,7 +564,10 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         .global-loading-card p { font-size: 0.9rem; color: var(--text-dim); }
         .sidebar-backdrop {
-            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+            display: none; position: fixed; inset: 0;
+            background: rgba(46, 46, 46, 0.28);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             z-index: 90;
         }
         .app-footer {
@@ -575,17 +583,19 @@
         .style-compare a { color: var(--gold-dark); font-weight: 600; }
 
         /* ── 异位面 · 角标 / 毛玻璃 / 界面对过渡 ── */
+        .sidebar-brand { position: relative; }
         .alter-badge {
-            position: fixed; top: 10px; left: 10px; z-index: 120;
+            position: absolute; top: 12px; right: 12px; left: auto; z-index: 2;
             font-size: 0.62rem; font-weight: 600; letter-spacing: 0.08em;
             padding: 3px 8px; border-radius: 999px;
-            background: rgba(255, 255, 255, 0.82);
+            background: rgba(255, 255, 255, 0.88);
             border: 1px solid var(--border-gold);
             color: var(--gold-dark);
             backdrop-filter: blur(10px) saturate(1.2);
             -webkit-backdrop-filter: blur(10px) saturate(1.2);
-            box-shadow: 0 2px 12px rgba(46, 46, 46, 0.1);
+            box-shadow: 0 2px 10px rgba(46, 46, 46, 0.08);
         }
+        .sidebar.collapsed .alter-badge { display: none; }
 
         .modal-overlay.is-glass {
             background: rgba(246, 246, 244, 0.42);
@@ -637,6 +647,22 @@
             .modal-overlay.is-glass, .modal-box.is-glass { backdrop-filter: none; }
             #toast .toast-msg { animation: none; }
         }
+
+        /* ── 异位面 · 与主界面对称的动效 / 层次（浅色）── */
+        .btn:hover { box-shadow: var(--shadow-sm); }
+        .upload-zone:hover { box-shadow: var(--shadow-sm); }
+        .workflow-step:hover { box-shadow: var(--shadow-sm); }
+        .insight-card:hover { box-shadow: var(--shadow-sm); }
+        .step:hover { box-shadow: var(--shadow-sm); }
+        .sidebar-actions button:hover { box-shadow: var(--shadow-sm); transform: none; }
+        .stat-cell, .pk-score-card, .gate-cell, .expander {
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .stat-cell:hover, .pk-score-card:hover, .expander:hover {
+            box-shadow: var(--shadow-sm);
+        }
+        .empty-state:hover { border-color: var(--border-hover); }
+        .toast-dock.has-items { box-shadow: 0 10px 32px rgba(46, 46, 46, 0.12); }
         @media (max-width: 900px) {
             .sidebar {
                 position: fixed; left: 0; top: 0; bottom: 0; z-index: 100;
@@ -654,7 +680,6 @@
     </style>
 </head>
 <body class="alter-surface">
-<span class="alter-badge" title="浅色异位面 · 与主界面数据互通">异位面</span>
 <div id="alterVeil" class="alter-veil" aria-hidden="true">
     <div class="alter-veil__inner">
         <div class="alter-veil__glyph" aria-hidden="true">◐</div>
@@ -679,6 +704,7 @@
 <div class="app">
     <aside class="sidebar">
         <div class="sidebar-brand">
+            <span class="alter-badge" title="浅色异位面 · 与主界面数据互通">异位面</span>
             <div class="title">🛒 Temu 数据看板</div>
             <div class="sub">异位面 · 浅色 Editorial</div>
         </div>
