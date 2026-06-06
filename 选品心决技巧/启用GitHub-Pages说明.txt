@@ -1,0 +1,29 @@
+选品心决 · 一次性启用 GitHub Pages（玉成操作，读者不用管）
+========================================================
+
+代码已推到：https://github.com/18ok/temu-PUD
+
+读者将来打开的网址：
+    https://18ok.github.io/temu-PUD/
+
+你只需做一次（约 1 分钟）
+------------------------
+1. 浏览器打开 https://github.com/18ok/temu-PUD/settings/pages
+2. 「Build and deployment」→ Source 选 **GitHub Actions**
+3. 打开 https://github.com/18ok/temu-PUD/actions
+4. 左侧点 **Deploy 选品心决 to GitHub Pages**，看最新一条是否绿色 ✓
+   - 若是黄色在跑：等 1～2 分钟
+   - 若红色失败：点进去看日志（常见：Pages 未选 GitHub Actions）
+5. 绿色成功后，手机浏览器打开 https://18ok.github.io/temu-PUD/ 自测
+
+若仓库是 Private（私有）
+------------------------
+免费账号私有库的 Pages 可能受限。任选其一：
+- 把仓库改为 Public（仅发布静态站内容，无密钥）
+- 或开通 GitHub Pro 后用私有 Pages
+
+发给老板 / 新人的只有这一行
+----------------------------
+https://18ok.github.io/temu-PUD/
+
+不要发 bat、不要发文件夹、不要发 zip。
