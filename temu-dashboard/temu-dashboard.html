@@ -2433,6 +2433,7 @@ function ossPutDirect(cfg, key, bodyStr) {
     return ossHmacSha1Base64(cfg.accessKeySecret, stringToSign).then(function(sig) {
         return fetch(url, {
             method: 'PUT',
+            mode: 'cors',
             headers: {
                 'Content-Type': contentType,
                 'x-oss-date': date,
