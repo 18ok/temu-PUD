@@ -1,5 +1,17 @@
 # Changelog — Temu 运营数据看板
 
+## V10.3.0-editorial-mvp — 2026-06-03
+
+### 配色对比分支（原版不动）
+
+- **主版本**：`temu-dashboard.html` / `docs/index.html` — 深色 Maia 风（V10.2.6）
+- **MVP 试看**：`temu-dashboard-editorial.html` / `docs/editorial.html` — 对齐 xuanpin-site 浅色 editorial
+- 页脚增加 **配色切换** 链接（本地与 GitHub Pages 均可用）
+- Editorial 版：Source Serif/Sans、浅底 `#f6f6f4`、6px 圆角、Plotly 浅色主题
+- **功能 / OSS / 数据流与原版完全一致**，仅供视觉对比
+
+---
+
 ## V10.2.5 — 2026-06-06
 
 ### 网页版 OSS / 联调

@@ -512,6 +512,12 @@
             font-size: 0.78rem; color: var(--text-faded); text-align: center; line-height: 1.6;
         }
         .app-footer strong { color: var(--text-dim); font-weight: 600; }
+        .style-compare {
+            margin-top: 12px; padding: 8px 14px; display: inline-block;
+            border-radius: var(--radius); border: 1px solid var(--border-light);
+            font-size: 0.76rem; color: var(--text-dim);
+        }
+        .style-compare a { color: var(--gold); font-weight: 600; }
         @media (max-width: 900px) {
             .sidebar {
                 position: fixed; left: 0; top: 0; bottom: 0; z-index: 100;
@@ -738,6 +744,7 @@
             <footer class="app-footer">
                 <strong>Temu 运营数据看板 V10.2.6</strong> · 跨境团队选品与运营一体化<br>
                 本地解析 · 团队 OSS · 运行日志 · 面向企业内训与能力沉淀（小程序 / 付费版规划中）
+                <p class="style-compare" id="styleCompare" aria-live="polite"></p>
             </footer>
         </div>
     </main>
@@ -4701,7 +4708,21 @@ function runStartupSelfCheck() {
             });
         });
     }
+    renderStyleCompare();
 })();
+
+function renderStyleCompare() {
+    var el = document.getElementById('styleCompare');
+    if (!el) return;
+    var isEditorial = /editorial/i.test(location.pathname);
+    var isPages = /github\.io\/temu-PUD/i.test(location.href);
+    var other = isPages
+        ? (isEditorial ? 'index.html' : 'editorial.html')
+        : (isEditorial ? 'temu-dashboard.html' : 'temu-dashboard-editorial.html');
+    el.innerHTML = isEditorial
+        ? '配色试用：<strong>浅色 Editorial MVP</strong> · <a href="' + other + '">返回深色原版</a>'
+        : '配色试用：<strong>深色原版（主版本）</strong> · <a href="' + other + '">试看浅色 Editorial MVP</a>';
+}
 
 </script>
 </body>

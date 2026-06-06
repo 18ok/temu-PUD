@@ -5,6 +5,7 @@ on:
     branches: [main, master]
     paths:
       - 'temu-dashboard/temu-dashboard.html'
+      - 'temu-dashboard/temu-dashboard-editorial.html'
       - 'temu-dashboard/docs/**'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
@@ -27,13 +28,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Prepare docs/index.html
+      - name: Prepare Pages site
         run: |
           mkdir -p docs
           if [ -f temu-dashboard/docs/index.html ]; then
             cp temu-dashboard/docs/index.html docs/index.html
           else
             cp temu-dashboard/temu-dashboard.html docs/index.html
+          fi
+          if [ -f temu-dashboard/docs/editorial.html ]; then
+            cp temu-dashboard/docs/editorial.html docs/editorial.html
+          elif [ -f temu-dashboard/temu-dashboard-editorial.html ]; then
+            cp temu-dashboard/temu-dashboard-editorial.html docs/editorial.html
           fi
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
