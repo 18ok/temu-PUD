@@ -518,6 +518,31 @@
             font-size: 0.76rem; color: var(--text-dim);
         }
         .style-compare a { color: var(--gold); font-weight: 600; }
+
+        /* ── 界面对切换过渡（主界面侧）── */
+        .alter-veil {
+            position: fixed; inset: 0; z-index: 20000; pointer-events: none;
+            opacity: 0; visibility: hidden;
+            display: flex; align-items: center; justify-content: center;
+            background: radial-gradient(ellipse 85% 65% at 50% 38%, rgba(226, 184, 122, 0.28), rgba(15, 15, 23, 0.94));
+            backdrop-filter: blur(18px) saturate(1.1);
+            -webkit-backdrop-filter: blur(18px) saturate(1.1);
+        }
+        .alter-veil.is-active { pointer-events: auto; visibility: visible; }
+        .alter-veil.is-exiting { pointer-events: none; }
+        .alter-veil.is-to-alter {
+            background: radial-gradient(ellipse 85% 65% at 50% 38%, rgba(226, 184, 122, 0.42), rgba(246, 246, 244, 0.94));
+        }
+        .alter-veil__inner { text-align: center; padding: 24px; }
+        .alter-veil__glyph { font-size: 2.2rem; margin-bottom: 10px; line-height: 1; }
+        .alter-veil__label {
+            font-family: 'Plus Jakarta Sans', var(--font);
+            font-size: 1.02rem; color: #f1f0ee; letter-spacing: 0.06em;
+        }
+        .alter-veil.is-to-alter .alter-veil__label { color: #2e2e2e; }
+        @media (prefers-reduced-motion: reduce) {
+            .alter-veil { backdrop-filter: none; }
+        }
         @media (max-width: 900px) {
             .sidebar {
                 position: fixed; left: 0; top: 0; bottom: 0; z-index: 100;
@@ -535,6 +560,12 @@
     </style>
 </head>
 <body>
+<div id="alterVeil" class="alter-veil" aria-hidden="true">
+    <div class="alter-veil__inner">
+        <div class="alter-veil__glyph" aria-hidden="true">◑</div>
+        <div class="alter-veil__label">界面对切换中…</div>
+    </div>
+</div>
 <div id="toast"></div>
 <div id="globalLoading" class="global-loading" aria-hidden="true" aria-live="polite">
     <div class="global-loading-card">
@@ -4709,19 +4740,93 @@ function runStartupSelfCheck() {
         });
     }
     renderStyleCompare();
+    initAlterPageEnter();
 })();
+
+function prefersReducedMotion() {
+    return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function playAlterVeil(toAlter, href) {
+    var veil = document.getElementById('alterVeil');
+    if (!veil) { location.href = href; return; }
+    if (prefersReducedMotion()) { location.href = href; return; }
+    var label = veil.querySelector('.alter-veil__label');
+    var glyph = veil.querySelector('.alter-veil__glyph');
+    veil.classList.remove('is-to-alter', 'is-exiting');
+    if (toAlter) {
+        veil.classList.add('is-to-alter');
+        if (label) label.textContent = '进入异位面…';
+        if (glyph) glyph.textContent = '◐';
+    } else {
+        if (label) label.textContent = '返回主界面…';
+        if (glyph) glyph.textContent = '◑';
+    }
+    veil.classList.add('is-active');
+    veil.setAttribute('aria-hidden', 'false');
+    sessionStorage.setItem('temu_alter_transition', toAlter ? 'enter-alter' : 'enter-main');
+    if (typeof gsap !== 'undefined') {
+        gsap.fromTo(veil, { autoAlpha: 0 }, {
+            autoAlpha: 1, duration: 0.38, ease: 'power2.inOut',
+            onComplete: function() { location.href = href; }
+        });
+    } else {
+        setTimeout(function() { location.href = href; }, 380);
+    }
+}
+
+function initAlterPageEnter() {
+    var veil = document.getElementById('alterVeil');
+    if (!veil) return;
+    var mode = sessionStorage.getItem('temu_alter_transition');
+    if (!mode) return;
+    sessionStorage.removeItem('temu_alter_transition');
+    var isAlter = /editorial/i.test(location.pathname) || document.body.classList.contains('alter-surface');
+    var label = veil.querySelector('.alter-veil__label');
+    var glyph = veil.querySelector('.alter-veil__glyph');
+    if (mode === 'enter-alter' && isAlter) return;
+    if (mode === 'enter-main' && !isAlter) {
+        if (label) label.textContent = '主界面';
+        if (glyph) glyph.textContent = '◑';
+    } else {
+        return;
+    }
+    veil.classList.add('is-active', 'is-exiting');
+    veil.setAttribute('aria-hidden', 'false');
+    if (prefersReducedMotion() || typeof gsap === 'undefined') {
+        veil.classList.remove('is-active', 'is-exiting', 'is-to-alter');
+        veil.setAttribute('aria-hidden', 'true');
+        return;
+    }
+    gsap.set(veil, { autoAlpha: 1 });
+    gsap.to(veil, {
+        autoAlpha: 0, duration: 0.55, ease: 'power2.out', delay: 0.12,
+        onComplete: function() {
+            veil.classList.remove('is-active', 'is-exiting', 'is-to-alter');
+            veil.setAttribute('aria-hidden', 'true');
+            gsap.set(veil, { clearProps: 'opacity,visibility' });
+        }
+    });
+}
 
 function renderStyleCompare() {
     var el = document.getElementById('styleCompare');
     if (!el) return;
-    var isEditorial = /editorial/i.test(location.pathname);
+    var isEditorial = /editorial/i.test(location.pathname) || document.body.classList.contains('alter-surface');
     var isPages = /github\.io\/temu-PUD/i.test(location.href);
     var other = isPages
         ? (isEditorial ? 'index.html' : 'editorial.html')
         : (isEditorial ? 'temu-dashboard.html' : 'temu-dashboard-editorial.html');
     el.innerHTML = isEditorial
-        ? '界面对：<strong>异位面（浅色 Editorial）</strong> · 与主界面数据互通 · <a href="' + other + '">返回主界面（深色）</a>'
-        : '界面对：<strong>主界面（深色）</strong> · <a href="' + other + '">进入异位面（浅色 Editorial）</a>';
+        ? '界面对：<strong>异位面（浅色 Editorial）</strong> · 与主界面数据互通 · <a href="' + other + '" class="alter-dim-link">返回主界面（深色）</a>'
+        : '界面对：<strong>主界面（深色）</strong> · <a href="' + other + '" class="alter-dim-link">进入异位面（浅色 Editorial）</a>';
+    var link = el.querySelector('.alter-dim-link');
+    if (link) {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            playAlterVeil(!isEditorial, other);
+        });
+    }
 }
 
 </script>

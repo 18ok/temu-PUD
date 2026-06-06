@@ -9,6 +9,7 @@
 - 页脚 **界面对切换**（本地与 GitHub Pages）
 - 异位面：Source Serif/Sans、浅底 `#f6f6f4`、6px 圆角、Plotly 浅色主题
 - **功能 / OSS / localStorage 与主界面完全一致**，仅视觉层不同
+- 异位面增强：侧栏 **异位面角标**、弹窗 **毛玻璃**（OSS 配置 / 日志 / 诊断等）、界面对 **GSAP 切换过渡**
 
 ---
 
