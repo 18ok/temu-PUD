@@ -96,7 +96,6 @@
             background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
             border-radius: var(--radius-xl); padding: 18px 14px; margin: 12px;
             text-align: center;
-            position: relative;
         }
         .sidebar-brand .title { font-size: 1.3rem; font-weight: 800; color: var(--bg); }
         .sidebar-brand .sub   { font-size: 0.7rem; color: var(--text-faded); margin-top: 2px; }
@@ -198,15 +197,16 @@
         .insight-card .label { font-size: 0.72rem; color: var(--text-dim); font-weight: 600; }
         .insight-card .value { font-size: 1.35rem; font-weight: 700; margin-top: 4px; color: var(--gold); }
         .insight-card .sub { font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; }
-        #toast { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+        #toast { display: flex; flex-direction: column; gap: 5px; }
         .toast-msg {
-            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-            max-width: 100%; box-shadow: var(--shadow);
+            display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap;
+            flex-shrink: 0;
         }
+        .toast-msg__text { flex: 1; min-width: 0; word-break: break-word; }
         .toast-action {
-            padding: 4px 10px; border-radius: 6px; border: 1px solid currentColor;
-            background: transparent; color: inherit; font-size: 0.8rem; font-weight: 600;
-            cursor: pointer; white-space: nowrap;
+            padding: 3px 8px; border-radius: 5px; border: 1px solid currentColor;
+            background: transparent; color: inherit; font-size: 0.75rem; font-weight: 600;
+            cursor: pointer; white-space: nowrap; flex-shrink: 0;
         }
         .toast-action:hover { background: rgba(255,255,255,0.08); }
         .page-toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; align-items: center; }
@@ -450,9 +450,55 @@
             transition: all 0.15s; margin-right: auto;
         }
         .sidebar-toggle-btn:hover { color: var(--text); border-color: var(--border-hover); background: var(--card-hover); }
-        #toast { position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 420px; pointer-events: none; }
-        #toast .toast-msg { pointer-events: auto; padding: 12px 16px; border-radius: var(--radius); font-size: 0.9rem; animation: slideIn 0.3s ease; }
-        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        /* ── 通知小窗（约 3 条可见 + 滚动）── */
+        .toast-dock {
+            position: fixed; top: 14px; right: 14px; z-index: 9999;
+            width: min(300px, calc(100vw - 28px));
+            background: rgba(26, 26, 36, 0.92);
+            backdrop-filter: blur(14px) saturate(1.1);
+            -webkit-backdrop-filter: blur(14px) saturate(1.1);
+            border: 1px solid rgba(226, 184, 122, 0.26);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 10px 32px rgba(0, 0, 0, 0.42);
+            overflow: hidden;
+            opacity: 0; transform: translateY(-8px);
+            pointer-events: none;
+            transition: opacity 0.22s ease, transform 0.22s ease;
+        }
+        .toast-dock.has-items { opacity: 1; transform: none; pointer-events: auto; }
+        .toast-dock__head {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 7px 11px;
+            border-bottom: 1px solid rgba(226, 184, 122, 0.14);
+            font-size: 0.72rem; font-weight: 600; color: var(--text-dim);
+        }
+        .toast-dock__count { color: var(--gold); font-weight: 700; margin-left: 4px; }
+        .toast-dock__clear {
+            background: none; border: none; color: var(--gold); font-size: 0.72rem;
+            cursor: pointer; padding: 2px 6px; border-radius: 4px;
+        }
+        .toast-dock__clear:hover { background: rgba(226, 184, 122, 0.1); }
+        .toast-dock__list {
+            max-height: 132px;
+            overflow-y: auto;
+            padding: 6px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(226, 184, 122, 0.35) transparent;
+        }
+        .toast-dock__list::-webkit-scrollbar { width: 5px; }
+        .toast-dock__list::-webkit-scrollbar-thumb { background: rgba(226, 184, 122, 0.35); border-radius: 3px; }
+        #toast .toast-msg {
+            padding: 8px 10px; border-radius: var(--radius-sm);
+            font-size: 0.8rem; line-height: 1.45;
+            border: 1px solid transparent;
+            animation: toastIn 0.22s ease-out;
+        }
+        #toast .toast-msg.is-out { opacity: 0; transform: translateX(6px); transition: opacity 0.25s, transform 0.25s; }
+        @keyframes toastIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: none; } }
+        .toast-msg--success { background: rgba(34, 197, 94, 0.14); border-color: rgba(34, 197, 94, 0.38); color: #6ee7a0; }
+        .toast-msg--warning { background: rgba(251, 191, 36, 0.14); border-color: rgba(251, 191, 36, 0.38); color: #fcd34d; }
+        .toast-msg--error   { background: rgba(248, 113, 113, 0.14); border-color: rgba(248, 113, 113, 0.4); color: #fca5a5; }
+        .toast-msg--info    { background: rgba(226, 184, 122, 0.1); border-color: rgba(226, 184, 122, 0.32); color: var(--text); }
 
         /* ── Modal · 深色毛玻璃 ── */
         .modal-overlay {
@@ -552,17 +598,16 @@
 
         /* ── 主界面 · 角标（与异位面对称）── */
         .main-badge {
-            position: absolute; top: 10px; right: 10px;
+            position: fixed; top: 10px; left: 10px; z-index: 120;
             font-size: 0.62rem; font-weight: 700; letter-spacing: 0.08em;
             padding: 3px 8px; border-radius: 999px;
-            background: rgba(15, 15, 23, 0.55);
-            border: 1px solid rgba(226, 184, 122, 0.38);
+            background: rgba(15, 15, 23, 0.72);
+            border: 1px solid rgba(226, 184, 122, 0.4);
             color: var(--gold);
             backdrop-filter: blur(10px) saturate(1.15);
             -webkit-backdrop-filter: blur(10px) saturate(1.15);
-            box-shadow: 0 1px 10px rgba(0, 0, 0, 0.35);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
         }
-        .sidebar.collapsed .main-badge { display: none; }
 
         /* ── 界面对切换过渡（主界面侧）── */
         .alter-veil {
@@ -588,6 +633,7 @@
         @media (prefers-reduced-motion: reduce) {
             .alter-veil { backdrop-filter: none; }
             .modal-overlay.is-glass, .modal-box.is-glass { backdrop-filter: none; }
+            #toast .toast-msg { animation: none; }
         }
         @media (max-width: 900px) {
             .sidebar {
@@ -606,13 +652,20 @@
     </style>
 </head>
 <body class="main-surface">
+<span class="main-badge" title="深色主界面 · 与异位面数据互通">主界面</span>
 <div id="alterVeil" class="alter-veil" aria-hidden="true">
     <div class="alter-veil__inner">
         <div class="alter-veil__glyph" aria-hidden="true">◑</div>
         <div class="alter-veil__label">界面对切换中…</div>
     </div>
 </div>
-<div id="toast"></div>
+<div id="toastDock" class="toast-dock" aria-live="polite" aria-label="通知">
+    <div class="toast-dock__head">
+        <span class="toast-dock__title">通知<span class="toast-dock__count"></span></span>
+        <button type="button" id="toastDockClear" class="toast-dock__clear">清空</button>
+    </div>
+    <div id="toast" class="toast-dock__list"></div>
+</div>
 <div id="globalLoading" class="global-loading" aria-hidden="true" aria-live="polite">
     <div class="global-loading-card">
         <div class="spinner" role="status"></div>
@@ -624,7 +677,6 @@
 <div class="app">
     <aside class="sidebar">
         <div class="sidebar-brand">
-            <span class="main-badge" title="深色主界面 · 与异位面数据互通">主界面</span>
             <div class="title">🛒 Temu 数据看板</div>
             <div class="sub">主界面 · V10</div>
         </div>
@@ -1995,17 +2047,38 @@ function initUX() {
 // ═══════════════════════════════════════════════
 // Toast & Modal
 // ═══════════════════════════════════════════════
+function updateToastDockVisibility() {
+    var dock = document.getElementById('toastDock');
+    var list = document.getElementById('toast');
+    if (!dock || !list) return;
+    dock.classList.toggle('has-items', list.children.length > 0);
+    var countEl = dock.querySelector('.toast-dock__count');
+    if (countEl) countEl.textContent = list.children.length ? ' · ' + list.children.length : '';
+}
+
+function clearToastDock() {
+    var list = document.getElementById('toast');
+    if (list) list.innerHTML = '';
+    updateToastDockVisibility();
+}
+
+function initToastDock() {
+    var btn = document.getElementById('toastDockClear');
+    if (btn) btn.addEventListener('click', clearToastDock);
+}
+
+var TOAST_MAX_ITEMS = 48;
+
 function toast(msg, type, opts) {
     opts = opts || {};
-    var box = document.getElementById('toast');
-    if (!box) return;
-    while (box.children.length >= 4) box.removeChild(box.firstChild);
-    var bg = {success:'rgba(45,106,79,0.18)',warning:'rgba(139,105,20,0.18)',error:'rgba(139,0,0,0.18)'}[type]||'rgba(226,184,122,0.08)';
-    var bd = {success:'rgba(45,106,79,0.5)',warning:'rgba(139,105,20,0.5)',error:'rgba(139,0,0,0.5)'}[type]||'rgba(226,184,122,0.25)';
-    var cl = {success:'#4ade80',warning:'#fbbf24',error:'#f87171'}[type]||'#f1f0ee';
-    var d = document.createElement('div'); d.className = 'toast-msg';
-    d.style.cssText = 'background:'+bg+';border:1px solid '+bd+';color:'+cl;
+    type = type || 'info';
+    var list = document.getElementById('toast');
+    if (!list) return;
+    while (list.children.length >= TOAST_MAX_ITEMS) list.removeChild(list.firstChild);
+    var d = document.createElement('div');
+    d.className = 'toast-msg toast-msg--' + type;
     var span = document.createElement('span');
+    span.className = 'toast-msg__text';
     span.textContent = msg;
     d.appendChild(span);
     if (opts.action && opts.onAction) {
@@ -2017,16 +2090,22 @@ function toast(msg, type, opts) {
             e.stopPropagation();
             opts.onAction();
             d.remove();
+            updateToastDockVisibility();
         });
         d.appendChild(btn);
     }
-    box.appendChild(d);
+    list.appendChild(d);
+    list.scrollTop = list.scrollHeight;
+    updateToastDockVisibility();
+    if (opts.persist) return;
     var ms = opts.duration || (type === 'error' ? 5500 : (opts.action ? 8000 : 3200));
-    setTimeout(function(){
+    setTimeout(function() {
         if (!d.parentNode) return;
-        d.style.opacity = '0';
-        d.style.transition = 'opacity 0.3s';
-        setTimeout(function(){ if (d.parentNode) d.remove(); }, 300);
+        d.classList.add('is-out');
+        setTimeout(function() {
+            if (d.parentNode) d.remove();
+            updateToastDockVisibility();
+        }, 280);
     }, ms);
 }
 
@@ -3559,17 +3638,44 @@ function handleFileUpload(inputFiles) {
     var fileList = Array.from(inputFiles);
     var pending = fileList.length;
     var count=0, storeCount=0;
+    var batchErrors = [];
     setGlobalLoading(true, '正在解析 ' + fileList.length + ' 个文件…');
+    function flushUploadSummary() {
+        reprocessAll(); updateSidebar(); renderImportPage();
+        if (typeof renderPKPage !== 'undefined') try { renderPKPage(); } catch (e) {}
+        var msg = [];
+        if (count > 0) msg.push('利润统计 ' + count + ' 条商品');
+        if (storeCount > 0) msg.push('数据记录 ' + storeCount + ' 条店铺');
+        if (msg.length) {
+            logEvent('info', 'upload', 'batch_done', msg.join(' · '), {
+                productRows: count, storeRows: storeCount, files: ST.files.length, spu: ST.products.length
+            });
+            toast('上传完成 · ' + fileList.length + ' 个文件 · ' + msg.join(' · '), 'success', {
+                action: '撤销',
+                onAction: undoLastUpload,
+                duration: 9000
+            });
+        } else if (!batchErrors.length) {
+            logEvent('warn', 'upload', 'batch_empty', '上传完成但未解析到有效数据', { filenames: fileList.map(function(x){ return x.name; }) });
+            toast('未解析到有效数据', 'warning');
+        }
+        batchErrors.forEach(function(item) {
+            toast(item.msg, item.type || 'error', { duration: 6500 });
+        });
+    }
     function fileDone() {
         pending--;
-        if (pending <= 0) setGlobalLoading(false);
+        if (pending <= 0) {
+            setGlobalLoading(false);
+            flushUploadSummary();
+        }
     }
     fileList.forEach(function(f){
         var reader = new FileReader();
         reader.onerror = function() {
-            fileDone();
             logEvent('error', 'upload', 'read_fail', '无法读取文件: ' + f.name, { filename: f.name });
-            toast('无法读取: ' + f.name, 'error');
+            batchErrors.push({ msg: '无法读取: ' + f.name, type: 'error' });
+            fileDone();
         };
         reader.onload = function(e){
             try {
@@ -3605,7 +3711,7 @@ function handleFileUpload(inputFiles) {
                 } catch(err) {
                     var parseMsg = err.message || String(err);
                     logEvent('error', 'upload', 'parse_fail', '解析失败: ' + f.name, { filename: f.name, error: parseMsg });
-                    toast('解析失败: ' + f.name + ' — ' + parseMsg, 'error');
+                    batchErrors.push({ msg: '解析失败: ' + f.name + ' — ' + parseMsg, type: 'error' });
                     return;
                 }
                 if (storeCount > 0) safeSetItem('temu_v6_store', JSON.stringify(ST.storeData));
@@ -3613,33 +3719,13 @@ function handleFileUpload(inputFiles) {
                 var now = new Date().toLocaleString('zh-CN');
                 if (count > 0) pushSnapshot();
                 safeSetItem('temu_v6_meta', JSON.stringify({count:ST.files.length, saved_at:now}));
-                reprocessAll(); updateSidebar(); renderImportPage(); if(typeof renderPKPage!=="undefined") try{renderPKPage();}catch(e){}
-                var msg = [];
-                if (count > 0) msg.push('利润统计 '+count+' 条商品');
-                if (storeCount > 0) msg.push('数据记录 '+storeCount+' 条店铺');
-                if (msg.length) {
-                    logEvent('info', 'upload', 'batch_done', msg.join(' · '), {
-                        productRows: count, storeRows: storeCount, files: ST.files.length, spu: ST.products.length
-                    });
-                } else {
-                    logEvent('warn', 'upload', 'batch_empty', '上传完成但未解析到有效数据', { filenames: fileList.map(function(x){ return x.name; }) });
-                }
-                if (msg.length) {
-                    toast('上传完成：' + msg.join(' · '), 'success', {
-                        action: '撤销',
-                        onAction: undoLastUpload,
-                        duration: 9000
-                    });
-                } else {
-                    toast('未解析到有效数据', 'warning');
-                }
             } catch(saveErr) {
                 var errMsg = saveErr.message || String(saveErr);
                 var hint = (saveErr.name === 'QuotaExceededError' || /quota|存储/i.test(errMsg))
                     ? '浏览器存储已满，请侧边栏「清除」释放空间后重新上传'
                     : errMsg;
                 logEvent('error', 'storage', 'upload_save_fail', '上传后保存失败: ' + f.name, { filename: f.name, error: errMsg });
-                toast('保存失败：' + hint, 'error');
+                batchErrors.push({ msg: '保存失败：' + hint, type: 'error' });
             } finally {
                 fileDone();
             }
@@ -3655,16 +3741,33 @@ function handleTeamUpload(inputFiles) {
     var files = Array.from(inputFiles);
     var pending = files.length;
     var count = 0;
+    var batchErrors = [];
     setGlobalLoading(true, '正在解析团队数据…');
+    function flushTeamSummary() {
+        reprocessAll(); updateSidebar();
+        if (typeof renderPKPage !== 'undefined') try { renderPKPage(); } catch (e2) {}
+        if (count > 0) {
+            logEvent('info', 'team', 'import_done', '团队 Excel 导入完成 · ' + count + ' 条', { count: count, teamTotal: ST.teamProducts.length });
+            toast('团队数据导入完成 · ' + files.length + ' 个文件 · ' + count + ' 条商品', 'success');
+        } else if (!batchErrors.length) {
+            toast('团队区未导入有效数据', 'warning');
+        }
+        batchErrors.forEach(function(item) {
+            toast(item.msg, item.type || 'warning', { duration: 6500 });
+        });
+    }
     function teamFileDone() {
         pending--;
-        if (pending <= 0) setGlobalLoading(false);
+        if (pending <= 0) {
+            setGlobalLoading(false);
+            flushTeamSummary();
+        }
     }
     files.forEach(function (f) {
         var reader = new FileReader();
         reader.onerror = function() {
+            batchErrors.push({ msg: '无法读取: ' + f.name, type: 'error' });
             teamFileDone();
-            toast('无法读取: ' + f.name, 'error');
         };
         reader.onload = function (e) {
             try {
@@ -3672,19 +3775,19 @@ function handleTeamUpload(inputFiles) {
                 var sn = wb.SheetNames[0];
                 var json = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1 });
                 if (!json || json.length < 2) {
-                    toast('团队文件无数据: ' + f.name, 'warning');
+                    batchErrors.push({ msg: '团队文件无数据: ' + f.name, type: 'warning' });
                     return;
                 }
                 if (detectSheetType(json, f.name) === 'store') {
                     logEvent('warn', 'team', 'wrong_file_type', '团队区收到店铺数据记录：' + f.name, { filename: f.name });
-                    toast('「' + f.name + '」是店铺数据记录，请拖到主上传区。团队区只收利润统计。', 'warning');
+                    batchErrors.push({ msg: '「' + f.name + '」是店铺数据记录，请拖到主上传区', type: 'warning' });
                     return;
                 }
                 var hi = findProductHeaderRow(json);
                 var parsed = rowsToProductData(json, hi);
                 if (parsed.data.length === 0) {
                     logEvent('warn', 'team', 'parse_empty', '团队文件无有效行: ' + f.name, { filename: f.name });
-                    toast('团队文件无有效行: ' + f.name, 'warning');
+                    batchErrors.push({ msg: '团队文件无有效行: ' + f.name, type: 'warning' });
                     return;
                 }
                 var rawHeaders = (json[hi] || []).map(function(h) { return String(h).trim(); });
@@ -3696,13 +3799,10 @@ function handleTeamUpload(inputFiles) {
                 logEvent('info', 'team', 'import_file', f.name + ' → ' + result.products.length + ' SPU', { filename: f.name, spuAdded: result.products.length, teamTotal: ST.teamProducts.length });
                 hasTeam = ST.teamProducts.length > 0;
                 safeSetItem('temu_v6_team', JSON.stringify(ST.teamProducts));
-                reprocessAll(); updateSidebar(); if (typeof renderPKPage !== "undefined") try { renderPKPage(); } catch (e2) {}
-                logEvent('info', 'team', 'import_done', '团队 Excel 导入完成 · ' + count + ' 条', { count: count, teamTotal: ST.teamProducts.length });
-                toast('团队数据导入完成：' + count + ' 条商品', 'success');
             } catch (err) {
                 var teamParseMsg = err.message || String(err);
                 logEvent('error', 'team', 'parse_fail', '团队数据解析失败: ' + f.name, { filename: f.name, error: teamParseMsg });
-                toast('团队数据解析失败: ' + f.name + ' — ' + teamParseMsg, 'error');
+                batchErrors.push({ msg: '团队解析失败: ' + f.name + ' — ' + teamParseMsg, type: 'error' });
             } finally {
                 teamFileDone();
             }
@@ -4774,6 +4874,7 @@ function runStartupSelfCheck() {
         document.querySelector('.sidebar').classList.add('collapsed');
     }
     initUX();
+    initToastDock();
     if (isHostedWebApp() && !isLocalDevServer()) {
         checkOssServerSync().then(function() { updateSidebar(); });
         if (!localStorage.getItem('temu_v6_hosted_welcome')) {
