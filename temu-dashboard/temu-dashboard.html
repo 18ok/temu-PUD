@@ -213,6 +213,12 @@
             color: var(--text-dim); font-size: 0.82rem; min-height: 36px; margin-bottom: 12px;
         }
         .admin-action-card .btn-row { margin-top: 0; }
+        .admin-action-card.is-disabled {
+            opacity: 0.62; background: rgba(255,255,255,0.02);
+        }
+        .admin-action-card.is-disabled .btn {
+            pointer-events: none; filter: grayscale(1);
+        }
         .main { flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100vh; overflow: hidden; }
         .topbar {
             display: flex; align-items: center; gap: 14px;
@@ -1857,6 +1863,11 @@ function renderAdminPage() {
     if (!box) return;
     refreshAdminServerStatus();
     var s = getAdminState();
+    var adminUser = typeof getCollabUser === 'function' ? getCollabUser() : null;
+    var adminRole = adminUser && adminUser.role ? adminUser.role : 'operator';
+    var isSupervisor = adminRole === 'supervisor' || adminRole === 'admin';
+    var isAdmin = adminRole === 'admin';
+    var isDeveloper = localStorage.getItem('temu_v6_admin_role') === 'developer';
     var hasUpload = s.lastUpload !== '尚未同步';
     var hasLoad = s.lastLoad !== '尚未拉取';
     var healthTone = (!isOssConfigured() || !s.fileCount) ? '待配置' : ((s.teamCount && hasUpload) ? '运行正常' : '可继续完善');
@@ -1866,6 +1877,10 @@ function renderAdminPage() {
     }
     function action(title, desc, buttons) {
         return '<div class="admin-action-card"><h3>' + title + '</h3><p>' + desc + '</p><div class="btn-row">' + buttons + '</div></div>';
+    }
+    function blockedAction(title, desc, roleHint) {
+        return '<div class="admin-action-card is-disabled"><h3>' + escHtml(title) + '</h3><p>' + escHtml(desc) +
+            '</p><div class="btn-row"><button type="button" class="btn" disabled>' + escHtml(roleHint || '需要管理员权限') + '</button></div></div>';
     }
     function section(title, sub, body, cls, note) {
         return '<section class="admin-console-section ' + (cls || '') + '">' +
@@ -1896,11 +1911,36 @@ function renderAdminPage() {
                 '</p><div class="hint">' + escHtml(item.oss_key || '') + '</div></div>';
         }).join('');
     }
+    function collabActionsHTML() {
+        if (!isSupervisor && !isAdmin && !isDeveloper) {
+            return blockedAction('团队协作操作', '普通运营后台只保留查看和本地动作；团队同步、拉取基准由主管或管理员执行。', '当前：普通运营');
+        }
+        return action('同步团队', '把我的选品与店铺摘要同步到团队基准，原始 Excel 仍保留在本地。',
+            '<button type="button" class="btn-primary-sm" onclick="uploadToCloud()">⬆ 同步团队</button>' +
+            '<button type="button" class="btn" onclick="loadFromCloud()">📥 团队基准</button>') +
+            action('团队登录', '团队账号、分组和主管看板按服务端部署节奏开放；当前公开网页先跑摘要同步。',
+            '<button type="button" class="btn" onclick="openCollabAuthFromAdmin()">🔐 团队登录</button>');
+    }
+    function configActionsHTML() {
+        if (!isAdmin && !isDeveloper) {
+            return blockedAction('同步配置', 'OSS、Key 托管和同步测试会影响全队数据入口，需管理员或开发者处理。', '需要管理员/开发者');
+        }
+        return action('同步配置', '配置归属人、OSS 与 Key 托管状态，决定团队摘要写入哪里。',
+            '<button type="button" class="btn" onclick="showOssConfigModal()">⚙ 同步配置</button>' +
+            '<button type="button" class="btn" onclick="runTeamSyncDrill()">🧪 同步测试</button>');
+    }
+    function dangerActionsHTML() {
+        if (!isAdmin && !isDeveloper) {
+            return blockedAction('清除本地业务数据', '清除动作会影响本机分析状态，普通运营不在后台直接暴露入口。', '需要管理员');
+        }
+        return action('清除本地业务数据', '会清除本地商品、店铺、团队基准与快照数据；不会删除云端 OSS 摘要。',
+            '<button type="button" class="btn btn-danger-soft" onclick="doClear()">🗑️ 清除本地业务数据</button>');
+    }
     box.innerHTML =
         '<div class="admin-console">' +
         '<div class="admin-overview-head"><div><div class="admin-health-title">系统健康概览</div>' +
         '<div class="admin-health-sub">本地数据 / 团队同步 / OSS Key / 协作登录状态的控制台总览。</div></div>' +
-        '<div class="admin-health-badge">' + escHtml(healthTone) + '</div></div>' +
+        '<div class="admin-health-badge">' + escHtml(healthTone + ' · ' + (isDeveloper ? 'developer' : adminRole)) + '</div></div>' +
         '<div class="admin-status-grid">' +
         card('后端服务', s.serverLabel, s.serverHint, isLocalDevServer() ? (_adminServerStatus.ok ? 'is-ok' : 'is-warn') : 'is-warn') +
         card('团队基准', s.teamCount + ' 条', s.teamPeople ? (s.teamPeople + ' 位同事摘要') : '暂无可用团队基准', s.teamCount ? 'is-ok' : 'is-warn') +
@@ -1912,18 +1952,10 @@ function renderAdminPage() {
         card('最近同步', s.lastUpload, '上传 JSON 摘要', hasUpload ? 'is-ok' : 'is-warn') +
         card('最近拉取', s.lastLoad, '刷新团队基准', hasLoad ? 'is-ok' : 'is-warn') +
         '</div>' +
-        section('团队协作', '摘要同步与团队身份',
-        action('同步团队', '把我的选品与店铺摘要同步到团队基准，原始 Excel 仍保留在本地。',
-            '<button type="button" class="btn-primary-sm" onclick="uploadToCloud()">⬆ 同步团队</button>' +
-            '<button type="button" class="btn" onclick="loadFromCloud()">📥 团队基准</button>') +
-        action('团队登录', '团队账号、分组和主管看板按服务端部署节奏开放；当前公开网页先跑摘要同步。',
-            '<button type="button" class="btn" onclick="openCollabAuthFromAdmin()">🔐 团队登录</button>'), '', '') +
+        section('团队协作', '摘要同步与团队身份', collabActionsHTML(), '', '') +
         section('最近同步记录', '来自 /api/collab/uploads/recent',
             recentUploadsHTML(), '', '') +
-        section('系统配置', 'OSS、Key 与联调检查',
-        action('同步配置', '配置归属人、OSS 与 Key 托管状态，决定团队摘要写入哪里。',
-            '<button type="button" class="btn" onclick="showOssConfigModal()">⚙ 同步配置</button>' +
-            '<button type="button" class="btn" onclick="runTeamSyncDrill()">🧪 同步测试</button>'), '', '') +
+        section('系统配置', 'OSS、Key 与联调检查', configActionsHTML(), '', '') +
         section('本地与报表', '保存、日志与复盘输出',
         action('本地保存', '保存当前解析结果，保留本地工作状态与快照摘要。',
             '<button type="button" class="btn" onclick="doSave()">💾 本地保存</button>') +
@@ -1931,8 +1963,7 @@ function renderAdminPage() {
             '<button type="button" class="btn" onclick="showEventLogModal()">📋 日志</button>' +
             '<button type="button" class="btn" onclick="exportDiagnosisReport()">📄 周报</button>'), '', '') +
         section('高风险操作', '需要确认',
-        action('清除本地业务数据', '会清除本地商品、店铺、团队基准与快照数据；不会删除云端 OSS 摘要。',
-            '<button type="button" class="btn btn-danger-soft" onclick="doClear()">🗑️ 清除本地业务数据</button>'),
+        dangerActionsHTML(),
             'is-danger', '会清除本地业务数据，不会删除云端 OSS 摘要；现有清除流程会再次弹出确认。') +
         '</div>';
 }
