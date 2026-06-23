@@ -614,14 +614,61 @@ def collab_audit_recent(user: dict, limit: int = 20) -> dict:
     return {"ok": True, "role": role, "count": len(items), "items": items}
 
 
+def backfill_pk_latest_from_oss(cfg: dict) -> int:
+    """Seed the SQLite PK index from legacy OSS data when the DB is empty."""
+    if collab_db.status().get("pk_count", 0):
+        return 0
+    pk_data = oss_read_json(cfg, collab_key(cfg, "pk_latest.json"), {"entries": {}})
+    count = 0
+    for entry in (pk_data.get("entries") or {}).values():
+        if not entry.get("user_id") or not entry.get("oss_key"):
+            continue
+        collab_db.record_upload(entry)
+        count += 1
+    return count
+
+
 def collab_pk_board(cfg: dict, user: dict) -> dict:
+    role = user.get("role", "operator")
+    groups = load_groups_map(cfg)
+    try:
+        backfill_pk_latest_from_oss(cfg)
+        pk_rows = collab_db.latest_pk_entries(
+            role=role,
+            user_id=user.get("id"),
+            group_id=user.get("group_id"),
+        )
+        entries = pk_rows.get("entries", [])
+        by_group: dict[str, list] = {gid: [] for gid in groups}
+        by_group["_unknown"] = []
+        for e in entries:
+            gid = e.get("group_id") or "_unknown"
+            by_group.setdefault(gid, []).append(e)
+        meta = oss_read_json(cfg, collab_key(cfg, "meta.json"), {})
+        return {
+            "ok": True,
+            "source": "sqlite",
+            "org_name": meta.get("org_name", ""),
+            "dept_name": meta.get("dept_name", ""),
+            "role": role,
+            "updated_at": pk_rows.get("updated_at"),
+            "members": entries,
+            "by_group": [
+                {"group_id": gid, "group_name": groups.get(gid, "未分组"), "members": by_group.get(gid, [])}
+                for gid in groups
+            ],
+        }
+    except Exception as exc:
+        print(f"[DB] pk board fallback to OSS: {exc}")
+
     pk_data = oss_read_json(cfg, collab_key(cfg, "pk_latest.json"), {"entries": {}})
     entries = list((pk_data.get("entries") or {}).values())
-    role = user.get("role", "operator")
     if role == "operator":
         entries = [e for e in entries if e.get("user_id") == user["id"]]
+    elif role == "supervisor":
+        group_id = user.get("group_id")
+        entries = [e for e in entries if e.get("group_id") == group_id or e.get("user_id") == user["id"]]
     entries.sort(key=lambda e: (-int(e.get("align_score", 0)), e.get("display_name", "")))
-    groups = load_groups_map(cfg)
     by_group: dict[str, list] = {gid: [] for gid in groups}
     by_group["_unknown"] = []
     for e in entries:
@@ -630,6 +677,7 @@ def collab_pk_board(cfg: dict, user: dict) -> dict:
     meta = oss_read_json(cfg, collab_key(cfg, "meta.json"), {})
     return {
         "ok": True,
+        "source": "oss",
         "org_name": meta.get("org_name", ""),
         "dept_name": meta.get("dept_name", ""),
         "role": role,
@@ -644,8 +692,15 @@ def collab_pk_board(cfg: dict, user: dict) -> dict:
 
 def collab_benchmark(cfg: dict, user: dict) -> dict:
     """主管/全员选品基准：拉取他人最新摘要中的 products（不含自己）。"""
-    pk_data = oss_read_json(cfg, collab_key(cfg, "pk_latest.json"), {"entries": {}})
-    entries = list((pk_data.get("entries") or {}).values())
+    source = "sqlite"
+    try:
+        backfill_pk_latest_from_oss(cfg)
+        entries = collab_db.latest_pk_entries(role="admin").get("entries", [])
+    except Exception as exc:
+        print(f"[DB] benchmark fallback to OSS: {exc}")
+        source = "oss"
+        pk_data = oss_read_json(cfg, collab_key(cfg, "pk_latest.json"), {"entries": {}})
+        entries = list((pk_data.get("entries") or {}).values())
     my_id = user["id"]
     others = [e for e in entries if e.get("user_id") != my_id and e.get("oss_key")]
     products = []
@@ -659,7 +714,7 @@ def collab_benchmark(cfg: dict, user: dict) -> dict:
             continue
         people += 1
         products.extend(s["products"])
-    return {"ok": True, "people": people, "count": len(products), "products": products}
+    return {"ok": True, "source": source, "people": people, "count": len(products), "products": products}
 
 
 def build_status_payload() -> dict:

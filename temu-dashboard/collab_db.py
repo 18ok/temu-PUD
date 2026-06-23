@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 def db_path() -> Path:
@@ -64,6 +64,30 @@ def init_db() -> None:
                 ON upload_index(user_id, created_at DESC);
             CREATE INDEX IF NOT EXISTS idx_upload_index_group_time
                 ON upload_index(group_id, created_at DESC);
+
+            CREATE TABLE IF NOT EXISTS pk_latest (
+                user_id TEXT PRIMARY KEY,
+                display_name TEXT NOT NULL,
+                group_id TEXT,
+                group_name TEXT,
+                summary_date TEXT,
+                oss_key TEXT NOT NULL,
+                align_score INTEGER,
+                score_label TEXT,
+                gold_pct REAL,
+                avg_margin REAL,
+                roas REAL,
+                avg_day_sales REAL,
+                spu_count INTEGER DEFAULT 0,
+                store_count INTEGER DEFAULT 0,
+                uploaded_at TEXT,
+                updated_at INTEGER NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_pk_latest_score
+                ON pk_latest(align_score DESC, display_name);
+            CREATE INDEX IF NOT EXISTS idx_pk_latest_group_score
+                ON pk_latest(group_id, align_score DESC, display_name);
 
             CREATE TABLE IF NOT EXISTS audit_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -121,6 +145,7 @@ def record_audit(action: str, user: dict | None = None, detail: dict | None = No
 
 def record_upload(entry: dict[str, Any]) -> None:
     def _write() -> None:
+        now = int(time.time())
         with connect() as conn:
             conn.execute(
                 """
@@ -142,11 +167,105 @@ def record_upload(entry: dict[str, Any]) -> None:
                     entry.get("spu_count") or 0,
                     entry.get("store_count") or 0,
                     entry.get("uploaded_at"),
-                    int(time.time()),
+                    now,
+                ),
+            )
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO pk_latest(
+                    user_id, display_name, group_id, group_name, summary_date,
+                    oss_key, align_score, score_label, gold_pct, avg_margin,
+                    roas, avg_day_sales, spu_count, store_count, uploaded_at,
+                    updated_at
+                ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    entry.get("user_id", ""),
+                    entry.get("display_name", ""),
+                    entry.get("group_id"),
+                    entry.get("group_name"),
+                    entry.get("summary_date"),
+                    entry.get("oss_key", ""),
+                    entry.get("align_score"),
+                    entry.get("score_label"),
+                    entry.get("gold_pct"),
+                    entry.get("avg_margin"),
+                    entry.get("roas"),
+                    entry.get("avg_day_sales"),
+                    entry.get("spu_count") or 0,
+                    entry.get("store_count") or 0,
+                    entry.get("uploaded_at"),
+                    now,
                 ),
             )
 
     safe_call(_write)
+
+
+def latest_pk_entries(
+    *,
+    role: str = "admin",
+    user_id: str | None = None,
+    group_id: str | None = None,
+) -> dict[str, Any]:
+    init_db()
+    params: list[Any] = []
+    where = ""
+    if role == "operator":
+        if not user_id:
+            return {"updated_at": None, "entries": []}
+        where = "WHERE user_id = ?"
+        params.append(user_id)
+    elif role == "supervisor":
+        clauses = []
+        if group_id:
+            clauses.append("group_id = ?")
+            params.append(group_id)
+        if user_id:
+            clauses.append("user_id = ?")
+            params.append(user_id)
+        if not clauses:
+            return {"updated_at": None, "entries": []}
+        where = "WHERE " + " OR ".join(clauses)
+    with connect() as conn:
+        rows = conn.execute(
+            f"""
+            SELECT user_id, display_name, group_id, group_name, summary_date,
+                   oss_key, align_score, score_label, gold_pct, avg_margin,
+                   roas, avg_day_sales, spu_count, store_count, uploaded_at,
+                   updated_at
+            FROM pk_latest
+            {where}
+            ORDER BY align_score DESC, display_name
+            """,
+            params,
+        ).fetchall()
+    entries = [
+        {
+            "user_id": row["user_id"],
+            "display_name": row["display_name"] or "",
+            "group_id": row["group_id"],
+            "group_name": row["group_name"] or "",
+            "summary_date": row["summary_date"],
+            "oss_key": row["oss_key"],
+            "align_score": row["align_score"],
+            "score_label": row["score_label"] or "",
+            "gold_pct": row["gold_pct"],
+            "avg_margin": row["avg_margin"],
+            "roas": row["roas"],
+            "avg_day_sales": row["avg_day_sales"],
+            "spu_count": row["spu_count"],
+            "store_count": row["store_count"],
+            "uploaded_at": row["uploaded_at"],
+            "updated_at": row["updated_at"],
+        }
+        for row in rows
+    ]
+    updated_at = max((row["updated_at"] for row in rows), default=None)
+    return {
+        "updated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(updated_at)) if updated_at else None,
+        "entries": entries,
+    }
 
 
 def recent_uploads(
@@ -250,6 +369,7 @@ def status() -> dict[str, Any]:
             ).fetchall()
         ]
         upload_count = conn.execute("SELECT COUNT(*) AS n FROM upload_index").fetchone()["n"]
+        pk_count = conn.execute("SELECT COUNT(*) AS n FROM pk_latest").fetchone()["n"]
         audit_count = conn.execute("SELECT COUNT(*) AS n FROM audit_logs").fetchone()["n"]
     return {
         "engine": "sqlite",
@@ -259,5 +379,6 @@ def status() -> dict[str, Any]:
         "schema_version": SCHEMA_VERSION,
         "tables": tables,
         "upload_count": upload_count,
+        "pk_count": pk_count,
         "audit_count": audit_count,
     }

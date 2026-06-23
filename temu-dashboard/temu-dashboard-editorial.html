@@ -2011,7 +2011,7 @@ function getAdminState() {
     var serverData = st.data || {};
     var serverOss = serverData.oss || {};
     var serverDb = serverData.database || {};
-    var dbCount = (serverDb.upload_count || 0) + (serverDb.audit_count || 0);
+    var dbCount = (serverDb.upload_count || 0) + (serverDb.pk_count || 0) + (serverDb.audit_count || 0);
     return {
         serverLabel: isLocalDevServer()
             ? (st.loading ? '检测中' : (st.ok ? '在线' : (st.checked ? '离线' : '待检测')))
@@ -2028,7 +2028,7 @@ function getAdminState() {
         ossLabel: serverOss.configured ? (serverOss.bucket || '已配置') : (isOssConfigured() ? ((cfg && cfg.bucket) || '已配置') : '未配置'),
         keyLabel: serverOss.configured ? 'Key·服务端' : (isOssServerKeyMode() ? 'Key·服务端' : (isOssConfigured() ? '浏览器 Key' : '待配置')),
         dbLabel: serverDb.engine ? (serverDb.engine + ' · ' + (serverDb.exists ? '已启用' : '待创建')) : '待检测',
-        dbHint: serverDb.engine ? ((serverDb.upload_count || 0) + ' 条上传索引 · ' + (serverDb.audit_count || 0) + ' 条审计') : '协作索引库',
+        dbHint: serverDb.engine ? ((serverDb.upload_count || 0) + ' 条上传索引 · ' + (serverDb.pk_count || 0) + ' 条PK索引 · ' + (serverDb.audit_count || 0) + ' 条审计') : '协作索引库',
         dbTone: serverDb.engine && dbCount > 0 ? 'is-ok' : 'is-warn',
         collabLabel: '分阶段开放',
         lastUpload: lastUpload && lastUpload.time ? lastUpload.time : '尚未同步',
