@@ -1,11 +1,11 @@
 @echo off
 chcp 65001 >nul
 cd /d "%~dp0"
-title Temu 选品助手 V10.2.4 — 本地开发
+title Temu 选品助手 V10.3 — 本地开发
 
 echo.
 echo   ╔══════════════════════════════════════╗
-echo   ║  Temu 选品助手 V10.2.4 — 本地开发      ║
+echo   ║  Temu 选品助手 V10.3 — 本地开发        ║
 echo   ╚══════════════════════════════════════╝
 echo.
 
@@ -34,22 +34,24 @@ echo   ✅ 使用 Python 标准库，无需额外安装
 
 :: ========== 3. 启动服务 ==========
 echo [3/3] 启动本地服务...
+echo   浏览器将在服务就绪后自动打开...
 echo.
-start "" http://localhost:8080/temu-dashboard.html#import
+start "" /min python -c "import time,urllib.request,webbrowser; url='http://localhost:8080/temu-dashboard.html#import'; probe='http://localhost:8080/temu-dashboard.html'; exec('for _ in range(40):\n    try:\n        urllib.request.urlopen(probe,timeout=1).close(); break\n    except Exception:\n        time.sleep(0.5)'); webbrowser.open(url)"
 
 echo   ╔══════════════════════════════════════╗
-echo   ║  浏览器已打开看板                     ║
+echo   ║  浏览器就绪后自动打开                 ║
 echo   ║  http://localhost:8080               ║
 echo   ║                                      ║
 echo   ║  同事请用网页版（无需 bat）：           ║
 echo   ║  https://18ok.github.io/temu-PUD/     ║
 echo   ║                                      ║
-echo   ║  本窗口：.env Key 托管 / OSS 代理     ║
+echo   ║  本窗口：api_server · OSS · 协作 API   ║
+echo   ║  协作数据目录：OSS collab/             ║
 echo   ║                                      ║
 echo   ║  关闭此窗口 = 停止服务                ║
 echo   ╚══════════════════════════════════════╝
 echo.
 
-python local_server.py
+python api_server.py
 
 pause

@@ -24,21 +24,21 @@
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;600&family=Source+Sans+3:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap');
 
         :root {
-            --bg: #f6f6f4;
-            --card: #ffffff;
-            --card-hover: #fafafa;
-            --card-alt: #fafafa;
-            --gold: #e2b87a;
-            --gold-dark: #c99e5e;
-            --gold-glow: rgba(226, 184, 122, 0.35);
-            --gold-bg: rgba(226, 184, 122, 0.08);
-            --text: #2e2e2e;
-            --text-dim: #5c5c5c;
+            --bg: #f4f2ee;
+            --card: #fffdf8;
+            --card-hover: #f7f4ee;
+            --card-alt: #efede7;
+            --gold: #b99555;
+            --gold-dark: #806238;
+            --gold-glow: rgba(185, 149, 85, 0.18);
+            --gold-bg: rgba(185, 149, 85, 0.09);
+            --text: #25292d;
+            --text-dim: #5f6468;
             --text-faded: rgba(46, 46, 46, 0.45);
-            --border: rgba(46, 46, 46, 0.12);
-            --border-hover: rgba(46, 46, 46, 0.22);
-            --border-light: rgba(46, 46, 46, 0.08);
-            --border-gold: rgba(226, 184, 122, 0.45);
+            --border: rgba(37, 41, 45, 0.12);
+            --border-hover: rgba(37, 41, 45, 0.22);
+            --border-light: rgba(37, 41, 45, 0.08);
+            --border-gold: rgba(185, 149, 85, 0.42);
             --success: rgba(34, 197, 94, 0.08);
             --success-border: rgba(34, 197, 94, 0.35);
             --success-text: #15803d;
@@ -48,8 +48,8 @@
             --danger-bg: rgba(239, 68, 68, 0.08);
             --danger-border: rgba(239, 68, 68, 0.35);
             --danger-text: #b91c1c;
-            --info-bg: rgba(226, 184, 122, 0.06);
-            --info-border: rgba(226, 184, 122, 0.25);
+            --info-bg: rgba(185, 149, 85, 0.07);
+            --info-border: rgba(185, 149, 85, 0.22);
             --shadow-sm: 0 1px 2px rgba(46, 46, 46, 0.06);
             --shadow: 0 4px 16px rgba(46, 46, 46, 0.08);
             --shadow-lg: 0 12px 40px rgba(46, 46, 46, 0.1);
@@ -65,19 +65,22 @@
         }
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html { scroll-behavior: smooth; }
+        html { height: 100%; scroll-behavior: smooth; }
         body {
             font-family: var(--font); color: var(--text);
-            line-height: 1.65; min-height: 100vh; -webkit-font-smoothing: antialiased;
+            line-height: 1.65; min-height: 100vh; height: 100%; overflow: hidden; -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
-            background: var(--bg);
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.52), rgba(255,255,255,0) 34%),
+                var(--bg);
         }
 
         /* ── 布局 ── */
-        .app { display: flex; min-height: 100vh; }
+        .app { display: flex; height: 100vh; min-height: 100vh; overflow: hidden; }
         .sidebar {
             width: var(--sidebar-w); min-width: var(--sidebar-w); flex-shrink: 0;
-            background: var(--card);
+            height: 100vh;
+            background: rgba(255, 253, 248, 0.84);
             border-right: 1px solid var(--border);
             display: flex; flex-direction: column;
             transition: width 0.25s var(--ease-out), min-width 0.25s var(--ease-out);
@@ -88,7 +91,7 @@
         .sidebar.collapsed .sidebar-brand .title { font-size: 0.9rem; }
         .sidebar.collapsed .sidebar-brand .sub,
         .sidebar.collapsed .nav-text,
-        .sidebar.collapsed .sidebar-info { display: none; }
+        .sidebar.collapsed .sidebar-footer { display: none; }
         .sidebar.collapsed .sidebar-nav { padding: 4px 6px; }
         .sidebar.collapsed .sidebar-nav a { justify-content: center; padding: 10px 6px; }
         .sidebar.collapsed .nav-icon { font-size: 1.3rem; }
@@ -103,7 +106,7 @@
             letter-spacing: 0.02em;
         }
         .sidebar-brand .sub   { font-size: 0.75rem; color: var(--text-dim); margin-top: 4px; }
-        .sidebar-nav { list-style: none; padding: 4px 12px; flex: 1; }
+        .sidebar-nav { list-style: none; padding: 4px 12px; flex: 1; overflow-y: auto; overscroll-behavior: contain; }
         .sidebar-nav li { margin-bottom: 2px; }
         .sidebar-nav a {
             display: flex; align-items: center; gap: 10px; padding: 9px 14px;
@@ -119,33 +122,114 @@
             text-underline-offset: 3px;
         }
         .nav-icon { font-size: 1.1rem; }
-        .sidebar-info { padding: 12px; border-top: 1px solid var(--border-light); font-size: 0.82rem; color: var(--text-dim); }
-        .sidebar-info .stat-card {
-            background: var(--success); border: 1px solid var(--success-border);
-            border-radius: var(--radius); padding: 10px 12px; margin-bottom: 8px;
+        .sidebar-footer { padding: 12px; border-top: 1px solid var(--border-light); font-size: 0.82rem; color: var(--text-dim); }
+        .sidebar-admin-entry {
+            width: 100%; display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; border-radius: var(--radius);
+            border: 1px solid var(--border-gold);
+            background: rgba(185, 149, 85, 0.07); color: var(--text-dim);
+            cursor: pointer; text-align: left; transition: border-color 0.15s, background 0.15s, color 0.15s;
         }
-        .sidebar-info .stat-card .time { font-size: 0.72rem; }
-        .sidebar-info .snapshot {
-            background: var(--info-bg); border: 1px solid var(--border);
-            border-radius: var(--radius); padding: 10px 12px; margin-bottom: 8px;
+        .sidebar-admin-entry:hover,
+        .sidebar-admin-entry.active {
+            color: var(--text); background: rgba(185, 149, 85, 0.12);
+            border-color: var(--gold);
         }
-        .sidebar-actions { display: flex; gap: 8px; margin-top: 8px; }
-        .sidebar-actions button {
-            flex: 1; padding: 8px; border-radius: var(--radius);
-            border: 1px solid rgba(226, 184, 122, 0.18);
-            background: var(--card); color: var(--text-dim); font-weight: 600;
-            cursor: pointer; font-size: 0.85rem; transition: all 0.2s;
+        .sidebar-admin-entry .admin-icon { font-size: 1.1rem; }
+        .sidebar-admin-entry .admin-text { display: grid; gap: 2px; line-height: 1.2; }
+        .sidebar-admin-entry strong { font-size: 0.88rem; color: inherit; }
+        .sidebar-admin-entry span { font-size: 0.7rem; color: var(--text-faded); }
+        .admin-status-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px; margin: 16px 0 20px;
         }
-        .sidebar-actions button:hover {
-            background: var(--card-hover); border-color: var(--border-hover);
-            transform: translateY(-1px);
+        .admin-console {
+            display: grid; gap: 16px;
         }
-        .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+        .admin-overview-head {
+            display: flex; justify-content: space-between; gap: 16px; align-items: flex-end;
+            padding: 16px; border: 1px solid var(--border-light);
+            border-radius: var(--radius-lg);
+            background: rgba(255, 253, 248, 0.72);
+        }
+        .admin-health-title {
+            font-family: var(--font-display); font-size: 1.08rem; font-weight: 600;
+            color: var(--text); margin-bottom: 4px;
+        }
+        .admin-health-sub { color: var(--text-dim); font-size: 0.82rem; }
+        .admin-health-badge {
+            padding: 6px 10px; border-radius: 999px; border: 1px solid var(--success-border);
+            background: var(--success); color: var(--success-text); font-size: 0.78rem; font-weight: 700;
+        }
+        .admin-status-card {
+            position: relative; overflow: hidden;
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 14px 16px;
+        }
+        .admin-status-card::before {
+            content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+            background: var(--border-hover);
+        }
+        .admin-status-card.is-ok { border-color: var(--success-border); background: rgba(34,197,94,0.055); }
+        .admin-status-card.is-ok::before { background: var(--success-text); }
+        .admin-status-card.is-warn { border-color: var(--warning-border); background: var(--warning-bg); }
+        .admin-status-card.is-warn::before { background: var(--warning-text); }
+        .admin-status-card.is-danger { border-color: var(--danger-border); background: var(--danger-bg); }
+        .admin-status-card.is-danger::before { background: var(--danger-text); }
+        .admin-status-card .label {
+            color: var(--text-dim); font-size: 0.75rem; margin-bottom: 6px;
+        }
+        .admin-status-card .value {
+            color: var(--text); font-size: 1.25rem; font-weight: 700;
+            font-family: var(--font-display);
+        }
+        .admin-status-card .hint {
+            color: var(--text-faded); font-size: 0.74rem; margin-top: 4px;
+        }
+        .admin-action-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px; margin-top: 12px;
+        }
+        .admin-console-section {
+            background: rgba(255, 253, 248, 0.66); border: 1px solid var(--border-light);
+            border-radius: var(--radius-lg); padding: 16px;
+        }
+        .admin-console-section.is-danger {
+            border-color: var(--danger-border); background: rgba(239,68,68,0.05);
+        }
+        .admin-section-head {
+            display: flex; justify-content: space-between; gap: 12px; align-items: baseline;
+            border-bottom: 1px solid var(--border-light); padding-bottom: 10px; margin-bottom: 12px;
+        }
+        .admin-section-head h2 { font-family: var(--font-display); font-size: 1rem; color: var(--text); }
+        .admin-section-head span { color: var(--text-faded); font-size: 0.78rem; }
+        .admin-danger-note {
+            color: var(--danger-text); font-size: 0.82rem; margin: 0 0 12px;
+        }
+        .btn-danger-soft {
+            border-color: var(--danger-border) !important; color: var(--danger-text) !important;
+            background: rgba(239,68,68,0.07) !important;
+        }
+        .btn-danger-soft:hover {
+            border-color: rgba(185,28,28,0.52) !important; background: rgba(239,68,68,0.11) !important;
+        }
+        .admin-action-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 16px;
+        }
+        .admin-action-card h3 {
+            font-family: var(--font-display); font-size: 0.98rem; margin-bottom: 6px; color: var(--text);
+        }
+        .admin-action-card p {
+            color: var(--text-dim); font-size: 0.82rem; min-height: 36px; margin-bottom: 12px;
+        }
+        .admin-action-card .btn-row { margin-top: 0; }
+        .main { flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100vh; overflow: hidden; }
         .topbar {
             display: flex; align-items: center; gap: 14px;
             padding: 12px 24px; border-bottom: 1px solid var(--border);
-            background: rgba(246, 246, 244, 0.92); backdrop-filter: blur(8px);
-            position: sticky; top: 0; z-index: 50;
+            background: rgba(244, 242, 238, 0.88); backdrop-filter: blur(10px);
+            flex-shrink: 0; position: relative; z-index: 50;
         }
         .topbar-title { flex: 1; min-width: 0; }
         .topbar-title h2 {
@@ -169,9 +253,17 @@
             transition: border-color 0.2s var(--ease-out), background 0.2s var(--ease-out);
         }
         .btn-primary-sm:hover { border-color: var(--gold); background: rgba(226, 184, 122, 0.14); transform: none; box-shadow: none; }
+        .style-switch {
+            padding: 8px 12px; border-radius: 999px;
+            border: 1px solid var(--border-gold);
+            background: rgba(255, 253, 248, 0.76);
+            color: var(--gold-dark); font-size: 0.82rem; font-weight: 700;
+            cursor: pointer; white-space: nowrap; transition: border-color 0.15s, background 0.15s;
+        }
+        .style-switch:hover { border-color: var(--gold); background: rgba(185, 149, 85, 0.1); }
         .workflow-strip {
             display: flex; gap: 6px; padding: 10px 24px 0;
-            max-width: 1100px; margin: 0 auto; width: 100%; flex-wrap: wrap;
+            max-width: 1100px; margin: 0 auto; width: 100%; flex-wrap: wrap; flex-shrink: 0;
         }
         .workflow-step {
             flex: 1; min-width: 100px; padding: 8px 12px; border-radius: var(--radius-sm);
@@ -217,7 +309,9 @@
         }
         .toast-action:hover { background: rgba(46, 46, 46, 0.06); }
         .page-toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; align-items: center; }
-        .content { padding: 20px 32px 32px; max-width: 1100px; margin: 0 auto; width: 100%; }
+        .content { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 20px 32px 32px; width: 100%; }
+        .content > .page,
+        .content > .app-footer { max-width: 1100px; margin-left: auto; margin-right: auto; width: 100%; }
         .page { display: none; }
         .page.active { display: block; animation: pageIn 0.2s ease-out; }
         @keyframes pageIn {
@@ -282,7 +376,7 @@
         .pk-gap-pick { box-shadow: inset 2px 0 0 rgba(226, 184, 122, 0.35); }
         .pk-gap-ops { box-shadow: inset 2px 0 0 var(--success-border); }
         #page-import .upload-zone { padding: 40px 32px; }
-        .btn:focus-visible, .btn-ghost:focus-visible, .btn-primary-sm:focus-visible,
+        .btn:focus-visible, .btn-ghost:focus-visible, .btn-primary-sm:focus-visible, .style-switch:focus-visible,
         .sidebar-nav a:focus-visible, .expander summary:focus-visible, .workflow-step:focus-visible {
             outline: 2px solid var(--gold); outline-offset: 2px;
         }
@@ -654,7 +748,6 @@
         .workflow-step:hover { box-shadow: var(--shadow-sm); }
         .insight-card:hover { box-shadow: var(--shadow-sm); }
         .step:hover { box-shadow: var(--shadow-sm); }
-        .sidebar-actions button:hover { box-shadow: var(--shadow-sm); transform: none; }
         .stat-cell, .pk-score-card, .gate-cell, .expander {
             transition: border-color 0.15s, box-shadow 0.15s;
         }
@@ -705,42 +798,24 @@
     <aside class="sidebar">
         <div class="sidebar-brand">
             <span class="alter-badge" title="浅色异位面 · 与主界面数据互通">异位面</span>
-            <div class="title">🛒 Temu 数据看板</div>
-            <div class="sub">异位面 · 浅色 Editorial</div>
+            <div class="title">🛒 Temu 团队看板</div>
+            <div class="sub">团队协作 · 浅色 Editorial</div>
         </div>
         <ul class="sidebar-nav">
-            <li><a class="active" onclick="switchPage('import')"><span class="nav-icon">📥</span> <span class="nav-text">数据导入</span></a></li>
-            <li><a onclick="switchPage('products')"><span class="nav-icon">📊</span> <span class="nav-text">商品画像</span></a></li>
-            <li><a onclick="switchPage('rules')"><span class="nav-icon">📋</span> <span class="nav-text">选品规则</span></a></li>
-            <li><a onclick="switchPage('predict')"><span class="nav-icon">🔮</span> <span class="nav-text">智能预测</span></a></li>
-            <li><a onclick="switchPage('blacklist')"><span class="nav-icon">🚨</span> <span class="nav-text">避坑清单</span></a></li>
+            <li><a class="active" onclick="switchPage('import')"><span class="nav-icon">📥</span> <span class="nav-text">团队工作台</span></a></li>
+            <li><a onclick="switchPage('pk')"><span class="nav-icon">🏆</span> <span class="nav-text">团队对齐分</span></a></li>
             <li><a onclick="switchPage('diagnosis')"><span class="nav-icon">📈</span> <span class="nav-text">个人诊断</span></a></li>
             <li><a onclick="switchPage('store')"><span class="nav-icon">🏪</span> <span class="nav-text">店铺运营</span></a></li>
-            <li><a onclick="switchPage('pk')"><span class="nav-icon">🏆</span> <span class="nav-text">个人PK</span></a></li>
+            <li><a onclick="switchPage('products')"><span class="nav-icon">📊</span> <span class="nav-text">商品画像</span></a></li>
+            <li><a onclick="switchPage('rules')"><span class="nav-icon">📋</span> <span class="nav-text">选品规则</span></a></li>
+            <li><a onclick="switchPage('blacklist')"><span class="nav-icon">🚨</span> <span class="nav-text">避坑清单</span></a></li>
+            <li><a onclick="switchPage('predict')"><span class="nav-icon">🔮</span> <span class="nav-text">智能预测</span></a></li>
         </ul>
-        <div class="sidebar-info">
-            <div class="stat-card">
-                💾 已保存 <b>0</b> 个文件<br>
-                <span class="time">—</span>
-            </div>
-            <div class="snapshot">📸 <b>0</b> 份历史快照</div>
-            <div class="snapshot cloud-status" id="cloudStatus">☁️ 云端未配置</div>
-            <div class="sidebar-actions">
-                <button onclick="uploadToCloud()">⬆ 同步</button>
-                <button onclick="loadFromCloud()">📥 团队</button>
-            </div>
-            <div class="sidebar-actions">
-                <button onclick="showOssConfigModal()">⚙ OSS</button>
-                <button onclick="doSave()">💾 本地</button>
-            </div>
-            <div class="sidebar-actions">
-                <button onclick="runTeamSyncDrill()" title="上传虚拟同事数据并验证团队拉取">🧪 联调</button>
-                <button onclick="doClear()">🗑️ 清除</button>
-            </div>
-            <div class="sidebar-actions">
-                <button onclick="showEventLogModal()" title="运行日志 (L)">📋 日志</button>
-                <button onclick="exportDiagnosisReport()" title="导出 Markdown 周报">📄 周报</button>
-            </div>
+        <div class="sidebar-footer">
+            <button type="button" class="sidebar-admin-entry" id="adminEntry" onclick="switchPage('admin')" title="团队后台 / 管理后台">
+                <span class="admin-icon">⚙</span>
+                <span class="admin-text"><strong>管理后台</strong><span>同步 · 团队 · 日志</span></span>
+            </button>
         </div>
     </aside>
 
@@ -748,12 +823,13 @@
         <header class="topbar">
             <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="菜单 (M)" aria-label="切换侧边栏">☰</button>
             <div class="topbar-title">
-                <h2 id="topbarTitle">数据导入</h2>
-                <p id="topbarSub">上传 Excel · 自动识别商品与店铺</p>
+                <h2 id="topbarTitle">团队工作台</h2>
+                <p id="topbarSub">接入我的数据 · 查看团队状态</p>
             </div>
             <div class="topbar-actions">
-                <button type="button" class="btn-ghost" onclick="showEventLogModal()" title="运行日志 (L)">📋</button>
-                <button type="button" class="btn-primary-sm" onclick="uploadToCloud()" title="同步到团队云端">⬆ 同步</button>
+                <button type="button" class="style-switch" id="styleSwitch" title="返回深色主界面">深色主界面</button>
+                <button type="button" class="btn-ghost" onclick="switchPage('admin')" title="管理后台">⚙</button>
+                <button type="button" class="btn-primary-sm" onclick="switchPage('admin')" title="打开团队后台">⚙ 管理后台</button>
                 <button type="button" class="btn-ghost" onclick="location.reload()" title="刷新页面">🔄</button>
             </div>
         </header>
@@ -763,13 +839,13 @@
             <!-- ═══ 页面 1: 数据导入 ═══ -->
             <div class="page active" id="page-import">
                 <div class="hero hero-compact">
-                    <h1>📥 数据导入</h1>
-                    <p>上传利润统计与店铺数据记录，系统自动分流解析并本地保存。双管线齐备后可进入个人 PK 与诊断。</p>
+                    <h1>📥 团队工作台</h1>
+                    <p>上传利润统计与店铺数据记录，先完成我的数据接入，再进入团队体系下的个人对齐分与诊断。</p>
                 </div>
                 <div class="import-route-hint" id="importRouteHint" aria-label="试用路径">
                     <span>推荐</span>
-                    <strong>拖 Excel → 🏆 个人 PK</strong>
-                    <span class="dim">· 团队摘要 OSS 📥 · 团队 PK 未开放</span>
+                    <strong>我的数据 → 团队对齐分 → 个人诊断</strong>
+                    <span class="dim">· 团队摘要同步分阶段开放</span>
                 </div>
                 <div class="alert alert-info">
                     <span class="alert-icon">💾</span>
@@ -784,11 +860,11 @@
                     <div class="expander-content">
                         <div class="steps">
                             <div class="step"><div class="emoji">📤</div><div class="title">1. 上传文件</div><div class="desc">利润统计 .xls + 数据记录 .xlsx 可混拖</div></div>
-                            <div class="step"><div class="emoji">🔍</div><div class="title">2. 自动分流</div><div class="desc">商品SPU→选品页 · 店铺名称→运营/PK</div></div>
-                            <div class="step"><div class="emoji">📊</div><div class="title">3. 查看分析</div><div class="desc">个人 PK / 诊断 · 可选 ⬆同步 OSS</div></div>
+                            <div class="step"><div class="emoji">🔍</div><div class="title">2. 自动分流</div><div class="desc">商品SPU→商品画像 · 店铺名称→运营/对齐分</div></div>
+                            <div class="step"><div class="emoji">📊</div><div class="title">3. 查看分析</div><div class="desc">团队对齐分 / 诊断 · 后台同步摘要</div></div>
                         </div>
-                        <div class="alert alert-info" style="margin-top:12px;" id="importOssHint"><span class="alert-icon">☁️</span><span id="importOssHintText"><strong>云端（可选）</strong>：侧边栏 ⚙ 配置一次 → ⬆ 同步 / 📥 团队。网页版打开链接即可，<strong>不必</strong>安装 Python。</span></div>
-                        <p style="font-size:0.8rem;color:var(--text-dim);margin-top:10px;">快捷键：<kbd style="padding:2px 6px;border-radius:4px;background:var(--card-alt);border:1px solid var(--border);">1</kbd>–<kbd style="padding:2px 6px;border-radius:4px;background:var(--card-alt);border:1px solid var(--border);">8</kbd> 切换页面 · <kbd style="padding:2px 6px;border-radius:4px;background:var(--card-alt);border:1px solid var(--border);">M</kbd> 菜单 · <kbd style="padding:2px 6px;border-radius:4px;background:var(--card-alt);border:1px solid var(--border);">L</kbd> 日志</p>
+                        <div class="alert alert-info" style="margin-top:12px;" id="importOssHint"><span class="alert-icon">☁️</span><span id="importOssHintText"><strong>云端（可选）</strong>：管理后台配置一次 → 同步团队 / 拉取团队基准。网页版打开链接即可，<strong>不必</strong>安装 Python。</span></div>
+                        <p style="font-size:0.8rem;color:var(--text-dim);margin-top:10px;">快捷键：<kbd style="padding:2px 6px;border-radius:4px;background:var(--card-alt);border:1px solid var(--border);">1</kbd>–<kbd style="padding:2px 6px;border-radius:4px;background:var(--card-alt);border:1px solid var(--border);">8</kbd> 切换页面 · <kbd style="padding:2px 6px;border-radius:4px;background:var(--card-alt);border:1px solid var(--border);">M</kbd> 菜单 · <kbd style="padding:2px 6px;border-radius:4px;background:var(--card-alt);border:1px solid var(--border);">L</kbd> 管理后台</p>
                     </div>
                 </details>
                 <hr>
@@ -799,8 +875,8 @@
                     <button class="btn" style="margin-top:14px;" onclick="event.stopPropagation(); document.getElementById('fileInput').click();">⬆ 选择文件</button>
                 </div>
                 <input type="file" id="fileInput" accept=".xls,.xlsx" multiple style="display:none" onchange="handleFileUpload(this.files)">
-                <div class="alert alert-info"><span class="alert-icon">📂</span><span>支持两类文件混传：<strong>店铺利润统计</strong>（.xls，表头含「商品SPU ID」→ 商品画像/选品）和 <strong>店铺数据记录</strong>（.xlsx，表头含「店铺名称」→ 店铺运营/个人PK）</span></div>
-                <div class="alert alert-info"><span class="alert-icon">👥</span><span>团队基准上传区 — 仅导入同事的<strong>利润统计</strong> .xls，用于「个人 vs 团队」对比（不要传数据记录）</span></div>
+                <div class="alert alert-info"><span class="alert-icon">📂</span><span>支持两类文件混传：<strong>店铺利润统计</strong>（.xls，表头含「商品SPU ID」→ 商品画像/选品）和 <strong>店铺数据记录</strong>（.xlsx，表头含「店铺名称」→ 店铺运营/团队对齐分）</span></div>
+                <div class="alert alert-info"><span class="alert-icon">👥</span><span>团队基准上传区 — 仅导入同事的<strong>利润统计</strong> .xls，用于团队体系下的个人对齐参照（不要传数据记录）</span></div>
                 <div class="upload-zone" onclick="document.getElementById('teamFileInput').click()" style="border-color:rgba(91,155,213,0.28);margin-top:0;">
                     <div class="icon">👥</div>
                     <div style="font-size:1rem; margin-bottom:6px;color:var(--text);">导入团队利润统计</div>
@@ -884,19 +960,27 @@
                 </div>
                 <div class="alert alert-info"><span class="alert-icon">📂</span><span>请上传店铺数据记录 Excel（.xlsx），系统自动按日期和店铺分组展示。</span></div>
             </div>
-            <!-- ═══ 页面 8: 个人PK ═══ -->
+            <!-- ═══ 页面 8: 团队对齐分 ═══ -->
             <div class="page" id="page-pk">
                 <div class="hero hero-compact">
-                    <h1>🏆 个人选品 vs 店铺运营</h1>
-                    <p>对齐分衡量选品输入与运营输出是否匹配；数据均在本地，分享链接不含 Excel。</p>
+                    <h1>🏆 团队对齐分</h1>
+                    <p>个人选品与店铺运营在团队基准下对齐，作为团队协作里的个人成长镜子。</p>
                 </div>
                 <div class="pk-expect-bar">
-                    <div class="pk-expect-label">这是你个人的选品×运营对齐分</div>
+                    <div class="pk-expect-label">这是团队体系下的个人选品×运营对齐分</div>
                     <div class="pk-expect-actions">
                         <button type="button" class="btn" onclick="copyPkShareLink()" title="复制 PK 页链接（对方需自行导入 Excel）">🔗 复制分享链接</button>
-                        <button type="button" class="btn btn-disabled" disabled title="协作版规划中，敬请期待">团队对比（协作版）</button>
+                        <button type="button" class="btn" id="pkTeamCompareBtn" onclick="switchPage('admin')" title="主管团队看板按服务端部署节奏开放">主管团队看板</button>
                     </div>
                 </div>
+            </div>
+
+            <div class="page" id="page-admin">
+                <div class="hero hero-compact">
+                    <h1>⚙ 团队后台</h1>
+                    <p>集中管理团队摘要同步、团队基准、账号、配置与日志。业务页面保持专注，后台承接协作与系统动作。</p>
+                </div>
+                <div id="adminPanel"></div>
             </div>
 
             <footer class="app-footer">
@@ -1672,41 +1756,222 @@ function clearAllData() {
 }
 
 function updateSidebar() {
-    var card = document.querySelector('.stat-card');
-    if (!card) return;
-    var meta = JSON.parse(localStorage.getItem('temu_v6_meta') || '{}');
-    var storeCount = (ST.storeData && ST.storeData.length) ? ST.storeData.length : 0;
-    var teamCount = (ST.teamProducts && ST.teamProducts.length) ? ST.teamProducts.length : 0;
-    card.innerHTML = (teamCount > 0 ? '团队 <b>' + teamCount + '</b> 条 | ' : '') + '📦 商品 <b>'+ST.files.length+'</b> 个文件<br>🏪 店铺 <b>'+storeCount+'</b> 条记录'+(meta.saved_at?'<br><span class="time">'+meta.saved_at+'</span>':'');
-    var sd = document.querySelector('.snapshot');
-    if (sd) sd.innerHTML = '📸 <b>'+ST.snapshots.length+'</b> 份本地快照';
-    var cs = document.getElementById('cloudStatus');
-    if (cs) {
-        if (!isOssConfigured()) {
-            cs.innerHTML = '☁️ 云端未配置';
-        } else {
-            var up = JSON.parse(localStorage.getItem('temu_v6_cloud_last_upload') || 'null');
-            var ld = JSON.parse(localStorage.getItem('temu_v6_cloud_last_load') || 'null');
-            var parts = ['☁️ ' + (getOssConfig().bucket || '云端')];
-            if (isOssServerKeyMode()) parts.push('Key·服务端');
-            if (up && up.time) parts.push('↑' + up.time.slice(0, 16));
-            if (ld && ld.count) parts.push('↓' + ld.count + '条');
-            cs.innerHTML = parts.join(' · ');
-        }
-    }
     updateWorkflowStrip();
+    if (document.getElementById('page-admin') && document.getElementById('page-admin').classList.contains('active')) {
+        renderAdminPage();
+    }
 }
 
 var PAGE_META = {
-    import:    { title: '数据导入', sub: '上传 Excel · 自动识别商品与店铺' },
-    products:  { title: '商品画像', sub: 'K-Means 聚类 · 毛利率与日销分布' },
-    rules:     { title: '选品规则', sub: '铁律与避坑 · 可执行 SOP' },
-    predict:   { title: '智能预测', sub: '成本公式 · 新品预估' },
-    blacklist: { title: '避坑清单', sub: '高克重陷阱 · 低毛利 · 滞销' },
-    diagnosis: { title: '个人诊断', sub: '历史对比 · 个人 vs 团队' },
-    store:     { title: '店铺运营', sub: 'ROAS · 花费 · 转化趋势' },
-    pk:        { title: '个人 PK', sub: '选品输入 vs 运营输出' }
+    import:    { title: '团队工作台', sub: '接入我的数据 · 查看团队状态' },
+    pk:        { title: '团队对齐分', sub: '核心对齐 · 个人成长镜子' },
+    diagnosis: { title: '个人诊断', sub: '改进方向 · 历史复盘' },
+    store:     { title: '店铺运营', sub: 'ROAS · 花费 · 运营输出' },
+    products:  { title: '商品画像', sub: '选品输入 · 商品结构' },
+    rules:     { title: '选品规则', sub: '团队 SOP · 经验沉淀' },
+    blacklist: { title: '避坑清单', sub: '风险库 · 反复踩坑预警' },
+    predict:   { title: '智能预测', sub: '新品评估 · 低频工具' },
+    admin:     { title: '管理后台', sub: '团队同步 · 配置 · 日志' }
 };
+
+function openCollabAuthFromAdmin() {
+    if (typeof showCollabAuthModal === 'function') {
+        showCollabAuthModal();
+        return;
+    }
+    toast('团队登录随服务端部署节奏开放；当前先使用团队摘要同步。', 'info');
+}
+
+var _adminServerStatus = { checked: false, loading: false, ok: false, data: null, error: '' };
+var _adminRecentUploads = { checked: false, loading: false, ok: false, items: [], error: '', token: '' };
+
+function refreshAdminServerStatus() {
+    if (!isLocalDevServer()) {
+        _adminServerStatus = { checked: true, loading: false, ok: false, data: null, error: '网页模式' };
+        return Promise.resolve(_adminServerStatus);
+    }
+    if (_adminServerStatus.checked) return Promise.resolve(_adminServerStatus);
+    if (_adminServerStatus.loading) return Promise.resolve(_adminServerStatus);
+    _adminServerStatus.loading = true;
+    return fetch('/api/status', { method: 'GET', cache: 'no-store' }).then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+    }).then(function(data) {
+        _adminServerStatus = { checked: true, loading: false, ok: !!data.ok, data: data, error: '' };
+        if (document.getElementById('page-admin') && document.getElementById('page-admin').classList.contains('active')) {
+            renderAdminPage();
+        }
+        return _adminServerStatus;
+    }).catch(function(e) {
+        _adminServerStatus = { checked: true, loading: false, ok: false, data: null, error: e.message || '后端不可用' };
+        if (document.getElementById('page-admin') && document.getElementById('page-admin').classList.contains('active')) {
+            renderAdminPage();
+        }
+        return _adminServerStatus;
+    });
+}
+
+function getAdminCollabToken() {
+    if (typeof getCollabToken === 'function') return getCollabToken();
+    return localStorage.getItem('temu_v6_collab_token') || '';
+}
+
+function refreshAdminRecentUploads() {
+    if (!isLocalDevServer()) {
+        _adminRecentUploads = { checked: true, loading: false, ok: false, items: [], error: '网页模式暂不读取协作日志', token: '' };
+        return Promise.resolve(_adminRecentUploads);
+    }
+    var token = getAdminCollabToken();
+    if (!token) {
+        _adminRecentUploads = { checked: true, loading: false, ok: false, items: [], error: '登录团队账号后可查看', token: '' };
+        return Promise.resolve(_adminRecentUploads);
+    }
+    if (_adminRecentUploads.checked && _adminRecentUploads.token === token) return Promise.resolve(_adminRecentUploads);
+    if (_adminRecentUploads.loading) return Promise.resolve(_adminRecentUploads);
+    _adminRecentUploads.loading = true;
+    _adminRecentUploads.token = token;
+    return fetch('/api/collab/uploads/recent?limit=6', {
+        method: 'GET',
+        cache: 'no-store',
+        headers: { 'Authorization': 'Bearer ' + token }
+    }).then(function(r) {
+        return r.json().then(function(d) {
+            if (!r.ok || !d.ok) throw new Error((d && d.error) || ('HTTP ' + r.status));
+            return d;
+        });
+    }).then(function(data) {
+        _adminRecentUploads = { checked: true, loading: false, ok: true, items: data.items || [], error: '', token: token };
+        if (document.getElementById('page-admin') && document.getElementById('page-admin').classList.contains('active')) {
+            renderAdminPage();
+        }
+        return _adminRecentUploads;
+    }).catch(function(e) {
+        _adminRecentUploads = { checked: true, loading: false, ok: false, items: [], error: e.message || '读取失败', token: token };
+        if (document.getElementById('page-admin') && document.getElementById('page-admin').classList.contains('active')) {
+            renderAdminPage();
+        }
+        return _adminRecentUploads;
+    });
+}
+
+function getAdminState() {
+    var lastUpload = null, lastLoad = null, meta = {};
+    try { lastUpload = JSON.parse(localStorage.getItem('temu_v6_cloud_last_upload') || 'null'); } catch(e) {}
+    try { lastLoad = JSON.parse(localStorage.getItem('temu_v6_cloud_last_load') || 'null'); } catch(e) {}
+    try { meta = JSON.parse(localStorage.getItem('temu_v6_meta') || '{}'); } catch(e) {}
+    var cfg = getOssConfig ? getOssConfig() : null;
+    var st = _adminServerStatus || {};
+    var serverData = st.data || {};
+    var serverOss = serverData.oss || {};
+    return {
+        serverLabel: isLocalDevServer()
+            ? (st.loading ? '检测中' : (st.ok ? '在线' : (st.checked ? '离线' : '待检测')))
+            : '网页模式',
+        serverHint: isLocalDevServer()
+            ? (st.ok ? ('端口 ' + ((serverData.server || {}).port || '8080') + ' · /api/status') : (st.error || '等待检测'))
+            : '未连接本地后端',
+        fileCount: ST.files.length,
+        productCount: ST.products.length,
+        storeCount: (ST.storeData || []).length,
+        snapshotCount: (ST.snapshots || []).length,
+        teamCount: (ST.teamProducts || []).length,
+        teamPeople: lastLoad && lastLoad.people ? lastLoad.people : 0,
+        ossLabel: serverOss.configured ? (serverOss.bucket || '已配置') : (isOssConfigured() ? ((cfg && cfg.bucket) || '已配置') : '未配置'),
+        keyLabel: serverOss.configured ? 'Key·服务端' : (isOssServerKeyMode() ? 'Key·服务端' : (isOssConfigured() ? '浏览器 Key' : '待配置')),
+        collabLabel: '分阶段开放',
+        lastUpload: lastUpload && lastUpload.time ? lastUpload.time : '尚未同步',
+        lastLoad: lastLoad && lastLoad.time ? lastLoad.time : '尚未拉取',
+        savedAt: meta.saved_at || '尚未本地保存'
+    };
+}
+
+function renderAdminPage() {
+    var box = document.getElementById('adminPanel');
+    if (!box) return;
+    refreshAdminServerStatus();
+    var s = getAdminState();
+    var hasUpload = s.lastUpload !== '尚未同步';
+    var hasLoad = s.lastLoad !== '尚未拉取';
+    var healthTone = (!isOssConfigured() || !s.fileCount) ? '待配置' : ((s.teamCount && hasUpload) ? '运行正常' : '可继续完善');
+    function card(label, value, hint, tone) {
+        return '<div class="admin-status-card ' + (tone || '') + '"><div class="label">' + escHtml(label) + '</div><div class="value">' +
+            escHtml(value) + '</div><div class="hint">' + escHtml(hint || '') + '</div></div>';
+    }
+    function action(title, desc, buttons) {
+        return '<div class="admin-action-card"><h3>' + title + '</h3><p>' + desc + '</p><div class="btn-row">' + buttons + '</div></div>';
+    }
+    function section(title, sub, body, cls, note) {
+        return '<section class="admin-console-section ' + (cls || '') + '">' +
+            '<div class="admin-section-head"><h2>' + escHtml(title) + '</h2><span>' + escHtml(sub || '') + '</span></div>' +
+            (note ? '<p class="admin-danger-note">' + escHtml(note) + '</p>' : '') +
+            '<div class="admin-action-grid">' + body + '</div></section>';
+    }
+    function recentUploadsHTML() {
+        refreshAdminRecentUploads();
+        if (_adminRecentUploads.loading) {
+            return '<div class="admin-action-card"><h3>同步记录</h3><p>正在读取最近同步记录...</p></div>';
+        }
+        if (!_adminRecentUploads.ok) {
+            return '<div class="admin-action-card"><h3>同步记录</h3><p>' + escHtml(_adminRecentUploads.error || '暂无记录') + '</p><div class="btn-row">' +
+                '<button type="button" class="btn" onclick="openCollabAuthFromAdmin()">🔐 团队登录</button></div></div>';
+        }
+        if (!_adminRecentUploads.items.length) {
+            return '<div class="admin-action-card"><h3>同步记录</h3><p>当前团队还没有同步记录。完成一次“同步团队”后会显示在这里。</p></div>';
+        }
+        return _adminRecentUploads.items.map(function(item) {
+            var meta = [
+                item.group_name || '',
+                item.align_score != null ? ('对齐分 ' + item.align_score) : '',
+                item.spu_count != null ? (item.spu_count + ' SPU') : ''
+            ].filter(Boolean).join(' · ');
+            return '<div class="admin-action-card"><h3>' + escHtml(item.display_name || '未知成员') + '</h3><p>' +
+                escHtml((item.at || '未知时间') + (meta ? ' · ' + meta : '')) +
+                '</p><div class="hint">' + escHtml(item.oss_key || '') + '</div></div>';
+        }).join('');
+    }
+    box.innerHTML =
+        '<div class="admin-console">' +
+        '<div class="admin-overview-head"><div><div class="admin-health-title">系统健康概览</div>' +
+        '<div class="admin-health-sub">团队摘要、OSS、登录、快照与本地数据的控制台总览。</div></div>' +
+        '<div class="admin-health-badge">' + escHtml(healthTone) + '</div></div>' +
+        '<div class="admin-status-grid">' +
+        card('后端服务', s.serverLabel, s.serverHint, isLocalDevServer() ? (_adminServerStatus.ok ? 'is-ok' : 'is-warn') : 'is-warn') +
+        card('团队基准', s.teamCount + ' 条', s.teamPeople ? (s.teamPeople + ' 位同事摘要') : '暂无可用团队基准', s.teamCount ? 'is-ok' : 'is-warn') +
+        card('商品文件', s.fileCount + ' 个', s.productCount + ' 条商品数据', s.fileCount ? 'is-ok' : 'is-warn') +
+        card('店铺记录', s.storeCount + ' 条', '用于团队对齐分', s.storeCount ? 'is-ok' : 'is-warn') +
+        card('本地快照', s.snapshotCount + ' 份', '诊断与周报复盘', s.snapshotCount ? 'is-ok' : 'is-warn') +
+        card('OSS / Key', s.ossLabel, s.keyLabel, isOssConfigured() ? 'is-ok' : 'is-danger') +
+        card('团队账号', s.collabLabel, '协作能力按阶段开放', (typeof getCollabUser === 'function' && getCollabUser()) ? 'is-ok' : 'is-warn') +
+        card('最近同步', s.lastUpload, '上传 JSON 摘要', hasUpload ? 'is-ok' : 'is-warn') +
+        card('最近拉取', s.lastLoad, '刷新团队基准', hasLoad ? 'is-ok' : 'is-warn') +
+        '</div>' +
+        section('团队协作', '摘要同步与团队身份',
+        action('同步团队', '把我的选品与店铺摘要同步到团队基准，原始 Excel 仍保留在本地。',
+            '<button type="button" class="btn-primary-sm" onclick="uploadToCloud()">⬆ 同步团队</button>' +
+            '<button type="button" class="btn" onclick="loadFromCloud()">📥 团队基准</button>') +
+        action('团队登录', '团队账号、分组和主管看板按服务端部署节奏开放；当前公开网页先跑摘要同步。',
+            '<button type="button" class="btn" onclick="openCollabAuthFromAdmin()">🔐 团队登录</button>') +
+        '', '') +
+        section('最近同步记录', '来自 /api/collab/uploads/recent',
+            recentUploadsHTML(), '', '') +
+        section('系统配置', 'OSS、Key 与联调检查',
+        action('同步配置', '配置归属人、OSS 与 Key 托管状态，决定团队摘要写入哪里。',
+            '<button type="button" class="btn" onclick="showOssConfigModal()">⚙ 同步配置</button>' +
+            '<button type="button" class="btn" onclick="runTeamSyncDrill()">🧪 同步测试</button>') +
+        '', '') +
+        section('本地与报表', '保存、日志与复盘输出',
+        action('本地保存', '保存当前解析结果，保留本地工作状态与快照摘要。',
+            '<button type="button" class="btn" onclick="doSave()">💾 本地保存</button>') +
+        action('日志与周报', '查看运行日志、解析过程和团队体系下的个人复盘报告。',
+            '<button type="button" class="btn" onclick="showEventLogModal()">📋 日志</button>' +
+            '<button type="button" class="btn" onclick="exportDiagnosisReport()">📄 周报</button>') +
+        '', '') +
+        section('高风险操作', '需要确认',
+        action('清除本地业务数据', '会清除本地商品、店铺、团队基准与快照数据；OSS 配置和日志按现有逻辑保留。',
+            '<button type="button" class="btn btn-danger-soft" onclick="doClear()">🗑️ 清除本地业务数据</button>'),
+            'is-danger', '执行前请确认已完成必要同步或备份；现有清除流程会再次弹出确认。') +
+        '</div>';
+}
 
 function updateTopbar(pageName) {
     var meta = PAGE_META[pageName] || PAGE_META.import;
@@ -1729,7 +1994,7 @@ function getWorkflowState() {
     return { hasProduct: hasProduct, hasStore: hasStore, ossOk: ossOk, synced: synced, step: step };
 }
 
-var WORKFLOW_PAGES = ['import', 'products', 'import', 'diagnosis'];
+var WORKFLOW_PAGES = ['import', 'pk', 'admin', 'diagnosis'];
 
 function workflowGo(stepId) {
     if (stepId === 2) {
@@ -1749,16 +2014,18 @@ function updateWorkflowStrip() {
     var el = document.getElementById('workflowStrip');
     if (!el) return;
     var w = getWorkflowState();
+    var activePage = document.querySelector('.page.active');
+    var activeName = activePage && activePage.id ? activePage.id.replace('page-', '') : '';
     var labels = [
-        { id: 0, text: '① 导入数据' },
-        { id: 1, text: '② 查看分析' },
-        { id: 2, text: '③ 团队同步' },
-        { id: 3, text: '④ 诊断复盘' }
+        { id: 0, page: 'import', text: '① 团队工作台' },
+        { id: 1, page: 'pk', text: '② 团队对齐分' },
+        { id: 2, page: 'admin', text: '③ 管理后台' },
+        { id: 3, page: 'diagnosis', text: '④ 诊断复盘' }
     ];
     el.innerHTML = labels.map(function(l) {
         var cls = 'workflow-step';
-        if (w.step > l.id) cls += ' done';
-        else if (w.step === l.id) cls += ' current';
+        if (activeName === l.page) cls += ' current';
+        else if (w.step > l.id) cls += ' done';
         return '<div class="' + cls + '" role="button" tabindex="0" title="点击跳转" onclick="workflowGo(' + l.id + ')">' + l.text + '</div>';
     }).join('');
 }
@@ -2053,13 +2320,13 @@ function initUploadZoneDragDrop() {
 function initKeyboardShortcuts() {
     document.addEventListener('keydown', function(e) {
         if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
-        var pages = ['import', 'products', 'rules', 'predict', 'blacklist', 'diagnosis', 'store', 'pk'];
+        var pages = ['import', 'pk', 'diagnosis', 'store', 'products', 'rules', 'blacklist', 'predict'];
         if (e.key >= '1' && e.key <= '8' && !e.ctrlKey && !e.metaKey && !e.altKey) {
             switchPage(pages[parseInt(e.key, 10) - 1]);
             return;
         }
         if (e.key === 'm' || e.key === 'M') { toggleSidebar(); return; }
-        if (e.key === 'l' || e.key === 'L') { showEventLogModal(); return; }
+        if (e.key === 'l' || e.key === 'L') { switchPage('admin'); return; }
     });
 }
 
@@ -2298,7 +2565,7 @@ function isLocalFilePage() {
 function isLocalDevServer() {
     if (isLocalFilePage()) return false;
     var h = location.hostname;
-    return (h === 'localhost' || h === '127.0.0.1') && (location.port === '8080' || location.port === '');
+    return h === 'localhost' || h === '127.0.0.1';
 }
 
 function isHostedWebApp() {
@@ -2320,10 +2587,10 @@ function updateHostedImportUX() {
                 '<button type="button" class="btn" style="padding:4px 10px;font-size:0.78rem;margin-left:4px;" onclick="window.open(HOSTED_PAGES_URL,\'_blank\')">打开链接</button>' +
                 '<span class="dim"> · ' + escHtml(HOSTED_PAGES_URL) + '</span>';
         } else if (isHostedWebApp()) {
-            hint.innerHTML = '<span>网页版</span> <strong>拖 Excel → 🏆 个人 PK</strong> ' +
-                '<span class="dim">· 浏览器本地缓存 · 团队摘要 📥（⚙ OSS 一次）</span>';
+            hint.innerHTML = '<span>网页版</span> <strong>拖 Excel → 🏆 团队对齐分</strong> ' +
+                '<span class="dim">· 浏览器本地缓存 · 后台同步团队摘要</span>';
         } else if (isLocalDevServer()) {
-            hint.innerHTML = '<span>本地模式</span> <strong>导入双 Excel → PK</strong> ' +
+            hint.innerHTML = '<span>本地模式</span> <strong>导入双 Excel → 团队对齐分</strong> ' +
                 '<span class="dim">· .env Key 托管（管理员）</span>';
         }
     }
@@ -3519,10 +3786,15 @@ function switchPage(name) {
     closeMobileSidebar();
     document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
     var pg = document.getElementById('page-'+name); if(pg) pg.classList.add('active');
+    var content = document.querySelector('.content');
+    if (content) content.scrollTop = 0;
+    updateWorkflowStrip();
     document.querySelectorAll('.sidebar-nav a').forEach(function(a){a.classList.remove('active');});
     document.querySelectorAll('.sidebar-nav a').forEach(function(a){
         var oc = a.getAttribute('onclick')||''; if(oc.indexOf("'"+name+"'")!==-1) a.classList.add('active');
     });
+    var adminEntry = document.getElementById('adminEntry');
+    if (adminEntry) adminEntry.classList.toggle('active', name === 'admin');
     updateTopbar(name);
     if (typeof history !== 'undefined' && history.replaceState) {
         try { history.replaceState({ page: name }, '', '#' + name); } catch(e) {}
@@ -3535,6 +3807,7 @@ function switchPage(name) {
     if (name==='import') renderImportPage();
     if (name==='store') renderStorePage();
     if (name==='pk') renderPKPage();
+    if (name==='admin') renderAdminPage();
     recordPageVisit(name);
     if (name === 'import' && typeof renderStageGatePanel === 'function') renderStageGatePanel();
     var activePg = document.getElementById('page-' + name);
@@ -4056,10 +4329,11 @@ window.renderImportPage = (function() {
         ins.className = 'import-insights';
         ins.innerHTML = buildInsightsBarHTML() +
             '<div class="btn-row" style="margin-bottom:8px;">' +
-            '<button type="button" class="btn" onclick="switchPage(\'products\')">📊 商品画像</button>' +
+            (dualOk ? '<button type="button" class="btn" onclick="switchPage(\'pk\')" style="border-color:var(--gold);">🏆 团队对齐分</button>' : '') +
             '<button type="button" class="btn" onclick="switchPage(\'diagnosis\')">📈 个人诊断</button>' +
             (hasStoreData() ? '<button type="button" class="btn" onclick="switchPage(\'store\')">🏪 店铺运营</button>' : '') +
-            (dualOk ? '<button type="button" class="btn" onclick="switchPage(\'pk\')" style="border-color:var(--gold);">🏆 个人 PK</button>' : '') +
+            '<button type="button" class="btn" onclick="switchPage(\'products\')">📊 商品画像</button>' +
+            '<button type="button" class="btn" onclick="switchPage(\'admin\')">⚙ 管理后台</button>' +
             '</div>';
         pg.insertBefore(ins, pg.querySelector('#uploadZone'));
     }
@@ -4439,8 +4713,8 @@ function renderDiagnosis() {
     var toolbar = document.createElement('div');
     toolbar.className = 'page-toolbar';
     toolbar.innerHTML = '<button type="button" class="btn-primary-sm" onclick="exportDiagnosisReport()">📄 导出诊断周报</button>' +
-        '<button type="button" class="btn" onclick="loadFromCloud()">📥 刷新团队基准</button>' +
-        '<span style="color:var(--text-dim);font-size:0.82rem;">Markdown 可发给主管或 AI 复盘</span>';
+        '<button type="button" class="btn" onclick="switchPage(\'admin\')">⚙ 团队后台</button>' +
+        '<span style="color:var(--text-dim);font-size:0.82rem;">团队基准与同步操作集中在后台</span>';
     div.appendChild(toolbar);
     var cmp = compareSnapshots();
     if (!cmp) { pg.appendChild(div); return; }
@@ -4612,7 +4886,7 @@ window.renderStorePage = (function() {
             icon: '🏪',
             title: '还没有店铺运营数据',
             desc: '请上传「店铺数据记录」.xlsx（表头含店铺名称、花费、销售额等），用于 ROAS 与转化分析。',
-            extra: hasProductData() ? '<button type="button" class="btn" onclick="switchPage(\'pk\')">已有选品数据 · 去看个人PK</button>' : ''
+            extra: hasProductData() ? '<button type="button" class="btn" onclick="switchPage(\'pk\')">已有选品数据 · 去看团队对齐分</button>' : ''
         });
         return;
     }
@@ -5031,21 +5305,24 @@ function initAlterPageEnter() {
 
 function renderStyleCompare() {
     var el = document.getElementById('styleCompare');
-    if (!el) return;
+    var switchBtn = document.getElementById('styleSwitch');
     var isEditorial = /editorial/i.test(location.pathname) || document.body.classList.contains('alter-surface');
     var isPages = /github\.io\/temu-PUD/i.test(location.href);
     var other = isPages
         ? (isEditorial ? 'index.html' : 'editorial.html')
         : (isEditorial ? 'temu-dashboard.html' : 'temu-dashboard-editorial.html');
-    el.innerHTML = isEditorial
-        ? '界面对：<strong>异位面（浅色 Editorial）</strong> · 与主界面数据互通 · <a href="' + other + '" class="alter-dim-link">返回主界面（深色）</a>'
-        : '界面对：<strong>主界面（深色）</strong> · <a href="' + other + '" class="alter-dim-link">进入异位面（浅色 Editorial）</a>';
-    var link = el.querySelector('.alter-dim-link');
-    if (link) {
-        link.addEventListener('click', function(e) {
+    if (el) {
+        el.innerHTML = isEditorial
+            ? '界面对：<strong>异位面（浅色 Editorial）</strong> · 右上角可返回深色主界面'
+            : '界面对：<strong>主界面（深色）</strong> · 右上角可切换浅色 Editorial';
+    }
+    if (switchBtn) {
+        switchBtn.textContent = isEditorial ? '深色主界面' : '浅色异位面';
+        switchBtn.title = isEditorial ? '返回深色主界面' : '切换到浅色 Editorial 界面';
+        switchBtn.onclick = function(e) {
             e.preventDefault();
             playAlterVeil(!isEditorial, other);
-        });
+        };
     }
 }
 
