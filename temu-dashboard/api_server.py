@@ -564,6 +564,31 @@ def collab_uploads_recent(cfg: dict, user: dict, limit: int = 20) -> dict:
     return {"ok": True, "role": role, "count": len(items), "items": items}
 
 
+def collab_audit_recent(user: dict, limit: int = 20) -> dict:
+    """Recent database audit events, filtered by the current role."""
+    role = user.get("role", "operator")
+    group_id = user.get("group_id")
+    raw_items = collab_db.recent_audit(limit)
+    items = []
+    for item in raw_items:
+        actor_id = item.get("actor_id")
+        detail = item.get("detail") or {}
+        if role == "operator" and actor_id != user["id"]:
+            continue
+        if role == "supervisor":
+            item_group = detail.get("group_id")
+            if item_group and item_group != group_id and actor_id != user["id"]:
+                continue
+            if not item_group and actor_id != user["id"]:
+                continue
+        if role != "admin" and not actor_id:
+            continue
+        items.append(item)
+        if len(items) >= limit:
+            break
+    return {"ok": True, "role": role, "count": len(items), "items": items}
+
+
 def collab_pk_board(cfg: dict, user: dict) -> dict:
     pk_data = oss_read_json(cfg, collab_key(cfg, "pk_latest.json"), {"entries": {}})
     entries = list((pk_data.get("entries") or {}).values())
@@ -766,6 +791,21 @@ class TemuHandler(SimpleHTTPRequestHandler):
                 limit = 20
             try:
                 self._json_response(HTTPStatus.OK, collab_uploads_recent(cfg, user, limit))
+            except Exception as e:
+                self._json_response(HTTPStatus.BAD_GATEWAY, {"ok": False, "error": str(e)})
+            return
+
+        if path == f"{COLLAB_PREFIX}/audit/recent":
+            if not user:
+                self._json_response(HTTPStatus.UNAUTHORIZED, {"ok": False, "error": "not logged in"})
+                return
+            query = parse_qs(urlparse(self.path).query)
+            try:
+                limit = int((query.get("limit") or ["20"])[0])
+            except (TypeError, ValueError):
+                limit = 20
+            try:
+                self._json_response(HTTPStatus.OK, collab_audit_recent(user, limit))
             except Exception as e:
                 self._json_response(HTTPStatus.BAD_GATEWAY, {"ok": False, "error": str(e)})
             return

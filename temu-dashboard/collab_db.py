@@ -149,6 +149,37 @@ def record_upload(entry: dict[str, Any]) -> None:
     safe_call(_write)
 
 
+def recent_audit(limit: int = 20) -> list[dict[str, Any]]:
+    init_db()
+    limit = max(1, min(int(limit or 20), 100))
+    with connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT actor_id, actor_name, role, action, detail_json, created_at
+            FROM audit_logs
+            ORDER BY created_at DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+    items = []
+    for row in rows:
+        try:
+            detail = json.loads(row["detail_json"] or "{}")
+        except json.JSONDecodeError:
+            detail = {}
+        items.append({
+            "actor_id": row["actor_id"],
+            "actor_name": row["actor_name"] or "",
+            "role": row["role"] or "",
+            "action": row["action"],
+            "detail": detail,
+            "created_at": row["created_at"],
+            "time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(row["created_at"])),
+        })
+    return items
+
+
 def status() -> dict[str, Any]:
     init_db()
     path = db_path()
