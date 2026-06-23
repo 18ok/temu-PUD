@@ -535,20 +535,44 @@ def collab_upload(cfg: dict, user: dict, body: dict) -> dict:
 def collab_uploads_recent(cfg: dict, user: dict, limit: int = 20) -> dict:
     """Recent summary uploads, scoped by role for the admin console."""
     limit = max(1, min(int(limit or 20), 100))
+    role = user.get("role", "operator")
+    group_id = user.get("group_id")
+
+    def allowed(item: dict) -> bool:
+        uid = item.get("user_id")
+        if role == "operator":
+            return uid == user["id"]
+        if role == "supervisor":
+            return item.get("group_id") == group_id or uid == user["id"]
+        return True
+
+    try:
+        db_items = []
+        for item in collab_db.recent_uploads(100):
+            if not allowed(item):
+                continue
+            db_items.append(item)
+            if len(db_items) >= limit:
+                break
+        if db_items:
+            return {
+                "ok": True,
+                "role": role,
+                "source": "sqlite",
+                "count": len(db_items),
+                "items": db_items,
+            }
+    except Exception as exc:
+        print(f"[DB] recent uploads fallback to OSS: {exc}")
+
     log = oss_read_json(cfg, collab_key(cfg, "upload_log.json"), {"version": 1, "items": []})
     pk_data = oss_read_json(cfg, collab_key(cfg, "pk_latest.json"), {"entries": {}})
     latest_by_user = pk_data.get("entries") or {}
-    role = user.get("role", "operator")
-    group_id = user.get("group_id")
     items = []
     for item in reversed(log.get("items", [])):
         uid = item.get("user_id")
         latest = latest_by_user.get(uid, {})
-        if role == "operator" and uid != user["id"]:
-            continue
-        if role == "supervisor" and latest.get("group_id") != group_id and uid != user["id"]:
-            continue
-        items.append({
+        scoped = {
             "user_id": uid,
             "display_name": item.get("display_name", ""),
             "group_id": latest.get("group_id"),
@@ -558,10 +582,13 @@ def collab_uploads_recent(cfg: dict, user: dict, limit: int = 20) -> dict:
             "align_score": latest.get("align_score"),
             "spu_count": latest.get("spu_count"),
             "store_count": latest.get("store_count"),
-        })
+        }
+        if not allowed(scoped):
+            continue
+        items.append(scoped)
         if len(items) >= limit:
             break
-    return {"ok": True, "role": role, "count": len(items), "items": items}
+    return {"ok": True, "role": role, "source": "oss", "count": len(items), "items": items}
 
 
 def collab_audit_recent(user: dict, limit: int = 20) -> dict:

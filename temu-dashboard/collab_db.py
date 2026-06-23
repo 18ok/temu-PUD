@@ -149,6 +149,39 @@ def record_upload(entry: dict[str, Any]) -> None:
     safe_call(_write)
 
 
+def recent_uploads(limit: int = 20) -> list[dict[str, Any]]:
+    init_db()
+    limit = max(1, min(int(limit or 20), 100))
+    with connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT user_id, display_name, group_id, group_name, oss_key,
+                   align_score, score_label, spu_count, store_count, uploaded_at,
+                   created_at
+            FROM upload_index
+            ORDER BY created_at DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+    return [
+        {
+            "user_id": row["user_id"],
+            "display_name": row["display_name"] or "",
+            "group_id": row["group_id"],
+            "group_name": row["group_name"] or "",
+            "at": row["uploaded_at"],
+            "oss_key": row["oss_key"],
+            "align_score": row["align_score"],
+            "score_label": row["score_label"],
+            "spu_count": row["spu_count"],
+            "store_count": row["store_count"],
+            "created_at": row["created_at"],
+        }
+        for row in rows
+    ]
+
+
 def recent_audit(limit: int = 20) -> list[dict[str, Any]]:
     init_db()
     limit = max(1, min(int(limit or 20), 100))
