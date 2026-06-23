@@ -1,3 +1,13 @@
 .env
 *.pyc
 __pycache__/
+*.log
+temp_script*.py
+_server_*.log
+_audit_*.py
+_check_*.py
+_inspect_*.py
+apply_discount_formulas.py
+apply_discount_simple.py
+Temu选品助手-*-组员试用包/
+Temu选品助手-*-组员试用包.zip
