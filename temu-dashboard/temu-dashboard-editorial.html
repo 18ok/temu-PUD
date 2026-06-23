@@ -2029,7 +2029,7 @@ function renderAdminPage() {
         }
         return action('同步团队', '把我的选品与店铺摘要同步到团队基准，原始 Excel 仍保留在本地。',
             '<button type="button" class="btn-primary-sm" onclick="uploadToCloud()">⬆ 同步团队</button>' +
-            '<button type="button" class="btn" onclick="loadFromCloud()">📥 团队基准</button>') +
+            '<button type="button" class="btn" onclick="loadFromCloudWithAdminConfirm()">📥 团队基准</button>') +
             action('团队登录', '团队账号、分组和主管看板按服务端部署节奏开放；当前公开网页先跑摘要同步。',
             '<button type="button" class="btn" onclick="openCollabAuthFromAdmin()">🔐 团队登录</button>');
     }
@@ -2046,7 +2046,7 @@ function renderAdminPage() {
             return blockedAction('清除本地业务数据', '清除动作会影响本机分析状态，普通运营不在后台直接暴露入口。', '需要管理员');
         }
         return action('清除本地业务数据', '会清除本地商品、店铺、团队基准与快照数据；OSS 配置和日志按现有逻辑保留。',
-            '<button type="button" class="btn btn-danger-soft" onclick="doClear()">🗑️ 清除本地业务数据</button>');
+            '<button type="button" class="btn btn-danger-soft" onclick="doClearWithAdminConfirm()">🗑️ 清除本地业务数据</button>');
     }
     box.innerHTML =
         '<div class="admin-console">' +
@@ -3465,6 +3465,25 @@ function loadFromCloud() {
     });
 }
 
+function loadFromCloudWithAdminConfirm() {
+    var body = '<p style="color:var(--text-dim);margin-bottom:10px;">这会刷新本机当前团队基准，用于后续对齐分、诊断和周报复盘。</p>' +
+        '<p style="color:var(--warning-text);margin-bottom:12px;">如果当前正在做个人复盘，建议先本地保存一次。</p>' +
+        '<label style="display:block;color:var(--text-dim);font-size:0.86rem;">输入 <b style="color:var(--gold);">拉取</b> 后继续<br>' +
+        '<input id="admin_confirm_pull" style="width:100%;padding:9px 10px;margin-top:6px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>';
+    showModal('确认拉取团队基准', body, '确认拉取', function(overlay) {
+        var val = ((overlay.querySelector('#admin_confirm_pull') || {}).value || '').trim();
+        if (val !== '拉取') {
+            toast('请输入“拉取”确认操作', 'warning');
+            return false;
+        }
+        loadFromCloud();
+        return true;
+    }, function(overlay) {
+        var input = overlay.querySelector('#admin_confirm_pull');
+        if (input) input.focus();
+    });
+}
+
 function executeTeamDrillUploadPull(cfg, myOwner, pushLine) {
     var summary = buildTeamDrillSummary();
     var slug = ownerPathSlug(TEAM_DRILL_OWNER);
@@ -3946,6 +3965,28 @@ function doClear() {
     showModal('确认清除', '<p style="color:var(--text-dim);">将清除 <b style="color:var(--danger-text);">全部</b> 本地数据（商品 '+ST.files.length+' · 店铺 '+(ST.storeData?ST.storeData.length:0)+' · 团队 '+(ST.teamProducts?ST.teamProducts.length:0)+' · 快照 '+ST.snapshots.length+'）</p>', '确认清除', function(){
         clearAllData();
         renderImportPage();
+    });
+}
+
+function doClearWithAdminConfirm() {
+    var body = '<p style="color:var(--text-dim);margin-bottom:10px;">将进入清除流程：商品 ' + ST.files.length +
+        ' · 店铺 ' + (ST.storeData ? ST.storeData.length : 0) +
+        ' · 团队 ' + (ST.teamProducts ? ST.teamProducts.length : 0) +
+        ' · 快照 ' + ST.snapshots.length + '。</p>' +
+        '<p style="color:var(--danger-text);margin-bottom:12px;">此操作只清本机业务数据，不删除云端 OSS 摘要；下一步仍会出现系统原有确认框。</p>' +
+        '<label style="display:block;color:var(--text-dim);font-size:0.86rem;">输入 <b style="color:var(--danger-text);">清除</b> 后继续<br>' +
+        '<input id="admin_confirm_clear" style="width:100%;padding:9px 10px;margin-top:6px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>';
+    showModal('高风险确认', body, '继续清除', function(overlay) {
+        var val = ((overlay.querySelector('#admin_confirm_clear') || {}).value || '').trim();
+        if (val !== '清除') {
+            toast('请输入“清除”确认操作', 'warning');
+            return false;
+        }
+        doClear();
+        return true;
+    }, function(overlay) {
+        var input = overlay.querySelector('#admin_confirm_clear');
+        if (input) input.focus();
     });
 }
 
