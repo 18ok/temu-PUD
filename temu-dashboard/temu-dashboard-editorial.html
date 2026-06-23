@@ -230,6 +230,29 @@
         .admin-action-card.is-disabled .btn {
             pointer-events: none; filter: grayscale(1);
         }
+        .admin-log-list {
+            grid-column: 1 / -1;
+            display: grid; gap: 8px;
+        }
+        .admin-log-row {
+            display: grid; grid-template-columns: minmax(160px, 1.1fr) minmax(220px, 2fr) auto;
+            gap: 12px; align-items: center;
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); padding: 10px 12px;
+        }
+        .admin-log-main {
+            color: var(--text); font-weight: 700; font-size: 0.88rem;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .admin-log-meta {
+            color: var(--text-dim); font-size: 0.8rem;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .admin-log-badge {
+            color: var(--gold); border: 1px solid rgba(184,132,58,0.26);
+            border-radius: 999px; padding: 4px 8px; font-size: 0.72rem;
+            background: rgba(184,132,58,0.08); white-space: nowrap;
+        }
         .main { flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100vh; overflow: hidden; }
         .topbar {
             display: flex; align-items: center; gap: 14px;
@@ -1926,7 +1949,7 @@ function refreshAdminRecentUploads() {
             return d;
         });
     }).then(function(data) {
-        _adminRecentUploads = { checked: true, loading: false, ok: true, items: data.items || [], error: '', token: token };
+        _adminRecentUploads = { checked: true, loading: false, ok: true, source: data.source || '', items: data.items || [], error: '', token: token };
         if (document.getElementById('page-admin') && document.getElementById('page-admin').classList.contains('active')) {
             renderAdminPage();
         }
@@ -1988,6 +2011,7 @@ function getAdminState() {
     var serverData = st.data || {};
     var serverOss = serverData.oss || {};
     var serverDb = serverData.database || {};
+    var dbCount = (serverDb.upload_count || 0) + (serverDb.audit_count || 0);
     return {
         serverLabel: isLocalDevServer()
             ? (st.loading ? '检测中' : (st.ok ? '在线' : (st.checked ? '离线' : '待检测')))
@@ -2005,6 +2029,7 @@ function getAdminState() {
         keyLabel: serverOss.configured ? 'Key·服务端' : (isOssServerKeyMode() ? 'Key·服务端' : (isOssConfigured() ? '浏览器 Key' : '待配置')),
         dbLabel: serverDb.engine ? (serverDb.engine + ' · ' + (serverDb.exists ? '已启用' : '待创建')) : '待检测',
         dbHint: serverDb.engine ? ((serverDb.upload_count || 0) + ' 条上传索引 · ' + (serverDb.audit_count || 0) + ' 条审计') : '协作索引库',
+        dbTone: serverDb.engine && dbCount > 0 ? 'is-ok' : 'is-warn',
         collabLabel: '分阶段开放',
         lastUpload: lastUpload && lastUpload.time ? lastUpload.time : '尚未同步',
         lastLoad: lastLoad && lastLoad.time ? lastLoad.time : '尚未拉取',
@@ -2042,6 +2067,13 @@ function renderAdminPage() {
             (note ? '<p class="admin-danger-note">' + escHtml(note) + '</p>' : '') +
             '<div class="admin-action-grid">' + body + '</div></section>';
     }
+    function uploadSourceLabel() {
+        if (_adminRecentUploads.loading) return '读取中';
+        if (!_adminRecentUploads.ok) return '等待登录';
+        if (_adminRecentUploads.source === 'sqlite') return 'SQLite 索引';
+        if (_adminRecentUploads.source === 'oss') return 'OSS 兜底';
+        return '来源待确认';
+    }
     function recentUploadsHTML() {
         refreshAdminRecentUploads();
         if (_adminRecentUploads.loading) {
@@ -2054,16 +2086,17 @@ function renderAdminPage() {
         if (!_adminRecentUploads.items.length) {
             return '<div class="admin-action-card"><h3>同步记录</h3><p>当前团队还没有同步记录。完成一次“同步团队”后会显示在这里。</p></div>';
         }
-        return _adminRecentUploads.items.map(function(item) {
+        var rows = _adminRecentUploads.items.map(function(item) {
             var meta = [
                 item.group_name || '',
                 item.align_score != null ? ('对齐分 ' + item.align_score) : '',
                 item.spu_count != null ? (item.spu_count + ' SPU') : ''
             ].filter(Boolean).join(' · ');
-            return '<div class="admin-action-card"><h3>' + escHtml(item.display_name || '未知成员') + '</h3><p>' +
-                escHtml((item.at || '未知时间') + (meta ? ' · ' + meta : '')) +
-                '</p><div class="hint">' + escHtml(item.oss_key || '') + '</div></div>';
+            return '<div class="admin-log-row"><div class="admin-log-main">' + escHtml(item.display_name || '未知成员') +
+                '</div><div class="admin-log-meta">' + escHtml((item.at || '未知时间') + (meta ? ' · ' + meta : '')) +
+                '</div><div class="admin-log-badge">' + escHtml(uploadSourceLabel() + (item.oss_key ? ' · 已归档' : ' · 本地记录')) + '</div></div>';
         }).join('');
+        return '<div class="admin-log-list">' + rows + '</div>';
     }
     function recentAuditHTML() {
         refreshAdminRecentAudit();
@@ -2077,11 +2110,12 @@ function renderAdminPage() {
         if (!_adminRecentAudit.items.length) {
             return '<div class="admin-action-card"><h3>后台动作</h3><p>数据库暂未记录后台动作。登录、注册、同步后会出现在这里。</p></div>';
         }
-        return _adminRecentAudit.items.map(function(item) {
-            return '<div class="admin-action-card"><h3>' + escHtml(item.action || 'unknown') + '</h3><p>' +
-                escHtml((item.time || '') + (item.actor_name ? ' · ' + item.actor_name : '')) +
-                '</p><div class="hint">' + escHtml(item.role || '') + '</div></div>';
+        var rows = _adminRecentAudit.items.map(function(item) {
+            return '<div class="admin-log-row"><div class="admin-log-main">' + escHtml(item.action || 'unknown') +
+                '</div><div class="admin-log-meta">' + escHtml((item.time || '') + (item.actor_name ? ' · ' + item.actor_name : '')) +
+                '</div><div class="admin-log-badge">' + escHtml(item.role || 'system') + '</div></div>';
         }).join('');
+        return '<div class="admin-log-list">' + rows + '</div>';
     }
     function collabActionsHTML() {
         if (!adminPerm.collab_sync && !adminPerm.team_benchmark && !isDeveloper) {
@@ -2111,7 +2145,7 @@ function renderAdminPage() {
     box.innerHTML =
         '<div class="admin-console">' +
         '<div class="admin-overview-head"><div><div class="admin-health-title">系统健康概览</div>' +
-        '<div class="admin-health-sub">团队摘要、OSS、登录、快照与本地数据的控制台总览。</div></div>' +
+        '<div class="admin-health-sub">本地数据 / 团队同步 / OSS Key / 协作登录状态的控制台总览。</div></div>' +
         '<div class="admin-health-badge">' + escHtml(healthTone + ' · ' + (isDeveloper ? 'developer' : adminRole)) + '</div></div>' +
         '<div class="admin-status-grid">' +
         card('后端服务', s.serverLabel, s.serverHint, isLocalDevServer() ? (_adminServerStatus.ok ? 'is-ok' : 'is-warn') : 'is-warn') +
@@ -2120,13 +2154,13 @@ function renderAdminPage() {
         card('店铺记录', s.storeCount + ' 条', '用于团队对齐分', s.storeCount ? 'is-ok' : 'is-warn') +
         card('本地快照', s.snapshotCount + ' 份', '诊断与周报复盘', s.snapshotCount ? 'is-ok' : 'is-warn') +
         card('OSS / Key', s.ossLabel, s.keyLabel, isOssConfigured() ? 'is-ok' : 'is-danger') +
-        card('协作数据库', s.dbLabel, s.dbHint, (_adminServerStatus.ok && s.dbLabel !== '待检测') ? 'is-ok' : 'is-warn') +
+        card('协作数据库', s.dbLabel, s.dbHint, (_adminServerStatus.ok && s.dbLabel !== '待检测') ? s.dbTone : 'is-warn') +
         card('团队账号', s.collabLabel, '协作能力按阶段开放', (typeof getCollabUser === 'function' && getCollabUser()) ? 'is-ok' : 'is-warn') +
         card('最近同步', s.lastUpload, '上传 JSON 摘要', hasUpload ? 'is-ok' : 'is-warn') +
         card('最近拉取', s.lastLoad, '刷新团队基准', hasLoad ? 'is-ok' : 'is-warn') +
         '</div>' +
         section('团队协作', '摘要同步与团队身份', collabActionsHTML(), '', '') +
-        section('最近同步记录', '来自 /api/collab/uploads/recent',
+        section('最近同步记录', uploadSourceLabel() + ' · /api/collab/uploads/recent',
             recentUploadsHTML(), '', '') +
         section('最近后台动作', '来自 SQLite audit_logs',
             recentAuditHTML(), '', '') +

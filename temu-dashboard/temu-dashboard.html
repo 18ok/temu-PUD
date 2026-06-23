@@ -1915,7 +1915,7 @@ function refreshAdminRecentUploads() {
             return d;
         });
     }).then(function(data) {
-        _adminRecentUploads = { checked: true, loading: false, ok: true, items: data.items || [], error: '', token: token };
+        _adminRecentUploads = { checked: true, loading: false, ok: true, source: data.source || '', items: data.items || [], error: '', token: token };
         if (document.getElementById('page-admin') && document.getElementById('page-admin').classList.contains('active')) {
             renderAdminPage();
         }
@@ -2034,6 +2034,13 @@ function renderAdminPage() {
             (note ? '<p class="admin-danger-note">' + escHtml(note) + '</p>' : '') +
             '<div class="admin-action-grid">' + body + '</div></section>';
     }
+    function uploadSourceLabel() {
+        if (_adminRecentUploads.loading) return '读取中';
+        if (!_adminRecentUploads.ok) return '等待登录';
+        if (_adminRecentUploads.source === 'sqlite') return 'SQLite 索引';
+        if (_adminRecentUploads.source === 'oss') return 'OSS 兜底';
+        return '来源待确认';
+    }
     function recentUploadsHTML() {
         refreshAdminRecentUploads();
         if (_adminRecentUploads.loading) {
@@ -2054,7 +2061,7 @@ function renderAdminPage() {
             ].filter(Boolean).join(' · ');
             return '<div class="admin-log-row"><div class="admin-log-main">' + escHtml(item.display_name || '未知成员') +
                 '</div><div class="admin-log-meta">' + escHtml((item.at || '未知时间') + (meta ? ' · ' + meta : '')) +
-                '</div><div class="admin-log-badge">' + escHtml(item.oss_key ? '已归档' : '本地记录') + '</div></div>';
+                '</div><div class="admin-log-badge">' + escHtml(uploadSourceLabel() + (item.oss_key ? ' · 已归档' : ' · 本地记录')) + '</div></div>';
         }).join('');
         return '<div class="admin-log-list">' + rows + '</div>';
     }
@@ -2120,7 +2127,7 @@ function renderAdminPage() {
         card('最近拉取', s.lastLoad, '刷新团队基准', hasLoad ? 'is-ok' : 'is-warn') +
         '</div>' +
         section('团队协作', '摘要同步与团队身份', collabActionsHTML(), '', '') +
-        section('最近同步记录', '来自 /api/collab/uploads/recent',
+        section('最近同步记录', uploadSourceLabel() + ' · /api/collab/uploads/recent',
             recentUploadsHTML(), '', '') +
         section('最近后台动作', '来自 SQLite audit_logs',
             recentAuditHTML(), '', '') +

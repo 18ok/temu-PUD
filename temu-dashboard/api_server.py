@@ -547,21 +547,19 @@ def collab_uploads_recent(cfg: dict, user: dict, limit: int = 20) -> dict:
         return True
 
     try:
-        db_items = []
-        for item in collab_db.recent_uploads(100):
-            if not allowed(item):
-                continue
-            db_items.append(item)
-            if len(db_items) >= limit:
-                break
-        if db_items:
-            return {
-                "ok": True,
-                "role": role,
-                "source": "sqlite",
-                "count": len(db_items),
-                "items": db_items,
-            }
+        db_items = collab_db.recent_uploads(
+            limit,
+            role=role,
+            user_id=user.get("id"),
+            group_id=group_id,
+        )
+        return {
+            "ok": True,
+            "role": role,
+            "source": "sqlite",
+            "count": len(db_items),
+            "items": db_items,
+        }
     except Exception as exc:
         print(f"[DB] recent uploads fallback to OSS: {exc}")
 

@@ -149,20 +149,46 @@ def record_upload(entry: dict[str, Any]) -> None:
     safe_call(_write)
 
 
-def recent_uploads(limit: int = 20) -> list[dict[str, Any]]:
+def recent_uploads(
+    limit: int = 20,
+    *,
+    role: str = "admin",
+    user_id: str | None = None,
+    group_id: str | None = None,
+) -> list[dict[str, Any]]:
     init_db()
     limit = max(1, min(int(limit or 20), 100))
+    params: list[Any] = []
+    where = ""
+    if role == "operator":
+        if not user_id:
+            return []
+        where = "WHERE user_id = ?"
+        params.append(user_id)
+    elif role == "supervisor":
+        clauses = []
+        if group_id:
+            clauses.append("group_id = ?")
+            params.append(group_id)
+        if user_id:
+            clauses.append("user_id = ?")
+            params.append(user_id)
+        if not clauses:
+            return []
+        where = "WHERE " + " OR ".join(clauses)
+    params.append(limit)
     with connect() as conn:
         rows = conn.execute(
-            """
+            f"""
             SELECT user_id, display_name, group_id, group_name, oss_key,
                    align_score, score_label, spu_count, store_count, uploaded_at,
                    created_at
             FROM upload_index
+            {where}
             ORDER BY created_at DESC
             LIMIT ?
             """,
-            (limit,),
+            params,
         ).fetchall()
     return [
         {
