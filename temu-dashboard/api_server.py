@@ -25,6 +25,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, urlparse
 from urllib.request import Request, urlopen
 
+import collab_db
+
 PORT = int(os.environ.get("TEMU_API_PORT", "8080"))
 PROXY_PATH = "/__temu_oss__"
 SYNC_API_PATH = "/api/sync"
@@ -407,6 +409,7 @@ def collab_register(cfg: dict, body: dict) -> dict:
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
     save_user(cfg, user)
+    collab_db.record_audit("collab_register", user, {"group_id": group_id, "role": role})
     token = make_jwt({"sub": user["id"], "role": role, "group_id": group_id})
     return {
         "ok": True,
@@ -427,6 +430,7 @@ def collab_login(cfg: dict, body: dict) -> dict:
     user = find_user_by_name(cfg, display_name)
     if not user or not verify_password(password, user.get("password_hash", "")):
         raise ValueError("姓名或密码错误")
+    collab_db.record_audit("collab_login", user, {"group_id": user.get("group_id")})
     token = make_jwt({
         "sub": user["id"],
         "role": user.get("role", "operator"),
@@ -518,6 +522,13 @@ def collab_upload(cfg: dict, user: dict, body: dict) -> dict:
     if len(log["items"]) > 500:
         log["items"] = log["items"][-500:]
     oss_write_json(cfg, collab_key(cfg, "upload_log.json"), log)
+    collab_db.record_upload(entry)
+    collab_db.record_audit("collab_upload", user, {
+        "oss_key": key,
+        "align_score": entry.get("align_score"),
+        "spu_count": entry.get("spu_count"),
+        "store_count": entry.get("store_count"),
+    })
     return {"ok": True, "key": key, "entry": entry}
 
 
@@ -618,6 +629,7 @@ def build_status_payload() -> dict:
             "prefix": cfg.get("prefix") if cfg else None,
             "key_mode": "server-env" if cfg else "missing",
         },
+        "database": collab_db.status(),
         "features": {
             "static_files": True,
             "sync_api": True,

@@ -11,3 +11,5 @@ apply_discount_formulas.py
 apply_discount_simple.py
 Temu选品助手-*-组员试用包/
 Temu选品助手-*-组员试用包.zip
+data/*.sqlite3
+data/*.sqlite3-*

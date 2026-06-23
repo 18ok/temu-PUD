@@ -1915,6 +1915,7 @@ function getAdminState() {
     var st = _adminServerStatus || {};
     var serverData = st.data || {};
     var serverOss = serverData.oss || {};
+    var serverDb = serverData.database || {};
     return {
         serverLabel: isLocalDevServer()
             ? (st.loading ? '检测中' : (st.ok ? '在线' : (st.checked ? '离线' : '待检测')))
@@ -1930,6 +1931,8 @@ function getAdminState() {
         teamPeople: lastLoad && lastLoad.people ? lastLoad.people : 0,
         ossLabel: serverOss.configured ? (serverOss.bucket || '已配置') : (isOssConfigured() ? ((cfg && cfg.bucket) || '已配置') : '未配置'),
         keyLabel: serverOss.configured ? 'Key·服务端' : (isOssServerKeyMode() ? 'Key·服务端' : (isOssConfigured() ? '浏览器 Key' : '待配置')),
+        dbLabel: serverDb.engine ? (serverDb.engine + ' · ' + (serverDb.exists ? '已启用' : '待创建')) : '待检测',
+        dbHint: serverDb.engine ? ((serverDb.upload_count || 0) + ' 条上传索引 · ' + (serverDb.audit_count || 0) + ' 条审计') : '协作索引库',
         collabLabel: u && u.display_name ? (u.display_name + (u.group_name ? ' · ' + u.group_name : '')) : '未登录',
         lastUpload: lastUpload && lastUpload.time ? lastUpload.time : '尚未同步',
         lastLoad: lastLoad && lastLoad.time ? lastLoad.time : '尚未拉取',
@@ -2027,6 +2030,7 @@ function renderAdminPage() {
         card('店铺记录', s.storeCount + ' 条', '用于团队对齐分', s.storeCount ? 'is-ok' : 'is-warn') +
         card('本地快照', s.snapshotCount + ' 份', '诊断与周报复盘', s.snapshotCount ? 'is-ok' : 'is-warn') +
         card('OSS / Key', s.ossLabel, s.keyLabel, isOssConfigured() ? 'is-ok' : 'is-danger') +
+        card('协作数据库', s.dbLabel, s.dbHint, (_adminServerStatus.ok && s.dbLabel !== '待检测') ? 'is-ok' : 'is-warn') +
         card('团队账号', s.collabLabel, '协作能力分阶段开放', (typeof getCollabUser === 'function' && getCollabUser()) ? 'is-ok' : 'is-warn') +
         card('最近同步', s.lastUpload, '上传 JSON 摘要', hasUpload ? 'is-ok' : 'is-warn') +
         card('最近拉取', s.lastLoad, '刷新团队基准', hasLoad ? 'is-ok' : 'is-warn') +
