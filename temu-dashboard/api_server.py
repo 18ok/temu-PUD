@@ -445,6 +445,28 @@ def collab_login(cfg: dict, body: dict) -> dict:
     }
 
 
+def collab_permissions(user: dict) -> dict:
+    """Role capability map consumed by the admin console."""
+    role = user.get("role", "operator")
+    is_supervisor = role in ("supervisor", "admin")
+    is_admin = role == "admin"
+    return {
+        "ok": True,
+        "role": role,
+        "permissions": {
+            "local_save": True,
+            "view_logs": True,
+            "export_weekly": True,
+            "collab_sync": is_supervisor,
+            "team_benchmark": is_supervisor,
+            "team_pk_board": is_supervisor,
+            "sync_config": is_admin,
+            "sync_test": is_admin,
+            "clear_local": is_admin,
+        },
+    }
+
+
 def collab_upload(cfg: dict, user: dict, body: dict) -> dict:
     summary = body.get("summary")
     if not summary or not isinstance(summary, dict):
@@ -606,6 +628,7 @@ def build_status_payload() -> dict:
             "status": STATUS_API_PATH,
             "sync": SYNC_API_PATH,
             "collab": f"{COLLAB_PREFIX}/*",
+            "collab_permissions": f"{COLLAB_PREFIX}/permissions",
             "legacy_proxy": PROXY_PATH,
         },
     }
@@ -691,6 +714,13 @@ class TemuHandler(SimpleHTTPRequestHandler):
                     "role": user.get("role"),
                 },
             })
+            return
+
+        if path == f"{COLLAB_PREFIX}/permissions":
+            if not user:
+                self._json_response(HTTPStatus.UNAUTHORIZED, {"ok": False, "error": "not logged in"})
+                return
+            self._json_response(HTTPStatus.OK, collab_permissions(user))
             return
 
         if path == f"{COLLAB_PREFIX}/team/pk-board":

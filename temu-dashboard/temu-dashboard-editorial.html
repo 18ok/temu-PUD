@@ -1790,6 +1790,7 @@ function openCollabAuthFromAdmin() {
 
 var _adminServerStatus = { checked: false, loading: false, ok: false, data: null, error: '' };
 var _adminRecentUploads = { checked: false, loading: false, ok: false, items: [], error: '', token: '' };
+var _adminPermissions = { checked: false, loading: false, ok: false, role: 'operator', permissions: null, token: '', error: '' };
 
 function refreshAdminServerStatus() {
     if (!isLocalDevServer()) {
@@ -1820,6 +1821,84 @@ function refreshAdminServerStatus() {
 function getAdminCollabToken() {
     if (typeof getCollabToken === 'function') return getCollabToken();
     return localStorage.getItem('temu_v6_collab_token') || '';
+}
+
+function getAdminCollabUser() {
+    if (typeof getCollabUser === 'function') return getCollabUser();
+    try { return JSON.parse(localStorage.getItem('temu_v6_collab_user') || 'null'); } catch(e) { return null; }
+}
+
+function defaultAdminPermissions(role) {
+    var isSupervisor = role === 'supervisor' || role === 'admin';
+    var isAdmin = role === 'admin';
+    return {
+        local_save: true,
+        view_logs: true,
+        export_weekly: true,
+        collab_sync: isSupervisor,
+        team_benchmark: isSupervisor,
+        team_pk_board: isSupervisor,
+        sync_config: isAdmin,
+        sync_test: isAdmin,
+        clear_local: isAdmin
+    };
+}
+
+function refreshAdminPermissions() {
+    var token = getAdminCollabToken();
+    var u = getAdminCollabUser();
+    if (!isLocalDevServer() || !token) {
+        _adminPermissions = {
+            checked: true, loading: false, ok: false,
+            role: u && u.role ? u.role : 'operator',
+            permissions: defaultAdminPermissions(u && u.role ? u.role : 'operator'),
+            token: token || '', error: token ? '网页模式暂不读取权限' : '未登录'
+        };
+        return Promise.resolve(_adminPermissions);
+    }
+    if (_adminPermissions.checked && _adminPermissions.token === token) return Promise.resolve(_adminPermissions);
+    if (_adminPermissions.loading) return Promise.resolve(_adminPermissions);
+    _adminPermissions.loading = true;
+    _adminPermissions.token = token;
+    return fetch('/api/collab/permissions', {
+        method: 'GET',
+        cache: 'no-store',
+        headers: { 'Authorization': 'Bearer ' + token }
+    }).then(function(r) {
+        return r.json().then(function(d) {
+            if (!r.ok || !d.ok) throw new Error((d && d.error) || ('HTTP ' + r.status));
+            return d;
+        });
+    }).then(function(data) {
+        _adminPermissions = {
+            checked: true, loading: false, ok: true,
+            role: data.role || (u && u.role) || 'operator',
+            permissions: data.permissions || defaultAdminPermissions((u && u.role) || 'operator'),
+            token: token, error: ''
+        };
+        if (document.getElementById('page-admin') && document.getElementById('page-admin').classList.contains('active')) {
+            renderAdminPage();
+        }
+        return _adminPermissions;
+    }).catch(function(e) {
+        _adminPermissions = {
+            checked: true, loading: false, ok: false,
+            role: u && u.role ? u.role : 'operator',
+            permissions: defaultAdminPermissions(u && u.role ? u.role : 'operator'),
+            token: token, error: e.message || '权限读取失败'
+        };
+        if (document.getElementById('page-admin') && document.getElementById('page-admin').classList.contains('active')) {
+            renderAdminPage();
+        }
+        return _adminPermissions;
+    });
+}
+
+function getAdminPermissionsState() {
+    var u = getAdminCollabUser();
+    var role = (_adminPermissions && _adminPermissions.role) || (u && u.role) || 'operator';
+    var permissions = (_adminPermissions && _adminPermissions.permissions) || defaultAdminPermissions(role);
+    return { role: role, permissions: permissions };
 }
 
 function refreshAdminRecentUploads() {
@@ -1895,11 +1974,11 @@ function renderAdminPage() {
     var box = document.getElementById('adminPanel');
     if (!box) return;
     refreshAdminServerStatus();
+    refreshAdminPermissions();
     var s = getAdminState();
-    var adminUser = typeof getCollabUser === 'function' ? getCollabUser() : null;
-    var adminRole = adminUser && adminUser.role ? adminUser.role : 'operator';
-    var isSupervisor = adminRole === 'supervisor' || adminRole === 'admin';
-    var isAdmin = adminRole === 'admin';
+    var permState = getAdminPermissionsState();
+    var adminRole = permState.role;
+    var adminPerm = permState.permissions || {};
     var isDeveloper = localStorage.getItem('temu_v6_admin_role') === 'developer';
     var hasUpload = s.lastUpload !== '尚未同步';
     var hasLoad = s.lastLoad !== '尚未拉取';
@@ -1945,7 +2024,7 @@ function renderAdminPage() {
         }).join('');
     }
     function collabActionsHTML() {
-        if (!isSupervisor && !isAdmin && !isDeveloper) {
+        if (!adminPerm.collab_sync && !adminPerm.team_benchmark && !isDeveloper) {
             return blockedAction('团队协作操作', '普通运营后台只保留查看和本地动作；团队同步、拉取基准由主管或管理员执行。', '当前：普通运营');
         }
         return action('同步团队', '把我的选品与店铺摘要同步到团队基准，原始 Excel 仍保留在本地。',
@@ -1955,7 +2034,7 @@ function renderAdminPage() {
             '<button type="button" class="btn" onclick="openCollabAuthFromAdmin()">🔐 团队登录</button>');
     }
     function configActionsHTML() {
-        if (!isAdmin && !isDeveloper) {
+        if (!adminPerm.sync_config && !adminPerm.sync_test && !isDeveloper) {
             return blockedAction('同步配置', 'OSS、Key 托管和同步测试会影响全队数据入口，需管理员或开发者处理。', '需要管理员/开发者');
         }
         return action('同步配置', '配置归属人、OSS 与 Key 托管状态，决定团队摘要写入哪里。',
@@ -1963,7 +2042,7 @@ function renderAdminPage() {
             '<button type="button" class="btn" onclick="runTeamSyncDrill()">🧪 同步测试</button>');
     }
     function dangerActionsHTML() {
-        if (!isAdmin && !isDeveloper) {
+        if (!adminPerm.clear_local && !isDeveloper) {
             return blockedAction('清除本地业务数据', '清除动作会影响本机分析状态，普通运营不在后台直接暴露入口。', '需要管理员');
         }
         return action('清除本地业务数据', '会清除本地商品、店铺、团队基准与快照数据；OSS 配置和日志按现有逻辑保留。',
