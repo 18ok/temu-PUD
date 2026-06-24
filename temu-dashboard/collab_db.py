@@ -15,7 +15,30 @@ from pathlib import Path
 from typing import Any
 
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
+
+DEFAULT_SCOPE = {
+    "workspace_id": "default",
+    "company_id": "personal",
+    "project_id": "temu",
+    "platform": "temu",
+    "data_sensitivity": "company_internal",
+}
+
+
+def scope_from_entry(entry: dict[str, Any] | None) -> dict[str, str]:
+    entry = entry or {}
+    raw_scope = entry.get("scope") if isinstance(entry.get("scope"), dict) else {}
+    return {
+        key: str(entry.get(key) or raw_scope.get(key) or fallback).strip() or fallback
+        for key, fallback in DEFAULT_SCOPE.items()
+    }
+
+
+def ensure_column(conn: sqlite3.Connection, table: str, column: str, ddl: str) -> None:
+    existing = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+    if column not in existing:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}")
 
 
 def db_path() -> Path:
@@ -46,6 +69,11 @@ def init_db() -> None:
 
             CREATE TABLE IF NOT EXISTS upload_index (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                workspace_id TEXT NOT NULL DEFAULT 'default',
+                company_id TEXT NOT NULL DEFAULT 'personal',
+                project_id TEXT NOT NULL DEFAULT 'temu',
+                platform TEXT NOT NULL DEFAULT 'temu',
+                data_sensitivity TEXT NOT NULL DEFAULT 'company_internal',
                 user_id TEXT NOT NULL,
                 display_name TEXT NOT NULL,
                 group_id TEXT,
@@ -64,9 +92,16 @@ def init_db() -> None:
                 ON upload_index(user_id, created_at DESC);
             CREATE INDEX IF NOT EXISTS idx_upload_index_group_time
                 ON upload_index(group_id, created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_upload_index_scope_time
+                ON upload_index(workspace_id, company_id, project_id, created_at DESC);
 
             CREATE TABLE IF NOT EXISTS pk_latest (
                 user_id TEXT PRIMARY KEY,
+                workspace_id TEXT NOT NULL DEFAULT 'default',
+                company_id TEXT NOT NULL DEFAULT 'personal',
+                project_id TEXT NOT NULL DEFAULT 'temu',
+                platform TEXT NOT NULL DEFAULT 'temu',
+                data_sensitivity TEXT NOT NULL DEFAULT 'company_internal',
                 display_name TEXT NOT NULL,
                 group_id TEXT,
                 group_name TEXT,
@@ -88,9 +123,16 @@ def init_db() -> None:
                 ON pk_latest(align_score DESC, display_name);
             CREATE INDEX IF NOT EXISTS idx_pk_latest_group_score
                 ON pk_latest(group_id, align_score DESC, display_name);
+            CREATE INDEX IF NOT EXISTS idx_pk_latest_scope_score
+                ON pk_latest(workspace_id, company_id, project_id, align_score DESC, display_name);
 
             CREATE TABLE IF NOT EXISTS audit_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                workspace_id TEXT NOT NULL DEFAULT 'default',
+                company_id TEXT NOT NULL DEFAULT 'personal',
+                project_id TEXT NOT NULL DEFAULT 'temu',
+                platform TEXT NOT NULL DEFAULT 'temu',
+                data_sensitivity TEXT NOT NULL DEFAULT 'company_internal',
                 actor_id TEXT,
                 actor_name TEXT,
                 role TEXT,
@@ -103,6 +145,32 @@ def init_db() -> None:
                 ON audit_logs(created_at DESC);
             CREATE INDEX IF NOT EXISTS idx_audit_logs_actor
                 ON audit_logs(actor_id, created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_audit_logs_scope_time
+                ON audit_logs(workspace_id, company_id, project_id, created_at DESC);
+            """
+        )
+        for table in ("upload_index", "pk_latest", "audit_logs"):
+            ensure_column(conn, table, "workspace_id", "TEXT NOT NULL DEFAULT 'default'")
+            ensure_column(conn, table, "company_id", "TEXT NOT NULL DEFAULT 'personal'")
+            ensure_column(conn, table, "project_id", "TEXT NOT NULL DEFAULT 'temu'")
+            ensure_column(conn, table, "platform", "TEXT NOT NULL DEFAULT 'temu'")
+            ensure_column(conn, table, "data_sensitivity", "TEXT NOT NULL DEFAULT 'company_internal'")
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_upload_index_scope_time
+                ON upload_index(workspace_id, company_id, project_id, created_at DESC)
+            """
+        )
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_pk_latest_scope_score
+                ON pk_latest(workspace_id, company_id, project_id, align_score DESC, display_name)
+            """
+        )
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_audit_logs_scope_time
+                ON audit_logs(workspace_id, company_id, project_id, created_at DESC)
             """
         )
         conn.execute(
@@ -124,13 +192,21 @@ def safe_call(fn, *args, **kwargs) -> bool:
 
 def record_audit(action: str, user: dict | None = None, detail: dict | None = None) -> None:
     def _write() -> None:
+        scope = scope_from_entry(detail or user or {})
         with connect() as conn:
             conn.execute(
                 """
-                INSERT INTO audit_logs(actor_id, actor_name, role, action, detail_json, created_at)
-                VALUES(?, ?, ?, ?, ?, ?)
+                INSERT INTO audit_logs(
+                    workspace_id, company_id, project_id, platform, data_sensitivity,
+                    actor_id, actor_name, role, action, detail_json, created_at
+                ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
+                    scope["workspace_id"],
+                    scope["company_id"],
+                    scope["project_id"],
+                    scope["platform"],
+                    scope["data_sensitivity"],
                     (user or {}).get("id"),
                     (user or {}).get("display_name"),
                     (user or {}).get("role"),
@@ -146,16 +222,23 @@ def record_audit(action: str, user: dict | None = None, detail: dict | None = No
 def record_upload(entry: dict[str, Any]) -> None:
     def _write() -> None:
         now = int(time.time())
+        scope = scope_from_entry(entry)
         with connect() as conn:
             conn.execute(
                 """
                 INSERT OR REPLACE INTO upload_index(
+                    workspace_id, company_id, project_id, platform, data_sensitivity,
                     user_id, display_name, group_id, group_name, summary_date,
                     oss_key, align_score, score_label, spu_count, store_count,
                     uploaded_at, created_at
-                ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
+                    scope["workspace_id"],
+                    scope["company_id"],
+                    scope["project_id"],
+                    scope["platform"],
+                    scope["data_sensitivity"],
                     entry.get("user_id", ""),
                     entry.get("display_name", ""),
                     entry.get("group_id"),
@@ -173,13 +256,19 @@ def record_upload(entry: dict[str, Any]) -> None:
             conn.execute(
                 """
                 INSERT OR REPLACE INTO pk_latest(
+                    workspace_id, company_id, project_id, platform, data_sensitivity,
                     user_id, display_name, group_id, group_name, summary_date,
                     oss_key, align_score, score_label, gold_pct, avg_margin,
                     roas, avg_day_sales, spu_count, store_count, uploaded_at,
                     updated_at
-                ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
+                    scope["workspace_id"],
+                    scope["company_id"],
+                    scope["project_id"],
+                    scope["platform"],
+                    scope["data_sensitivity"],
                     entry.get("user_id", ""),
                     entry.get("display_name", ""),
                     entry.get("group_id"),
@@ -230,7 +319,8 @@ def latest_pk_entries(
     with connect() as conn:
         rows = conn.execute(
             f"""
-            SELECT user_id, display_name, group_id, group_name, summary_date,
+            SELECT workspace_id, company_id, project_id, platform, data_sensitivity,
+                   user_id, display_name, group_id, group_name, summary_date,
                    oss_key, align_score, score_label, gold_pct, avg_margin,
                    roas, avg_day_sales, spu_count, store_count, uploaded_at,
                    updated_at
@@ -242,6 +332,11 @@ def latest_pk_entries(
         ).fetchall()
     entries = [
         {
+            "workspace_id": row["workspace_id"],
+            "company_id": row["company_id"],
+            "project_id": row["project_id"],
+            "platform": row["platform"],
+            "data_sensitivity": row["data_sensitivity"],
             "user_id": row["user_id"],
             "display_name": row["display_name"] or "",
             "group_id": row["group_id"],
@@ -299,7 +394,8 @@ def recent_uploads(
     with connect() as conn:
         rows = conn.execute(
             f"""
-            SELECT user_id, display_name, group_id, group_name, oss_key,
+            SELECT workspace_id, company_id, project_id, platform, data_sensitivity,
+                   user_id, display_name, group_id, group_name, oss_key,
                    align_score, score_label, spu_count, store_count, uploaded_at,
                    created_at
             FROM upload_index
@@ -311,6 +407,11 @@ def recent_uploads(
         ).fetchall()
     return [
         {
+            "workspace_id": row["workspace_id"],
+            "company_id": row["company_id"],
+            "project_id": row["project_id"],
+            "platform": row["platform"],
+            "data_sensitivity": row["data_sensitivity"],
             "user_id": row["user_id"],
             "display_name": row["display_name"] or "",
             "group_id": row["group_id"],
@@ -333,7 +434,8 @@ def recent_audit(limit: int = 20) -> list[dict[str, Any]]:
     with connect() as conn:
         rows = conn.execute(
             """
-            SELECT actor_id, actor_name, role, action, detail_json, created_at
+            SELECT workspace_id, company_id, project_id, platform, data_sensitivity,
+                   actor_id, actor_name, role, action, detail_json, created_at
             FROM audit_logs
             ORDER BY created_at DESC
             LIMIT ?
@@ -347,6 +449,11 @@ def recent_audit(limit: int = 20) -> list[dict[str, Any]]:
         except json.JSONDecodeError:
             detail = {}
         items.append({
+            "workspace_id": row["workspace_id"],
+            "company_id": row["company_id"],
+            "project_id": row["project_id"],
+            "platform": row["platform"],
+            "data_sensitivity": row["data_sensitivity"],
             "actor_id": row["actor_id"],
             "actor_name": row["actor_name"] or "",
             "role": row["role"] or "",
@@ -371,6 +478,16 @@ def status() -> dict[str, Any]:
         upload_count = conn.execute("SELECT COUNT(*) AS n FROM upload_index").fetchone()["n"]
         pk_count = conn.execute("SELECT COUNT(*) AS n FROM pk_latest").fetchone()["n"]
         audit_count = conn.execute("SELECT COUNT(*) AS n FROM audit_logs").fetchone()["n"]
+        scope_count = conn.execute(
+            """
+            SELECT COUNT(*) AS n
+            FROM (
+                SELECT workspace_id, company_id, project_id FROM upload_index
+                UNION
+                SELECT workspace_id, company_id, project_id FROM pk_latest
+            )
+            """
+        ).fetchone()["n"]
     return {
         "engine": "sqlite",
         "path": str(path),
@@ -381,4 +498,5 @@ def status() -> dict[str, Any]:
         "upload_count": upload_count,
         "pk_count": pk_count,
         "audit_count": audit_count,
+        "scope_count": scope_count,
     }

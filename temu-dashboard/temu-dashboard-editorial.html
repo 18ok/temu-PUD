@@ -1665,8 +1665,15 @@ function getPreviousSnapshotFiles() {
 function pushSnapshot() {
     var now = new Date().toLocaleString('zh-CN');
     var snapKey = 'temu_v6_snap_' + Date.now();
-    safeSetItem(snapKey, JSON.stringify(ST.files));
-    ST.snapshots.push({key: snapKey, time: now, fileCount: ST.files.length});
+    var snap = {
+        key: snapKey,
+        time: now,
+        fileCount: ST.files.length,
+        rowCount: ST.files.reduce(function(sum, f) { return sum + ((f && f.rows && f.rows.length) || 0); }, 0),
+        scope: normalizeDataScope(getOssConfig())
+    };
+    safeSetItem(snapKey, JSON.stringify(snap));
+    ST.snapshots.push(snap);
     while (ST.snapshots.length > 5) {
         var oldSnap = ST.snapshots.shift();
         try { localStorage.removeItem(oldSnap.key); } catch(e) {}
@@ -1682,6 +1689,11 @@ var OSS_DEFAULT = {
     bucket: 'temu-shujufenxi-data',
     prefix: 'temu/',
     owner: '',
+    workspace_id: 'default',
+    company_id: 'personal',
+    project_id: 'temu',
+    platform: 'temu',
+    data_sensitivity: 'company_internal',
     accessKeyId: '',
     accessKeySecret: ''
 };
@@ -1690,13 +1702,59 @@ var OSS_LEGACY_BUCKET_MAP = {
     'temu-pod-data': 'temu-shujufenxi-data'
 };
 
+function cleanScopePart(value, fallback) {
+    var raw = String(value || '').trim();
+    if (!raw) return fallback;
+    var cleaned = raw.replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '');
+    return cleaned || fallback;
+}
+
+function normalizeDataScope(raw) {
+    raw = raw || {};
+    var scope = (raw.scope && typeof raw.scope === 'object') ? raw.scope : {};
+    return {
+        workspace_id: cleanScopePart(raw.workspace_id || raw.workspaceId || scope.workspace_id, OSS_DEFAULT.workspace_id),
+        company_id: cleanScopePart(raw.company_id || raw.companyId || scope.company_id, OSS_DEFAULT.company_id),
+        project_id: cleanScopePart(raw.project_id || raw.projectId || scope.project_id, OSS_DEFAULT.project_id),
+        platform: cleanScopePart(raw.platform || scope.platform, OSS_DEFAULT.platform),
+        data_sensitivity: cleanScopePart(raw.data_sensitivity || raw.dataSensitivity || scope.data_sensitivity, OSS_DEFAULT.data_sensitivity)
+    };
+}
+
+function dataScopePath(scope) {
+    var s = normalizeDataScope(scope);
+    return 'workspaces/' + s.workspace_id + '/companies/' + s.company_id + '/projects/' + s.project_id + '/';
+}
+
+function scopedOssKey(cfg, section, parts, scope) {
+    cfg = cfg || getOssConfig();
+    var prefix = String(cfg.prefix || OSS_DEFAULT.prefix);
+    if (prefix.slice(-1) !== '/') prefix += '/';
+    var cleanParts = (parts || []).map(function(p) {
+        return String(p || '').replace(/^\/+|\/+$/g, '');
+    }).filter(Boolean);
+    var sec = String(section || '').replace(/^\/+|\/+$/g, '');
+    return prefix + dataScopePath(scope || cfg) + (sec ? sec + '/' : '') + cleanParts.join('/');
+}
+
+function persistLocalDataScope() {
+    safeSetItem('temu_v6_data_scope', JSON.stringify(normalizeDataScope(getOssConfig())));
+}
+
 function normalizeSavedOssKeys(raw) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) raw = {};
+    var scope = normalizeDataScope(raw);
     var cfg = {
         region: String(raw.region || raw.Region || OSS_DEFAULT.region).trim(),
         bucket: String(raw.bucket || raw.Bucket || OSS_DEFAULT.bucket).trim(),
         prefix: String(raw.prefix || 'temu/').trim() || 'temu/',
         owner: String(raw.owner || raw.Owner || '').trim(),
+        scope: scope,
+        workspace_id: scope.workspace_id,
+        company_id: scope.company_id,
+        project_id: scope.project_id,
+        platform: scope.platform,
+        data_sensitivity: scope.data_sensitivity,
         accessKeyId: String(raw.accessKeyId || raw.accessKey || raw.ak || raw.AccessKeyId || '').trim(),
         accessKeySecret: String(raw.accessKeySecret || raw.secretKey || raw.sk || raw.AccessKeySecret || '').trim()
     };
@@ -2485,6 +2543,7 @@ function undoLastUpload() {
         ST.teamProducts = s.teamProducts || [];
         hasTeam = !!s.hasTeam;
         safeSetItem('temu_v6_data', JSON.stringify(ST.files));
+        persistLocalDataScope();
         safeSetItem('temu_v6_store', JSON.stringify(ST.storeData));
         safeSetItem('temu_v6_snap_idx', JSON.stringify(ST.snapshots));
         if (hasTeam) safeSetItem('temu_v6_team', JSON.stringify(ST.teamProducts));
@@ -3263,11 +3322,18 @@ function readOssFormOrSaved(overlay) {
     var saved = getOssConfig();
     var fromForm = readOssFormFromOverlay(overlay);
     if (!fromForm) return saved;
+    var scope = normalizeDataScope(saved);
     return {
         owner: (fromForm.owner || saved.owner || '').trim(),
         region: normalizeOssRegion((fromForm.region || saved.region || '').trim()),
         bucket: (fromForm.bucket || saved.bucket || '').trim(),
-        prefix: 'temu/',
+        prefix: (saved.prefix || OSS_DEFAULT.prefix || 'temu/').trim(),
+        scope: scope,
+        workspace_id: scope.workspace_id,
+        company_id: scope.company_id,
+        project_id: scope.project_id,
+        platform: scope.platform,
+        data_sensitivity: scope.data_sensitivity,
         accessKeyId: (fromForm.accessKeyId || saved.accessKeyId || '').trim(),
         accessKeySecret: (fromForm.accessKeySecret || saved.accessKeySecret || '').trim()
     };
@@ -3305,8 +3371,8 @@ function diagnoseOssConnection(overlay) {
     }
     var live = createLiveResultModal('OSS 诊断结果', lines);
     function pushLine(s) { live.push(s); }
-    var urlList = ossObjectUrls(cfg, (cfg.prefix || 'temu/') + 'manifest.json');
-    var testKey = (cfg.prefix || 'temu/') + '_diag/' + Date.now() + '.json';
+    var urlList = ossObjectUrls(cfg, scopedOssKey(cfg, '', ['manifest.json'], cfg));
+    var testKey = scopedOssKey(cfg, '_diag', [Date.now() + '.json'], cfg);
     var testBody = '{"ping":1}';
     var finished = false;
     function finishDiagnose() {
@@ -3586,7 +3652,7 @@ function loadFromCloud() {
     var cfg = getOssConfig();
     var myOwner = getCloudOwner();
     toast('正在拉取团队云端数据...', 'info');
-    fetchOssJson(cfg, cfg.prefix + 'manifest.json').then(function(manifest) {
+    fetchOssJson(cfg, scopedOssKey(cfg, '', ['manifest.json'], cfg)).then(function(manifest) {
         var list = collectTeamEntriesFromManifest(manifest, myOwner);
         if ((manifest.entries || []).length === 0) {
             logEvent('warn', 'oss', 'team_load_empty', '云端 manifest 为空', { owner: myOwner });
@@ -3638,9 +3704,18 @@ function loadFromCloudWithAdminConfirm() {
 
 function executeTeamDrillUploadPull(cfg, myOwner, pushLine) {
     var summary = buildTeamDrillSummary();
+    var scope = normalizeDataScope(cfg);
+    summary.scope = scope;
+    Object.assign(summary, scope);
     var slug = ownerPathSlug(TEAM_DRILL_OWNER);
-    var key = cfg.prefix + 'uploads/' + slug + '/drill/' + Date.now() + '.json';
+    var key = scopedOssKey(cfg, 'uploads', [slug, 'drill', Date.now() + '.json'], scope);
     var entry = {
+        scope: scope,
+        workspace_id: scope.workspace_id,
+        company_id: scope.company_id,
+        project_id: scope.project_id,
+        platform: scope.platform,
+        data_sensitivity: scope.data_sensitivity,
         owner: TEAM_DRILL_OWNER,
         date: summary.date,
         key: key,
@@ -3655,7 +3730,7 @@ function executeTeamDrillUploadPull(cfg, myOwner, pushLine) {
     }).then(function() {
         pushLine('✅ manifest 索引已更新');
         pushLine('⏳ 拉取团队数据…');
-        return fetchOssJson(cfg, cfg.prefix + 'manifest.json');
+        return fetchOssJson(cfg, scopedOssKey(cfg, '', ['manifest.json'], scope));
     }).then(function(manifest) {
         var list = collectTeamEntriesFromManifest(manifest, myOwner);
         var hasDrill = list.some(function(e) { return e.owner === TEAM_DRILL_OWNER; });
@@ -3765,8 +3840,16 @@ function buildCloudSummary() {
     var clusterMap = {};
     ST.clusters.forEach(function(p) { clusterMap[p.spu_id] = p.cluster_label; });
     var owner = getCloudOwner();
+    var collabUser = (typeof getCollabUser === 'function') ? getCollabUser() : null;
+    var scope = normalizeDataScope(getOssConfig());
     var products = ST.products.map(function(p) {
         return {
+            scope: scope,
+            workspace_id: scope.workspace_id,
+            company_id: scope.company_id,
+            project_id: scope.project_id,
+            platform: scope.platform,
+            data_sensitivity: scope.data_sensitivity,
             spu_id: p.spu_id,
             name: p.name,
             gross_margin: Math.round(p.gross_margin * 10) / 10,
@@ -3778,25 +3861,53 @@ function buildCloudSummary() {
         };
     });
     return {
-        version: 1,
+        version: 2,
+        scope: scope,
+        workspace_id: scope.workspace_id,
+        company_id: scope.company_id,
+        project_id: scope.project_id,
+        platform: scope.platform,
+        data_sensitivity: scope.data_sensitivity,
         owner: owner,
+        display_name: collabUser ? collabUser.display_name : owner,
+        user_id: collabUser ? collabUser.id : null,
+        group_id: collabUser ? collabUser.group_id : null,
+        group_name: collabUser ? collabUser.group_name : null,
         date: new Date().toISOString().slice(0, 10),
         uploaded_at: new Date().toLocaleString('zh-CN'),
         product_stats: ST._stats || {},
         products: products,
         store_records: (ST.storeData || []).map(function(r) {
             return {
+                scope: scope,
+                workspace_id: scope.workspace_id,
+                company_id: scope.company_id,
+                project_id: scope.project_id,
+                platform: scope.platform,
+                data_sensitivity: scope.data_sensitivity,
                 date: r.date, store: r.store, spend: r.spend, revenue: r.revenue,
-                profit: r.profit, sales: r.sales, roas: r.roas
+                profit: r.profit, sales: r.sales, roas: r.roas,
+                ctr: r.ctr, cvr: r.cvr
             };
-        })
+        }),
+        pk_snapshot: (typeof computePkSnapshot === 'function') ? computePkSnapshot() : {
+            align_score: 0,
+            score_label: '未评分',
+            gold_pct: 0,
+            avg_margin: 0,
+            roas: 0,
+            avg_day_sales: 0
+        }
     };
 }
 
 function updateCloudManifest(clientOrCfg, cfg, entry) {
-    var manifestKey = cfg.prefix + 'manifest.json';
+    var scope = normalizeDataScope((entry && entry.scope) || cfg);
+    var manifestKey = scopedOssKey(cfg, '', ['manifest.json'], scope);
     function mergeAndPut(manifest) {
         manifest.entries = manifest.entries || [];
+        manifest.scope = scope;
+        Object.assign(manifest, scope);
         manifest.entries.push(entry);
         if (manifest.entries.length > 500) manifest.entries = manifest.entries.slice(-500);
         manifest.updated = new Date().toISOString();
@@ -3838,8 +3949,15 @@ function uploadToCloud() {
     });
     var cfg = getOssConfig();
     var slug = ownerPathSlug(summary.owner);
-    var key = cfg.prefix + 'uploads/' + slug + '/' + summary.date + '/' + Date.now() + '.json';
+    var scope = normalizeDataScope(summary);
+    var key = scopedOssKey(cfg, 'uploads', [slug, summary.date, Date.now() + '.json'], scope);
     var entry = {
+        scope: scope,
+        workspace_id: scope.workspace_id,
+        company_id: scope.company_id,
+        project_id: scope.project_id,
+        platform: scope.platform,
+        data_sensitivity: scope.data_sensitivity,
         owner: summary.owner,
         date: summary.date,
         key: key,
@@ -3855,7 +3973,7 @@ function uploadToCloud() {
             return { manifestFailed: true, err: mErr };
         });
     }).then(function(manifestResult) {
-        safeSetItem('temu_v6_cloud_last_upload', JSON.stringify({ time: summary.uploaded_at, key: key, owner: summary.owner }));
+        safeSetItem('temu_v6_cloud_last_upload', JSON.stringify({ time: summary.uploaded_at, key: key, owner: summary.owner, scope: scope }));
         updateSidebar();
         var msg = '云端同步成功：' + summary.owner + ' · ' + summary.products.length + ' SPU';
         if (summary.store_records.length) msg += ' · ' + summary.store_records.length + ' 店铺';
@@ -4104,6 +4222,7 @@ function doSave() {
     pushSnapshot();
     safeSetItem('temu_v6_meta', JSON.stringify({count:ST.files.length, saved_at:now}));
     safeSetItem('temu_v6_data', JSON.stringify(ST.files));
+    persistLocalDataScope();
     updateSidebar();
     var blob = new Blob([JSON.stringify(ST.files,null,2)],{type:'application/json'});
     var url = URL.createObjectURL(blob); var a = document.createElement('a');
@@ -4326,6 +4445,7 @@ function handleFileUpload(inputFiles) {
                 }
                 if (storeCount > 0) safeSetItem('temu_v6_store', JSON.stringify(ST.storeData));
                 safeSetItem('temu_v6_data', JSON.stringify(ST.files));
+                persistLocalDataScope();
                 var now = new Date().toLocaleString('zh-CN');
                 if (count > 0) pushSnapshot();
                 safeSetItem('temu_v6_meta', JSON.stringify({count:ST.files.length, saved_at:now}));

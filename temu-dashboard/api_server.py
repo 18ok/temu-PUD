@@ -43,6 +43,50 @@ DEFAULT_GROUPS = [
     {"id": "g4", "name": "四组"},
 ]
 
+DEFAULT_SCOPE = {
+    "workspace_id": "default",
+    "company_id": "personal",
+    "project_id": "temu",
+    "platform": "temu",
+    "data_sensitivity": "company_internal",
+}
+
+
+def clean_scope_part(value: str, fallback: str) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return fallback
+    cleaned = re.sub(r"[^A-Za-z0-9_-]+", "-", raw).strip("-")
+    return cleaned or fallback
+
+
+def normalize_data_scope(raw: dict | None = None) -> dict[str, str]:
+    raw = raw or {}
+    raw_scope = raw.get("scope") if isinstance(raw.get("scope"), dict) else {}
+    env_map = {
+        "workspace_id": os.environ.get("TEMU_WORKSPACE_ID"),
+        "company_id": os.environ.get("TEMU_COMPANY_ID"),
+        "project_id": os.environ.get("TEMU_PROJECT_ID"),
+        "platform": os.environ.get("TEMU_PLATFORM"),
+        "data_sensitivity": os.environ.get("TEMU_DATA_SENSITIVITY"),
+    }
+    return {
+        key: clean_scope_part(
+            raw.get(key) or raw_scope.get(key) or env_map.get(key) or fallback,
+            fallback,
+        )
+        for key, fallback in DEFAULT_SCOPE.items()
+    }
+
+
+def data_scope_path(scope: dict | None = None) -> str:
+    scoped = normalize_data_scope(scope)
+    return (
+        f"workspaces/{scoped['workspace_id']}/"
+        f"companies/{scoped['company_id']}/"
+        f"projects/{scoped['project_id']}/"
+    )
+
 
 # ── .env ─────────────────────────────────────────────────────────────
 
@@ -59,15 +103,27 @@ def load_env_file(path: str, force: bool = False) -> None:
             val = val.strip().strip('"').strip("'")
             if not key:
                 continue
-            if force and (key.startswith("TEMU_OSS_") or key.startswith("TEMU_JWT") or key.startswith("TEMU_COLLAB")):
+            if force and (
+                key.startswith("TEMU_OSS_")
+                or key.startswith("TEMU_JWT")
+                or key.startswith("TEMU_COLLAB")
+                or key in {
+                    "TEMU_WORKSPACE_ID",
+                    "TEMU_COMPANY_ID",
+                    "TEMU_PROJECT_ID",
+                    "TEMU_PLATFORM",
+                    "TEMU_DATA_SENSITIVITY",
+                }
+            ):
                 os.environ[key] = val
             elif key not in os.environ:
                 os.environ[key] = val
 
 
-def write_env_file(ak: str, sk: str, bucket: str, region: str, prefix: str) -> str:
+def write_env_file(ak: str, sk: str, bucket: str, region: str, prefix: str, scope: dict | None = None) -> str:
     env_path = os.path.join(os.getcwd(), ".env")
     prefix = prefix if prefix.endswith("/") else prefix + "/"
+    scoped = normalize_data_scope(scope)
     lines = [
         "# Temu 看板 OSS Key（本地托管，勿提交 Git / 勿外传）",
         f"TEMU_OSS_ACCESS_KEY_ID={ak}",
@@ -75,6 +131,11 @@ def write_env_file(ak: str, sk: str, bucket: str, region: str, prefix: str) -> s
         f"TEMU_OSS_BUCKET={bucket}",
         f"TEMU_OSS_REGION={normalize_region(region)}",
         f"TEMU_OSS_PREFIX={prefix}",
+        f"TEMU_WORKSPACE_ID={scoped['workspace_id']}",
+        f"TEMU_COMPANY_ID={scoped['company_id']}",
+        f"TEMU_PROJECT_ID={scoped['project_id']}",
+        f"TEMU_PLATFORM={scoped['platform']}",
+        f"TEMU_DATA_SENSITIVITY={scoped['data_sensitivity']}",
         "",
     ]
     with open(env_path, "w", encoding="utf-8") as f:
@@ -113,6 +174,7 @@ def get_server_oss_cfg() -> dict | None:
     prefix = os.environ.get("TEMU_OSS_PREFIX", "temu/").strip()
     if not prefix.endswith("/"):
         prefix += "/"
+    scope = normalize_data_scope()
     if not all([ak, sk, bucket, region]):
         return None
     return {
@@ -121,6 +183,8 @@ def get_server_oss_cfg() -> dict | None:
         "bucket": bucket,
         "region": region,
         "prefix": prefix,
+        "scope": scope,
+        **scope,
     }
 
 
@@ -180,8 +244,20 @@ def oss_get_signed(cfg: dict, key: str) -> str:
         raise RuntimeError(f"HTTP {e.code}: {body}") from e
 
 
-def collab_key(cfg: dict, name: str) -> str:
-    return f"{cfg['prefix']}collab/{name}"
+def scoped_oss_key(cfg: dict, section: str, *parts: str, scope: dict | None = None) -> str:
+    scoped = normalize_data_scope(scope or cfg.get("scope") or cfg)
+    prefix = cfg["prefix"] if str(cfg["prefix"]).endswith("/") else f"{cfg['prefix']}/"
+    cleaned_parts = [str(part).strip("/") for part in parts if str(part or "").strip("/")]
+    suffix = "/".join(cleaned_parts)
+    section = str(section or "").strip("/")
+    base = f"{prefix}{data_scope_path(scoped)}"
+    if section:
+        base += f"{section}/"
+    return base + suffix
+
+
+def collab_key(cfg: dict, name: str, scope: dict | None = None) -> str:
+    return scoped_oss_key(cfg, "collab", name, scope=scope)
 
 
 def oss_read_json(cfg: dict, key: str, default=None):
@@ -264,12 +340,15 @@ def slugify(name: str) -> str:
 # ── 协作域 OSS 读写 ──────────────────────────────────────────────────
 
 def ensure_collab_bootstrap(cfg: dict) -> None:
+    scope = normalize_data_scope(cfg)
     meta_key = collab_key(cfg, "meta.json")
     if oss_read_json(cfg, meta_key):
         return
     org_id = str(uuid.uuid4())
     meta = {
         "version": 1,
+        "scope": scope,
+        **scope,
         "org_id": org_id,
         "org_name": "Temu运营部",
         "dept_name": "运营部（单部门）",
@@ -397,8 +476,11 @@ def collab_register(cfg: dict, body: dict) -> dict:
     if inv.get("group_id") and inv["group_id"] != group_id and role == "operator":
         raise ValueError("该邀请码绑定了其他小组")
     meta = oss_read_json(cfg, collab_key(cfg, "meta.json"), {})
+    scope = normalize_data_scope(cfg)
     user = {
         "id": str(uuid.uuid4()),
+        "scope": scope,
+        **scope,
         "org_id": meta.get("org_id", ""),
         "display_name": display_name,
         "group_id": group_id,
@@ -409,8 +491,8 @@ def collab_register(cfg: dict, body: dict) -> dict:
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
     save_user(cfg, user)
-    collab_db.record_audit("collab_register", user, {"group_id": group_id, "role": role})
-    token = make_jwt({"sub": user["id"], "role": role, "group_id": group_id})
+    collab_db.record_audit("collab_register", user, {"group_id": group_id, "role": role, **scope})
+    token = make_jwt({"sub": user["id"], "role": role, "group_id": group_id, **scope})
     return {
         "ok": True,
         "token": token,
@@ -420,6 +502,7 @@ def collab_register(cfg: dict, body: dict) -> dict:
             "group_id": group_id,
             "group_name": groups[group_id],
             "role": role,
+            **scope,
         },
     }
 
@@ -430,11 +513,13 @@ def collab_login(cfg: dict, body: dict) -> dict:
     user = find_user_by_name(cfg, display_name)
     if not user or not verify_password(password, user.get("password_hash", "")):
         raise ValueError("姓名或密码错误")
-    collab_db.record_audit("collab_login", user, {"group_id": user.get("group_id")})
+    scope = normalize_data_scope(user or cfg)
+    collab_db.record_audit("collab_login", user, {"group_id": user.get("group_id"), **scope})
     token = make_jwt({
         "sub": user["id"],
         "role": user.get("role", "operator"),
         "group_id": user.get("group_id"),
+        **scope,
     })
     return {
         "ok": True,
@@ -445,6 +530,7 @@ def collab_login(cfg: dict, body: dict) -> dict:
             "group_id": user.get("group_id"),
             "group_name": user.get("group_name"),
             "role": user.get("role", "operator"),
+            **scope,
         },
     }
 
@@ -481,17 +567,22 @@ def collab_upload(cfg: dict, user: dict, body: dict) -> dict:
     if not pk or "align_score" not in pk:
         raise ValueError("缺少 pk_snapshot.align_score")
     uid = user["id"]
+    scope = normalize_data_scope(summary or user or cfg)
     summary["user_id"] = uid
     summary["display_name"] = user["display_name"]
     summary["group_id"] = user.get("group_id")
     summary["group_name"] = user.get("group_name")
+    summary["scope"] = scope
+    summary.update(scope)
     date = summary.get("date") or time.strftime("%Y-%m-%d")
     ts = int(time.time() * 1000)
-    key = f"{cfg['prefix']}uploads/{uid}/{date}/{ts}.json"
+    key = scoped_oss_key(cfg, "uploads", uid, date, f"{ts}.json", scope=scope)
     oss_write_json(cfg, key, summary)
     groups = load_groups_map(cfg)
     gname = groups.get(user.get("group_id", ""), user.get("group_name", ""))
     entry = {
+        "scope": scope,
+        **scope,
         "user_id": uid,
         "display_name": user["display_name"],
         "group_id": user.get("group_id"),
@@ -514,6 +605,8 @@ def collab_upload(cfg: dict, user: dict, body: dict) -> dict:
     oss_write_json(cfg, collab_key(cfg, "pk_latest.json"), pk_data)
     log = oss_read_json(cfg, collab_key(cfg, "upload_log.json"), {"version": 1, "items": []})
     log.setdefault("items", []).append({
+        "scope": scope,
+        **scope,
         "user_id": uid,
         "display_name": user["display_name"],
         "oss_key": key,
@@ -524,6 +617,7 @@ def collab_upload(cfg: dict, user: dict, body: dict) -> dict:
     oss_write_json(cfg, collab_key(cfg, "upload_log.json"), log)
     collab_db.record_upload(entry)
     collab_db.record_audit("collab_upload", user, {
+        **scope,
         "oss_key": key,
         "align_score": entry.get("align_score"),
         "spu_count": entry.get("spu_count"),
@@ -720,6 +814,7 @@ def collab_benchmark(cfg: dict, user: dict) -> dict:
 def build_status_payload() -> dict:
     """Fast local health payload for the admin console; avoids OSS network I/O."""
     cfg = get_server_oss_cfg()
+    scope = normalize_data_scope(cfg or {})
     return {
         "ok": True,
         "server": {
@@ -732,6 +827,8 @@ def build_status_payload() -> dict:
             "bucket": cfg.get("bucket") if cfg else None,
             "region": normalize_region(cfg.get("region", "")) if cfg else None,
             "prefix": cfg.get("prefix") if cfg else None,
+            "scope": scope,
+            **scope,
             "key_mode": "server-env" if cfg else "missing",
         },
         "database": collab_db.status(),
@@ -829,6 +926,7 @@ class TemuHandler(SimpleHTTPRequestHandler):
                     "group_id": user.get("group_id"),
                     "group_name": user.get("group_name"),
                     "role": user.get("role"),
+                    **normalize_data_scope(user),
                 },
             })
             return
@@ -941,11 +1039,12 @@ class TemuHandler(SimpleHTTPRequestHandler):
             bucket = str(payload.get("bucket") or "temu-shujufenxi-data").strip()
             region = str(payload.get("region") or "oss-cn-hangzhou").strip()
             prefix = str(payload.get("prefix") or "temu/").strip()
+            scope = normalize_data_scope(payload)
             if not ak or not sk:
                 self._json_response(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "缺少 accessKeyId 或 accessKeySecret"})
                 return
             try:
-                write_env_file(ak, sk, bucket, region, prefix)
+                write_env_file(ak, sk, bucket, region, prefix, scope)
                 cfg = get_server_oss_cfg()
                 if cfg:
                     ensure_collab_bootstrap(cfg)
@@ -955,6 +1054,8 @@ class TemuHandler(SimpleHTTPRequestHandler):
                     "bucket": bucket,
                     "region": normalize_region(region),
                     "prefix": prefix if prefix.endswith("/") else prefix + "/",
+                    "scope": scope,
+                    **scope,
                     "collab": True,
                 })
             except Exception as e:
@@ -986,6 +1087,8 @@ class TemuHandler(SimpleHTTPRequestHandler):
                 "bucket": cfg["bucket"],
                 "region": normalize_region(cfg["region"]),
                 "prefix": cfg.get("prefix", "temu/"),
+                "scope": cfg.get("scope"),
+                **normalize_data_scope(cfg),
             })
             return
 

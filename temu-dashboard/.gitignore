@@ -19,3 +19,10 @@ Temu选品助手-*-组员试用包/
 Temu选品助手-*-组员试用包.zip
 data/*.sqlite3
 data/*.sqlite3-*
+*.xls
+*.xlsx
+!docs/templates/*.xlsx
+temu-backup-*.json
+temu-event-log-*.json
+*backup*.json
+*event-log*.json
