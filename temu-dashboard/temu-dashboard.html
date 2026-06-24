@@ -964,8 +964,8 @@
             <!-- ═══ 页面 2: 商品画像 ═══ -->
             <div class="page" id="page-products">
                 <div class="hero">
-                    <h1>📊 商品画像 — 聚类分析</h1>
-                    <p>基于 K-Means 聚类算法，按克重、成本、毛利率、日销量对商品自动分组，快速识别好品与差品的特征分布。</p>
+                    <h1>📊 商品画像 — 商品经营诊断</h1>
+                    <p>聚类只做初筛，真正的判断要回到爆品/差品的原因：价格、流量、供应链、平台规则、生命周期和后续动作。</p>
                 </div>
                 <div class="alert alert-info"><span class="alert-icon">ℹ</span><span>📂 暂无数据，请先前往「数据导入」页面上传 Excel 文件。</span></div>
             </div>
@@ -2004,6 +2004,34 @@ function getAdminPermissionsState() {
     return { role: role, permissions: permissions };
 }
 
+function isAdminDeveloperMode() {
+    var u = getAdminCollabUser();
+    return localStorage.getItem('temu_v6_admin_role') === 'developer' || (u && (u.role === 'admin' || u.role === 'developer'));
+}
+
+function canSeeInternalStageGate() {
+    return isAdminDeveloperMode();
+}
+
+function toggleDeveloperModeFromAdmin() {
+    var u = getAdminCollabUser();
+    if (!u || u.role !== 'admin') {
+        toast('只有管理员账号可开启本机开发者模式', 'warning');
+        return;
+    }
+    var on = localStorage.getItem('temu_v6_admin_role') === 'developer';
+    if (on) {
+        localStorage.removeItem('temu_v6_admin_role');
+        toast('已关闭本机开发者模式', 'info');
+    } else {
+        safeSetItem('temu_v6_admin_role', 'developer');
+        toast('已开启本机开发者模式，可查看内部阶段视图和联调工具', 'success');
+    }
+    renderAdminPage();
+    if (typeof renderStageGatePanel === 'function') renderStageGatePanel();
+}
+window.toggleDeveloperModeFromAdmin = toggleDeveloperModeFromAdmin;
+
 function refreshAdminRecentUploads() {
     if (!isLocalDevServer()) {
         _adminRecentUploads = { checked: true, loading: false, ok: false, items: [], error: '网页模式暂不读取协作日志', token: '' };
@@ -2137,11 +2165,8 @@ function renderAdminPage() {
     function action(title, desc, buttons) {
         return '<div class="admin-action-card"><h3>' + title + '</h3><p>' + desc + '</p><div class="btn-row">' + buttons + '</div></div>';
     }
-    function blockedAction(title, desc, roleHint) {
-        return '<div class="admin-action-card is-disabled"><h3>' + escHtml(title) + '</h3><p>' + escHtml(desc) +
-            '</p><div class="btn-row"><button type="button" class="btn" disabled>' + escHtml(roleHint || '需要管理员权限') + '</button></div></div>';
-    }
     function section(title, sub, body, cls, note) {
+        if (!body) return '';
         return '<section class="admin-console-section ' + (cls || '') + '">' +
             '<div class="admin-section-head"><h2>' + escHtml(title) + '</h2><span>' + escHtml(sub || '') + '</span></div>' +
             (note ? '<p class="admin-danger-note">' + escHtml(note) + '</p>' : '') +
@@ -2197,19 +2222,45 @@ function renderAdminPage() {
         }).join('');
         return '<div class="admin-log-list">' + rows + '</div>';
     }
+    function roleUnlockHTML() {
+        var u = getAdminCollabUser();
+        if (!u || !u.display_name) return '';
+        var role = u.role || adminRole || 'operator';
+        var devOn = isDeveloper;
+        var items = [
+            { id: 'operator', title: '普通运营', desc: '查看日志、周报、本地保存', active: role === 'operator' },
+            { id: 'admin', title: '管理员', desc: '同步配置、团队基准、高风险确认', active: role === 'admin' },
+            { id: 'developer', title: '开发者', desc: '本机调试、联调测试、内部阶段视图', active: devOn }
+        ].map(function(item) {
+            var disabled = '';
+            var onclick = '';
+            var state = item.active ? '已解锁' : '未解锁';
+            if (item.id === 'developer' && role === 'admin') {
+                disabled = '';
+                onclick = ' onclick="toggleDeveloperModeFromAdmin()"';
+                state = devOn ? '已开启' : '可开启';
+            } else if (!item.active) {
+                disabled = ' disabled';
+            }
+            return '<button type="button" class="admin-action-card ' + (item.active ? '' : 'is-disabled') + '"' + onclick + disabled + '>' +
+                '<h3>' + escHtml(item.title) + '</h3><p>' + escHtml(item.desc) + '</p><div class="admin-log-badge">' + escHtml(state) + '</div></button>';
+        }).join('');
+        return '<div class="admin-action-grid">' + items + '</div>';
+    }
     function collabActionsHTML() {
+        var loginCard = action('团队登录', '先完成团队账号验证；登录后系统只展示当前角色可用的后台动作。',
+            '<button type="button" class="btn" onclick="openCollabAuthFromAdmin()">🔐 团队登录</button>');
         if (!adminPerm.collab_sync && !adminPerm.team_benchmark && !isDeveloper) {
-            return blockedAction('团队协作操作', '普通运营后台只保留查看和本地动作；团队同步、拉取基准由主管或管理员执行。', '当前：普通运营');
+            return loginCard;
         }
         return action('同步团队', '把我的选品与店铺摘要同步到团队基准，原始 Excel 仍保留在本地。',
             '<button type="button" class="btn-primary-sm" onclick="uploadToCloud()">⬆ 同步团队</button>' +
             '<button type="button" class="btn" onclick="loadFromCloudWithAdminConfirm()">📥 团队基准</button>') +
-            action('团队登录', '团队账号、分组和主管看板按服务端部署节奏开放；当前公开网页先跑摘要同步。',
-            '<button type="button" class="btn" onclick="openCollabAuthFromAdmin()">🔐 团队登录</button>');
+            loginCard;
     }
     function configActionsHTML() {
         if (!adminPerm.sync_config && !adminPerm.sync_test && !isDeveloper) {
-            return blockedAction('同步配置', 'OSS、Key 托管和同步测试会影响全队数据入口，需管理员或开发者处理。', '需要管理员/开发者');
+            return '';
         }
         return action('同步配置', '配置归属人、OSS 与 Key 托管状态，决定团队摘要写入哪里。',
             '<button type="button" class="btn" onclick="showOssConfigModal()">⚙ 同步配置</button>' +
@@ -2217,7 +2268,7 @@ function renderAdminPage() {
     }
     function dangerActionsHTML() {
         if (!adminPerm.clear_local && !isDeveloper) {
-            return blockedAction('清除本地业务数据', '清除动作会影响本机分析状态，普通运营不在后台直接暴露入口。', '需要管理员');
+            return '';
         }
         return action('清除本地业务数据', '会清除本地商品、店铺、团队基准与快照数据；不会删除云端 OSS 摘要。',
             '<button type="button" class="btn btn-danger-soft" onclick="doClearWithAdminConfirm()">🗑️ 清除本地业务数据</button>');
@@ -2240,6 +2291,8 @@ function renderAdminPage() {
         card('最近拉取', s.lastLoad, '刷新团队基准', hasLoad ? 'is-ok' : 'is-warn') +
         '</div>' +
         section('团队协作', '摘要同步与团队身份', collabActionsHTML(), '', '') +
+        section('角色能力', '登录后显示：普通运营 / 管理员 / 开发者',
+            roleUnlockHTML(), '', '') +
         section('最近同步记录', uploadSourceLabel() + ' · /api/collab/uploads/recent',
             recentUploadsHTML(), '', '') +
         section('最近后台动作', '来自 SQLite audit_logs',
@@ -2251,9 +2304,9 @@ function renderAdminPage() {
         action('日志与周报', '查看运行日志、解析过程和团队体系下的个人复盘报告。',
             '<button type="button" class="btn" onclick="showEventLogModal()">📋 日志</button>' +
             '<button type="button" class="btn" onclick="exportDiagnosisReport()">📄 周报</button>'), '', '') +
-        section('高风险操作', '需要确认',
+        (dangerActionsHTML() ? section('高风险操作', '需要确认',
         dangerActionsHTML(),
-            'is-danger', '会清除本地业务数据，不会删除云端 OSS 摘要；现有清除流程会再次弹出确认。') +
+            'is-danger', '会清除本地业务数据，不会删除云端 OSS 摘要；现有清除流程会再次弹出确认。') : '') +
         '</div>';
 }
 
@@ -2368,6 +2421,10 @@ function renderStageGatePanel() {
     var pg = document.getElementById('page-import');
     if (!pg) return;
     var panel = document.getElementById('stageGatePanel');
+    if (!canSeeInternalStageGate()) {
+        if (panel) panel.remove();
+        return;
+    }
     if (!panel) {
         panel = document.createElement('details');
         panel.className = 'expander';
@@ -2385,6 +2442,10 @@ function renderStageGatePanel() {
 window.renderStageGatePanel = renderStageGatePanel;
 
 function copyStageGateSummary() {
+    if (!canSeeInternalStageGate()) {
+        toast('阶段验证摘要属于内部管理视图，普通运营默认隐藏。', 'info');
+        return;
+    }
     var hits = getPageHitsSummary();
     var lastUp = null;
     try { lastUp = JSON.parse(localStorage.getItem('temu_v6_cloud_last_upload') || 'null'); } catch (e) { lastUp = null; }
@@ -3893,35 +3954,37 @@ function showCollabAuthModal() {
         });
         return;
     }
-    var body = '<p style="color:var(--text-dim);font-size:0.85rem;margin-bottom:12px;">单部门 · 四个小组。数据摘要存阿里云 OSS（<code>collab/</code>）。原始 Excel 仍在本地。</p>' +
+    var body = '<p style="color:var(--text-dim);font-size:0.86rem;margin-bottom:12px;">先登录团队账号。首次使用请展开“创建团队账号”；创建者用管理员邀请码 <code>TEMU-ADMIN-2026</code>，组员用 <code>TEMU-OPS-2026</code>。</p>' +
         '<div style="display:grid;gap:10px;">' +
-        '<label>邀请码<br><input id="collab_invite" placeholder="TEMU-OPS-2026（组员）" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
+        '<label>姓名<br><input id="collab_login_name" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
+        '<label>密码<br><input id="collab_login_pass" type="password" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
+        '</div>' +
+        '<details class="expander" style="margin-top:14px;"><summary>首次使用：创建团队账号</summary><div class="expander-content" style="display:grid;gap:10px;">' +
+        '<label>邀请码<br><input id="collab_invite" placeholder="创建者 TEMU-ADMIN-2026 / 组员 TEMU-OPS-2026" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
         '<label>姓名（显示名，全团队唯一）<br><input id="collab_name" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
         '<label>密码（≥6 位）<br><input id="collab_pass" type="password" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
         '<label>所属小组<br><select id="collab_group" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"><option value="">加载中…</option></select></label>' +
-        '</div>' +
-        '<p style="color:var(--text-dim);font-size:0.8rem;margin-top:12px;">已有账号？<button type="button" class="btn" id="collab_switch_login" style="margin-left:6px;">改为登录</button></p>';
-    showModal('🔐 团队注册', body, '注册', function(overlay) {
-        var invite = (overlay.querySelector('#collab_invite') || {}).value || '';
-        var name = (overlay.querySelector('#collab_name') || {}).value || '';
-        var pass = (overlay.querySelector('#collab_pass') || {}).value || '';
-        var gid = (overlay.querySelector('#collab_group') || {}).value || '';
-        if (!invite || !name.trim() || pass.length < 6 || !gid) {
-            toast('请填写邀请码、姓名、密码和小组', 'warning');
+        '<button type="button" class="btn" id="collab_register_btn">创建团队账号</button>' +
+        '</div></details>';
+    showModal('🔐 团队登录', body, '登录', function(overlay) {
+        var name = (overlay.querySelector('#collab_login_name') || {}).value || '';
+        var pass = (overlay.querySelector('#collab_login_pass') || {}).value || '';
+        if (!name.trim() || !pass) {
+            toast('请填写姓名和密码；还没有账号请先创建团队账号', 'warning');
             return false;
         }
-        collabFetch('/api/collab/register', {
+        collabFetch('/api/collab/login', {
             method: 'POST',
-            body: JSON.stringify({ invite_code: invite.trim(), display_name: name.trim(), password: pass, group_id: gid })
+            body: JSON.stringify({ display_name: name.trim(), password: pass })
         }).then(function(d) {
-            if (!d || !d.ok) throw new Error((d && d.error) || '注册失败');
+            if (!d || !d.ok) throw new Error((d && d.error) || '登录失败');
             saveCollabSession(d.token, d.user);
             var cfg = getOssConfig();
             if (cfg) { cfg.owner = d.user.display_name; saveOssConfig(cfg); }
-            logEvent('info', 'collab', 'register_ok', '协作注册 · ' + d.user.display_name, d.user);
-            toast('注册成功 · ' + d.user.group_name, 'success');
+            logEvent('info', 'collab', 'login_ok', '协作登录 · ' + d.user.display_name, d.user);
+            toast('登录成功 · ' + d.user.display_name, 'success');
         }).catch(function(e) {
-            toast('注册失败：' + (e.message || String(e)), 'error');
+            toast('登录失败：' + (e.message || String(e)), 'error');
         });
         return true;
     }, function(overlay) {
@@ -3932,11 +3995,35 @@ function showCollabAuthModal() {
                 return '<option value="' + escHtml(g.id) + '">' + escHtml(g.name) + '</option>';
             }).join('');
         });
-        var sw = overlay.querySelector('#collab_switch_login');
-        if (sw) sw.onclick = function() {
-            var cancel = overlay.querySelector('.modal-cancel-btn');
-            if (cancel) cancel.click();
-            showCollabLoginModal();
+        var reg = overlay.querySelector('#collab_register_btn');
+        if (reg) reg.onclick = function() {
+            var invite = (overlay.querySelector('#collab_invite') || {}).value || '';
+            var name = (overlay.querySelector('#collab_name') || {}).value || '';
+            var pass = (overlay.querySelector('#collab_pass') || {}).value || '';
+            var gid = (overlay.querySelector('#collab_group') || {}).value || '';
+            if (!invite || !name.trim() || pass.length < 6 || !gid) {
+                toast('请填写邀请码、姓名、密码和小组', 'warning');
+                return;
+            }
+            reg.disabled = true;
+            reg.textContent = '创建中...';
+            collabFetch('/api/collab/register', {
+                method: 'POST',
+                body: JSON.stringify({ invite_code: invite.trim(), display_name: name.trim(), password: pass, group_id: gid })
+            }).then(function(d) {
+                if (!d || !d.ok) throw new Error((d && d.error) || '创建失败');
+                saveCollabSession(d.token, d.user);
+                var cfg = getOssConfig();
+                if (cfg) { cfg.owner = d.user.display_name; saveOssConfig(cfg); }
+                logEvent('info', 'collab', 'register_ok', '协作注册 · ' + d.user.display_name, d.user);
+                toast('团队账号已创建 · ' + d.user.group_name + ' · ' + d.user.role, 'success');
+                var cancel = overlay.querySelector('.modal-cancel-btn');
+                if (cancel) cancel.click();
+            }).catch(function(e) {
+                reg.disabled = false;
+                reg.textContent = '创建团队账号';
+                toast('创建失败：' + (e.message || String(e)), 'error');
+            });
         };
     });
 }
@@ -5094,7 +5181,7 @@ window.renderProducts = (function() {
     var ib = buildInsightsBarHTML();
     if (ib) { var ibEl = document.createElement('div'); ibEl.innerHTML = ib; div.appendChild(ibEl); }
     var cnt={}; ST.clusters.forEach(function(p){cnt[p.cluster_label]=(cnt[p.cluster_label]||0)+1;});
-    div.innerHTML='<div class="btn-row"><div class="step"><div class="emoji">🟡</div><div class="title">黄金品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--gold);">'+(cnt['黄金品']||0)+'</div></div><div class="step"><div class="emoji">⚪</div><div class="title">白银品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:#a0a0a0;">'+(cnt['白银品']||0)+'</div></div><div class="step"><div class="emoji">🔵</div><div class="title">观察品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:#5b9bd5;">'+(cnt['观察品']||0)+'</div></div><div class="step"><div class="title">📦 总计</div><div class="desc" style="font-size:1.5rem;font-weight:700;">'+ST.clusters.length+'</div></div></div>';
+    div.innerHTML='<div class="alert alert-info" style="margin-bottom:14px;"><span class="alert-icon">🧭</span><span>当前聚类只回答“数据表现像哪一类”，不能单独回答“为什么爆/为什么亏”。要形成可信诊断，需要在商品经营模板里补充卖点、流量、竞品、供应链、平台规则和动作复盘。</span></div><div class="btn-row"><div class="step"><div class="emoji">🟡</div><div class="title">黄金品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--gold);">'+(cnt['黄金品']||0)+'</div></div><div class="step"><div class="emoji">⚪</div><div class="title">白银品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:#a0a0a0;">'+(cnt['白银品']||0)+'</div></div><div class="step"><div class="emoji">🔵</div><div class="title">观察品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:#5b9bd5;">'+(cnt['观察品']||0)+'</div></div><div class="step"><div class="title">📦 总计</div><div class="desc" style="font-size:1.5rem;font-weight:700;">'+ST.clusters.length+'</div></div></div>';
     pg.appendChild(div);
     [{l:'黄金品',c:'var(--gold)',bc:'badge badge-gold'},{l:'白银品',c:'#a0a0a0',bc:'badge badge-silver'},{l:'观察品',c:'#5b9bd5',bc:'badge badge-watch'}].forEach(function(g){var s=ST.clusters.filter(function(p){return p.cluster_label===g.l;});if(s.length>0){var exp=document.createElement('details');exp.className='expander';exp.open=true;exp.innerHTML='<summary><span class="'+g.bc+'">'+g.l+'</span> 概况（'+s.length+' 个SPU）</summary><div class="expander-content"><div class="alert alert-info" style="border-left:3px solid '+g.c+'"><div><strong style="color:'+g.c+'">'+g.l+'</strong><br>毛利率: '+avg(s.map(function(p){return p.gross_margin;})).toFixed(1)+'% | 日销: '+avg(s.map(function(p){return p.daily_sales;})).toFixed(1)+' | 克重: '+Math.round(avg(s.map(function(p){return p.weight_g;})))+'g | 成本: $'+avg(s.map(function(p){return p.cost;})).toFixed(2)+'</div></div></div>';div.appendChild(exp);}});
     var expPlot=document.createElement('details');expPlot.className='expander';expPlot.open=true;

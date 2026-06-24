@@ -511,7 +511,9 @@ def collab_login(cfg: dict, body: dict) -> dict:
     display_name = str(body.get("display_name", "")).strip()
     password = str(body.get("password", ""))
     user = find_user_by_name(cfg, display_name)
-    if not user or not verify_password(password, user.get("password_hash", "")):
+    if not user:
+        raise ValueError("未找到团队账号，请先用邀请码创建账号")
+    if not verify_password(password, user.get("password_hash", "")):
         raise ValueError("姓名或密码错误")
     scope = normalize_data_scope(user or cfg)
     collab_db.record_audit("collab_login", user, {"group_id": user.get("group_id"), **scope})

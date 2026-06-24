@@ -991,8 +991,8 @@
             <!-- ═══ 页面 2: 商品画像 ═══ -->
             <div class="page" id="page-products">
                 <div class="hero">
-                    <h1>📊 商品画像 — 聚类分析</h1>
-                    <p>基于 K-Means 聚类算法，按克重、成本、毛利率、日销量对商品自动分组，快速识别好品与差品的特征分布。</p>
+                    <h1>📊 商品画像 — 商品经营诊断</h1>
+                    <p>聚类只做初筛，真正的判断要回到爆品/差品的原因：价格、流量、供应链、平台规则、生命周期和后续动作。</p>
                 </div>
                 <div class="alert alert-info"><span class="alert-icon">ℹ</span><span>📂 暂无数据，请先前往「数据导入」页面上传 Excel 文件。</span></div>
             </div>
@@ -2038,6 +2038,15 @@ function getAdminPermissionsState() {
     return { role: role, permissions: permissions };
 }
 
+function isAdminDeveloperMode() {
+    var u = getAdminCollabUser();
+    return localStorage.getItem('temu_v6_admin_role') === 'developer' || (u && (u.role === 'admin' || u.role === 'developer'));
+}
+
+function canSeeInternalStageGate() {
+    return isAdminDeveloperMode();
+}
+
 function refreshAdminRecentUploads() {
     if (!isLocalDevServer()) {
         _adminRecentUploads = { checked: true, loading: false, ok: false, items: [], error: '网页模式暂不读取协作日志', token: '' };
@@ -2170,11 +2179,8 @@ function renderAdminPage() {
     function action(title, desc, buttons) {
         return '<div class="admin-action-card"><h3>' + title + '</h3><p>' + desc + '</p><div class="btn-row">' + buttons + '</div></div>';
     }
-    function blockedAction(title, desc, roleHint) {
-        return '<div class="admin-action-card is-disabled"><h3>' + escHtml(title) + '</h3><p>' + escHtml(desc) +
-            '</p><div class="btn-row"><button type="button" class="btn" disabled>' + escHtml(roleHint || '需要管理员权限') + '</button></div></div>';
-    }
     function section(title, sub, body, cls, note) {
+        if (!body) return '';
         return '<section class="admin-console-section ' + (cls || '') + '">' +
             '<div class="admin-section-head"><h2>' + escHtml(title) + '</h2><span>' + escHtml(sub || '') + '</span></div>' +
             (note ? '<p class="admin-danger-note">' + escHtml(note) + '</p>' : '') +
@@ -2231,18 +2237,19 @@ function renderAdminPage() {
         return '<div class="admin-log-list">' + rows + '</div>';
     }
     function collabActionsHTML() {
+        var loginCard = action('团队登录', '先完成团队账号验证；登录后系统只展示当前角色可用的后台动作。',
+            '<button type="button" class="btn" onclick="openCollabAuthFromAdmin()">🔐 团队登录</button>');
         if (!adminPerm.collab_sync && !adminPerm.team_benchmark && !isDeveloper) {
-            return blockedAction('团队协作操作', '普通运营后台只保留查看和本地动作；团队同步、拉取基准由主管或管理员执行。', '当前：普通运营');
+            return loginCard;
         }
         return action('同步团队', '把我的选品与店铺摘要同步到团队基准，原始 Excel 仍保留在本地。',
             '<button type="button" class="btn-primary-sm" onclick="uploadToCloud()">⬆ 同步团队</button>' +
             '<button type="button" class="btn" onclick="loadFromCloudWithAdminConfirm()">📥 团队基准</button>') +
-            action('团队登录', '团队账号、分组和主管看板按服务端部署节奏开放；当前公开网页先跑摘要同步。',
-            '<button type="button" class="btn" onclick="openCollabAuthFromAdmin()">🔐 团队登录</button>');
+            loginCard;
     }
     function configActionsHTML() {
         if (!adminPerm.sync_config && !adminPerm.sync_test && !isDeveloper) {
-            return blockedAction('同步配置', 'OSS、Key 托管和同步测试会影响全队数据入口，需管理员或开发者处理。', '需要管理员/开发者');
+            return '';
         }
         return action('同步配置', '配置归属人、OSS 与 Key 托管状态，决定团队摘要写入哪里。',
             '<button type="button" class="btn" onclick="showOssConfigModal()">⚙ 同步配置</button>' +
@@ -2250,7 +2257,7 @@ function renderAdminPage() {
     }
     function dangerActionsHTML() {
         if (!adminPerm.clear_local && !isDeveloper) {
-            return blockedAction('清除本地业务数据', '清除动作会影响本机分析状态，普通运营不在后台直接暴露入口。', '需要管理员');
+            return '';
         }
         return action('清除本地业务数据', '会清除本地商品、店铺、团队基准与快照数据；OSS 配置和日志按现有逻辑保留。',
             '<button type="button" class="btn btn-danger-soft" onclick="doClearWithAdminConfirm()">🗑️ 清除本地业务数据</button>');
@@ -2285,9 +2292,9 @@ function renderAdminPage() {
             '<button type="button" class="btn" onclick="showEventLogModal()">📋 日志</button>' +
             '<button type="button" class="btn" onclick="exportDiagnosisReport()">📄 周报</button>') +
         '', '') +
-        section('高风险操作', '需要确认',
+        (dangerActionsHTML() ? section('高风险操作', '需要确认',
         dangerActionsHTML(),
-            'is-danger', '执行前请确认已完成必要同步或备份；现有清除流程会再次弹出确认。') +
+            'is-danger', '执行前请确认已完成必要同步或备份；现有清除流程会再次弹出确认。') : '') +
         '</div>';
 }
 
@@ -2412,6 +2419,10 @@ function renderStageGatePanel() {
     var pg = document.getElementById('page-import');
     if (!pg) return;
     var panel = document.getElementById('stageGatePanel');
+    if (!canSeeInternalStageGate()) {
+        if (panel) panel.remove();
+        return;
+    }
     if (!panel) {
         panel = document.createElement('details');
         panel.className = 'expander';
@@ -2429,6 +2440,10 @@ function renderStageGatePanel() {
 window.renderStageGatePanel = renderStageGatePanel;
 
 function copyStageGateSummary() {
+    if (!canSeeInternalStageGate()) {
+        toast('阶段验证摘要属于内部管理视图，普通运营默认隐藏。', 'info');
+        return;
+    }
     var hits = getPageHitsSummary();
     var lastUp = null;
     try { lastUp = JSON.parse(localStorage.getItem('temu_v6_cloud_last_upload') || 'null'); } catch (e) { lastUp = null; }
@@ -4809,7 +4824,7 @@ window.renderProducts = (function() {
     var ib = buildInsightsBarHTML();
     if (ib) { var ibEl = document.createElement('div'); ibEl.innerHTML = ib; div.appendChild(ibEl); }
     var cnt={}; ST.clusters.forEach(function(p){cnt[p.cluster_label]=(cnt[p.cluster_label]||0)+1;});
-    div.innerHTML='<div class="btn-row"><div class="step"><div class="emoji">🟡</div><div class="title">黄金品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--gold);">'+(cnt['黄金品']||0)+'</div></div><div class="step"><div class="emoji">⚪</div><div class="title">白银品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:#a0a0a0;">'+(cnt['白银品']||0)+'</div></div><div class="step"><div class="emoji">🔵</div><div class="title">观察品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:#5b9bd5;">'+(cnt['观察品']||0)+'</div></div><div class="step"><div class="title">📦 总计</div><div class="desc" style="font-size:1.5rem;font-weight:700;">'+ST.clusters.length+'</div></div></div>';
+    div.innerHTML='<div class="alert alert-info" style="margin-bottom:14px;"><span class="alert-icon">🧭</span><span>当前聚类只回答“数据表现像哪一类”，不能单独回答“为什么爆/为什么亏”。要形成可信诊断，需要在商品经营模板里补充卖点、流量、竞品、供应链、平台规则和动作复盘。</span></div><div class="btn-row"><div class="step"><div class="emoji">🟡</div><div class="title">黄金品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--gold);">'+(cnt['黄金品']||0)+'</div></div><div class="step"><div class="emoji">⚪</div><div class="title">白银品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:#a0a0a0;">'+(cnt['白银品']||0)+'</div></div><div class="step"><div class="emoji">🔵</div><div class="title">观察品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:#5b9bd5;">'+(cnt['观察品']||0)+'</div></div><div class="step"><div class="title">📦 总计</div><div class="desc" style="font-size:1.5rem;font-weight:700;">'+ST.clusters.length+'</div></div></div>';
     pg.appendChild(div);
     [{l:'黄金品',c:'var(--gold)',bc:'badge badge-gold'},{l:'白银品',c:'#a0a0a0',bc:'badge badge-silver'},{l:'观察品',c:'#5b9bd5',bc:'badge badge-watch'}].forEach(function(g){var s=ST.clusters.filter(function(p){return p.cluster_label===g.l;});if(s.length>0){var exp=document.createElement('details');exp.className='expander';exp.open=true;exp.innerHTML='<summary><span class="'+g.bc+'">'+g.l+'</span> 概况（'+s.length+' 个SPU）</summary><div class="expander-content"><div class="alert alert-info" style="border-left:3px solid '+g.c+'"><div><strong style="color:'+g.c+'">'+g.l+'</strong><br>毛利率: '+avg(s.map(function(p){return p.gross_margin;})).toFixed(1)+'% | 日销: '+avg(s.map(function(p){return p.daily_sales;})).toFixed(1)+' | 克重: '+Math.round(avg(s.map(function(p){return p.weight_g;})))+'g | 成本: $'+avg(s.map(function(p){return p.cost;})).toFixed(2)+'</div></div></div>';div.appendChild(exp);}});
     var expPlot=document.createElement('details');expPlot.className='expander';expPlot.open=true;
