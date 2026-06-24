@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="temu-hosted-url" content="https://18ok.github.io/temu-PUD/">
-    <title>Temu 运营数据分析面板 — V10</title>
+    <title>跨境经营诊断系统 — V10</title>
     <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
@@ -85,6 +85,7 @@
         .sidebar.collapsed .sidebar-brand { padding: 12px 6px; margin: 6px; border-radius: var(--radius); }
         .sidebar.collapsed .sidebar-brand .title { font-size: 0.9rem; }
         .sidebar.collapsed .sidebar-brand .sub,
+        .sidebar.collapsed .platform-template-panel,
         .sidebar.collapsed .nav-text,
         .sidebar.collapsed .sidebar-footer { display: none; }
         .sidebar.collapsed .sidebar-nav { padding: 4px 6px; }
@@ -98,6 +99,31 @@
         }
         .sidebar-brand .title { font-size: 1.08rem; font-weight: 800; color: var(--text); }
         .sidebar-brand .sub   { font-size: 0.7rem; color: var(--text-faded); margin-top: 2px; }
+        .platform-template-panel {
+            margin-top: 12px; border-top: 1px solid var(--border-light); padding-top: 10px;
+        }
+        .platform-template-panel summary {
+            list-style: none; cursor: pointer; color: var(--text-dim);
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.78rem; font-weight: 700;
+        }
+        .platform-template-panel summary::-webkit-details-marker { display: none; }
+        .platform-template-panel summary::after {
+            content: '⌄'; color: var(--text-faded); transition: transform 0.16s;
+        }
+        .platform-template-panel[open] summary::after { transform: rotate(180deg); }
+        .platform-template-list { display: grid; gap: 8px; margin-top: 10px; }
+        .platform-template-link {
+            display: grid; gap: 2px; text-decoration: none; color: var(--text);
+            padding: 9px 10px; border-radius: var(--radius-sm);
+            border: 1px solid var(--border); background: rgba(255,255,255,0.028);
+            transition: all 0.16s;
+        }
+        .platform-template-link:hover {
+            border-color: rgba(226,184,122,0.32); background: rgba(226,184,122,0.07);
+        }
+        .platform-template-link strong { font-size: 0.82rem; }
+        .platform-template-link span { color: var(--text-faded); font-size: 0.68rem; line-height: 1.35; }
         .sidebar-nav { list-style: none; padding: 4px 12px; flex: 1; overflow-y: auto; overscroll-behavior: contain; }
         .sidebar-nav li { margin-bottom: 2px; }
         .sidebar-nav a {
@@ -800,8 +826,21 @@
 <div class="app">
     <aside class="sidebar">
         <div class="sidebar-brand">
-            <div class="title">🛒 Temu 团队看板</div>
-            <div class="sub">团队协作 · V10.3</div>
+            <div class="title">🧭 跨境经营诊断</div>
+            <div class="sub">多平台协作 · V10.4</div>
+            <details class="platform-template-panel">
+                <summary>平台模板</summary>
+                <div class="platform-template-list">
+                    <a class="platform-template-link" href="docs/templates/Temu商品经营诊断模板V1.xlsx" download>
+                        <strong>Temu 诊断模板</strong>
+                        <span>利润表 / 店铺数据 / 团队对齐适配</span>
+                    </a>
+                    <a class="platform-template-link" href="docs/templates/SHEIN商品经营诊断模板V1.xlsx" download>
+                        <strong>SHEIN 诊断模板</strong>
+                        <span>先按经营诊断模型填，后续细化平台字段</span>
+                    </a>
+                </div>
+            </details>
         </div>
         <ul class="sidebar-nav">
             <li><a class="active" onclick="switchPage('import')"><span class="nav-icon">📥</span> <span class="nav-text">团队工作台</span></a></li>
@@ -987,7 +1026,7 @@
             </div>
 
             <footer class="app-footer">
-                <strong>Temu 运营数据看板 V10.3.0</strong> · 跨境团队选品与运营一体化<br>
+                <strong>跨境经营诊断系统 V10.4.0</strong> · 多平台团队选品与运营一体化<br>
                 本地解析 · 团队摘要存阿里云 OSS · 运行日志 · 协作能力分阶段开放
                 <p class="style-compare" id="styleCompare" aria-live="polite"></p>
             </footer>
