@@ -1266,9 +1266,9 @@ function saveParseReport(report) {
     reports.push(report);
     if (reports.length > PARSE_REPORT_MAX) reports = reports.slice(-PARSE_REPORT_MAX);
     try {
-        localStorage.setItem(PARSE_REPORT_KEY, JSON.stringify(reports));
+        safeSetItem(PARSE_REPORT_KEY, JSON.stringify(reports));
     } catch(e) {
-        try { localStorage.setItem(PARSE_REPORT_KEY, JSON.stringify(reports.slice(-10))); } catch(e2) {}
+        try { safeSetItem(PARSE_REPORT_KEY, JSON.stringify(reports.slice(-10))); } catch(e2) {}
     }
     updateParseReportBadge();
     if (typeof renderParseReportsPanel === 'function') renderParseReportsPanel();
@@ -1389,10 +1389,10 @@ function clearParseReportsConfirm() {
 
 function persistEventLog(entries) {
     try {
-        localStorage.setItem(EVENT_LOG_KEY, JSON.stringify(entries));
+        safeSetItem(EVENT_LOG_KEY, JSON.stringify(entries));
     } catch(e) {
         try {
-            localStorage.setItem(EVENT_LOG_KEY, JSON.stringify(entries.slice(-Math.min(50, entries.length))));
+            safeSetItem(EVENT_LOG_KEY, JSON.stringify(entries.slice(-Math.min(50, entries.length))));
         } catch(e2) { /* 日志写入失败时静默，避免干扰主流程 */ }
     }
 }
@@ -2539,7 +2539,7 @@ function toggleSidebar() {
         return;
     }
     sb.classList.toggle('collapsed');
-    localStorage.setItem('temu_v6_sidebar', sb.classList.contains('collapsed') ? 'collapsed' : 'expanded');
+    safeSetItem('temu_v6_sidebar', sb.classList.contains('collapsed') ? 'collapsed' : 'expanded');
     setTimeout(function(){
         if (typeof Plotly !== 'undefined') {
             var sp = document.getElementById('scatterPlot');
@@ -2932,7 +2932,7 @@ function migrateOssKeysToEnv(opts) {
             if (!opts.silent) {
                 toast('Key 已在本地 .env 托管，无需再迁移（OSS 诊断通过即表示正常）', 'success');
             }
-            localStorage.setItem('temu_v6_env_migrated', '1');
+            safeSetItem('temu_v6_env_migrated', '1');
             return true;
         }
         var overlay = opts.overlay || getActiveOssFormOverlay();
@@ -2977,7 +2977,7 @@ function migrateOssKeysToEnv(opts) {
             logEvent('info', 'oss', 'env_migrate', 'AccessKey 已迁移到本地 .env', { bucket: kept.bucket });
             return checkOssServerSync().then(function(ok) {
                 updateSidebar();
-                if (ok) localStorage.setItem('temu_v6_env_migrated', '1');
+                if (ok) safeSetItem('temu_v6_env_migrated', '1');
                 if (!opts.silent) toast('Key 已写入 .env，浏览器 Secret 已清除 · 请重启 bat 窗口后长期生效', 'success', { duration: 9000 });
                 return ok;
             });
@@ -2997,11 +2997,11 @@ function tryAutoMigrateOssKeysToEnv() {
     if (!c.accessKeyId || !c.accessKeySecret) return Promise.resolve(false);
     return checkOssServerSync().then(function(hasServer) {
         if (hasServer) {
-            localStorage.setItem('temu_v6_env_migrated', '1');
+            safeSetItem('temu_v6_env_migrated', '1');
             return false;
         }
         return migrateOssKeysToEnv({ silent: false }).then(function(ok) {
-            if (ok) localStorage.setItem('temu_v6_env_migrated', '1');
+            if (ok) safeSetItem('temu_v6_env_migrated', '1');
             return ok;
         });
     });
@@ -5490,7 +5490,7 @@ function runStartupSelfCheck() {
         checkOssServerSync().then(function() { updateSidebar(); });
         if (!localStorage.getItem('temu_v6_hosted_welcome')) {
             toast('网页版：拖 Excel 即用 · 团队数据侧边栏 📥（⚙ 配置 OSS）', 'info', { duration: 9000 });
-            localStorage.setItem('temu_v6_hosted_welcome', '1');
+            safeSetItem('temu_v6_hosted_welcome', '1');
         }
     }
     if (isLocalDevServer()) {

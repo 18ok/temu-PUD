@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="temu-hosted-url" content="https://18ok.github.io/temu-PUD/">
-    <title>Temu 运营数据分析面板 — V10</title>
+    <title>跨境经营诊断系统 — V10</title>
     <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
@@ -24,20 +24,20 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
 
         :root {
-            --bg: #0f0f17;
-            --card: #1a1a24;
-            --card-hover: #20202c;
-            --card-alt: #262634;
-            --gold: #e2b87a;
-            --gold-dark: #c99e5e;
-            --gold-glow: rgba(226, 184, 122, 0.22);
-            --gold-bg: rgba(226, 184, 122, 0.06);
-            --text: #f1f0ee;
-            --text-dim: #a1a09c;
+            --bg: #0b0d10;
+            --card: #15191f;
+            --card-hover: #1b2028;
+            --card-alt: #202631;
+            --gold: #d7b46f;
+            --gold-dark: #a98248;
+            --gold-glow: rgba(215, 180, 111, 0.14);
+            --gold-bg: rgba(215, 180, 111, 0.055);
+            --text: #ece8df;
+            --text-dim: #a6a093;
             --text-faded: rgba(241, 240, 238, 0.38);
-            --border: rgba(226, 184, 122, 0.14);
-            --border-hover: rgba(226, 184, 122, 0.35);
-            --border-light: rgba(226, 184, 122, 0.08);
+            --border: rgba(215, 180, 111, 0.12);
+            --border-hover: rgba(215, 180, 111, 0.28);
+            --border-light: rgba(255, 255, 255, 0.07);
             --success: rgba(34, 197, 94, 0.12);
             --success-border: rgba(34, 197, 94, 0.35);
             --success-text: #4ade80;
@@ -47,8 +47,8 @@
             --danger-bg: rgba(239, 68, 68, 0.12);
             --danger-border: rgba(239, 68, 68, 0.35);
             --danger-text: #fca5a5;
-            --info-bg: rgba(226, 184, 122, 0.06);
-            --info-border: rgba(226, 184, 122, 0.18);
+            --info-bg: rgba(255, 255, 255, 0.045);
+            --info-border: rgba(215, 180, 111, 0.16);
             --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
             --shadow: 0 4px 20px rgba(0,0,0,0.35);
             --shadow-lg: 0 8px 32px rgba(0,0,0,0.45);
@@ -62,22 +62,20 @@
         }
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html { scroll-behavior: smooth; }
+        html { height: 100%; scroll-behavior: smooth; }
         body {
             font-family: var(--font); color: var(--text);
-            line-height: 1.65; min-height: 100vh; -webkit-font-smoothing: antialiased;
+            line-height: 1.65; min-height: 100vh; height: 100%; overflow: hidden; -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
-            background: var(--bg);
-            background-image:
-                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(226, 184, 122, 0.08), transparent),
-                radial-gradient(ellipse 60% 40% at 100% 50%, rgba(91, 155, 213, 0.04), transparent);
+            background: linear-gradient(180deg, #0b0d10 0%, #0f1318 100%);
         }
 
         /* ── 布局 ── */
-        .app { display: flex; min-height: 100vh; }
+        .app { display: flex; height: 100vh; min-height: 100vh; overflow: hidden; }
         .sidebar {
             width: var(--sidebar-w); min-width: var(--sidebar-w); flex-shrink: 0;
-            background: linear-gradient(180deg, #12121a 0%, var(--card) 100%);
+            height: 100vh;
+            background: #101319;
             border-right: 1px solid var(--border-light);
             display: flex; flex-direction: column;
             transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -87,19 +85,60 @@
         .sidebar.collapsed .sidebar-brand { padding: 12px 6px; margin: 6px; border-radius: var(--radius); }
         .sidebar.collapsed .sidebar-brand .title { font-size: 0.9rem; }
         .sidebar.collapsed .sidebar-brand .sub,
+        .sidebar.collapsed .system-entry-panel,
         .sidebar.collapsed .nav-text,
-        .sidebar.collapsed .sidebar-info { display: none; }
+        .sidebar.collapsed .sidebar-footer { display: none; }
         .sidebar.collapsed .sidebar-nav { padding: 4px 6px; }
         .sidebar.collapsed .sidebar-nav a { justify-content: center; padding: 10px 6px; }
         .sidebar.collapsed .nav-icon { font-size: 1.3rem; }
         .sidebar-brand {
-            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
-            border-radius: var(--radius-xl); padding: 18px 14px; margin: 12px;
-            text-align: center;
+            background: transparent;
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius); padding: 16px 14px; margin: 12px;
+            text-align: left;
         }
-        .sidebar-brand .title { font-size: 1.3rem; font-weight: 800; color: var(--bg); }
+        .sidebar-brand .title { font-size: 1.08rem; font-weight: 800; color: var(--text); }
         .sidebar-brand .sub   { font-size: 0.7rem; color: var(--text-faded); margin-top: 2px; }
-        .sidebar-nav { list-style: none; padding: 4px 12px; flex: 1; }
+        .system-entry-panel {
+            margin-top: 12px; border-top: 1px solid var(--border-light); padding-top: 10px;
+        }
+        .system-entry-panel summary {
+            list-style: none; cursor: pointer; color: var(--text-dim);
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.78rem; font-weight: 700;
+        }
+        .system-entry-panel summary::-webkit-details-marker { display: none; }
+        .system-entry-panel summary::after {
+            content: '⌄'; color: var(--text-faded); transition: transform 0.16s;
+        }
+        .system-entry-panel[open] summary::after { transform: rotate(180deg); }
+        .system-entry-list { display: grid; gap: 8px; margin-top: 10px; }
+        .system-entry-card {
+            display: grid; gap: 2px; text-decoration: none; color: var(--text);
+            padding: 9px 10px; border-radius: var(--radius-sm);
+            border: 1px solid var(--border); background: rgba(255,255,255,0.028);
+            transition: all 0.16s;
+        }
+        .system-entry-card:hover {
+            border-color: rgba(226,184,122,0.32); background: rgba(226,184,122,0.07);
+        }
+        .system-entry-card.is-disabled {
+            cursor: default; opacity: 0.72;
+        }
+        .system-entry-card.is-disabled:hover {
+            border-color: var(--border); background: rgba(255,255,255,0.028);
+        }
+        .system-entry-card strong { font-size: 0.82rem; }
+        .system-entry-card span { color: var(--text-faded); font-size: 0.68rem; line-height: 1.35; }
+        .system-entry-meta {
+            display: flex; justify-content: space-between; align-items: center; gap: 8px;
+            margin-top: 6px; font-size: 0.64rem; color: var(--text-faded);
+        }
+        .system-entry-status {
+            border: 1px solid rgba(226,184,122,0.24); border-radius: 999px;
+            padding: 2px 6px; color: var(--gold);
+        }
+        .sidebar-nav { list-style: none; padding: 4px 12px; flex: 1; overflow-y: auto; overscroll-behavior: contain; }
         .sidebar-nav li { margin-bottom: 2px; }
         .sidebar-nav a {
             display: flex; align-items: center; gap: 10px; padding: 9px 14px;
@@ -112,33 +151,143 @@
             box-shadow: inset 3px 0 0 var(--gold);
         }
         .nav-icon { font-size: 1.1rem; }
-        .sidebar-info { padding: 12px; border-top: 1px solid var(--border-light); font-size: 0.82rem; color: var(--text-dim); }
-        .sidebar-info .stat-card {
-            background: var(--success); border: 1px solid var(--success-border);
-            border-radius: var(--radius); padding: 10px 12px; margin-bottom: 8px;
+        .sidebar-footer { padding: 12px; border-top: 1px solid var(--border-light); font-size: 0.82rem; color: var(--text-dim); }
+        .sidebar-admin-entry {
+            width: 100%; display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; border-radius: var(--radius);
+            border: 1px solid rgba(226, 184, 122, 0.16);
+            background: rgba(255,255,255,0.03); color: var(--text-dim);
+            cursor: pointer; text-align: left; transition: all 0.18s;
         }
-        .sidebar-info .stat-card .time { font-size: 0.72rem; }
-        .sidebar-info .snapshot {
-            background: var(--info-bg); border: 1px solid var(--border);
-            border-radius: var(--radius); padding: 10px 12px; margin-bottom: 8px;
+        .sidebar-admin-entry:hover,
+        .sidebar-admin-entry.active {
+            color: var(--gold); background: rgba(226,184,122,0.08);
+            border-color: rgba(226,184,122,0.34);
         }
-        .sidebar-actions { display: flex; gap: 8px; margin-top: 8px; }
-        .sidebar-actions button {
-            flex: 1; padding: 8px; border-radius: var(--radius);
-            border: 1px solid rgba(226, 184, 122, 0.18);
-            background: var(--card); color: var(--text-dim); font-weight: 600;
-            cursor: pointer; font-size: 0.85rem; transition: all 0.2s;
+        .sidebar-admin-entry .admin-icon { font-size: 1.1rem; }
+        .sidebar-admin-entry .admin-text { display: grid; gap: 2px; line-height: 1.2; }
+        .sidebar-admin-entry strong { font-size: 0.88rem; color: inherit; }
+        .sidebar-admin-entry span { font-size: 0.7rem; color: var(--text-faded); }
+        .admin-status-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px; margin: 16px 0 20px;
         }
-        .sidebar-actions button:hover {
-            background: var(--card-hover); border-color: var(--border-hover);
-            transform: translateY(-1px);
+        .admin-console {
+            display: grid; gap: 16px;
         }
-        .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+        .admin-overview-head {
+            display: flex; justify-content: space-between; gap: 16px; align-items: flex-end;
+            padding: 16px; border: 1px solid var(--border-light);
+            border-radius: var(--radius-lg);
+            background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.018));
+        }
+        .admin-health-title {
+            font-family: 'Plus Jakarta Sans', var(--font); font-size: 1.05rem; font-weight: 800;
+            color: var(--text); margin-bottom: 4px;
+        }
+        .admin-health-sub { color: var(--text-dim); font-size: 0.82rem; }
+        .admin-health-badge {
+            padding: 6px 10px; border-radius: 999px; border: 1px solid var(--success-border);
+            background: var(--success); color: var(--success-text); font-size: 0.78rem; font-weight: 800;
+        }
+        .admin-status-card {
+            position: relative; overflow: hidden;
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 14px 16px;
+        }
+        .admin-status-card::before {
+            content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+            background: var(--border-hover);
+        }
+        .admin-status-card.is-ok { border-color: var(--success-border); background: rgba(34,197,94,0.07); }
+        .admin-status-card.is-ok::before { background: var(--success-text); }
+        .admin-status-card.is-warn { border-color: var(--warning-border); background: var(--warning-bg); }
+        .admin-status-card.is-warn::before { background: var(--warning-text); }
+        .admin-status-card.is-danger { border-color: var(--danger-border); background: var(--danger-bg); }
+        .admin-status-card.is-danger::before { background: var(--danger-text); }
+        .admin-status-card .label {
+            color: var(--text-dim); font-size: 0.75rem; margin-bottom: 6px;
+        }
+        .admin-status-card .value {
+            color: var(--text); font-size: 1.25rem; font-weight: 800;
+            font-family: 'Plus Jakarta Sans', var(--font);
+        }
+        .admin-status-card .hint {
+            color: var(--text-faded); font-size: 0.74rem; margin-top: 4px;
+        }
+        .admin-action-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px; margin-top: 12px;
+        }
+        .admin-console-section {
+            background: rgba(255,255,255,0.025); border: 1px solid var(--border-light);
+            border-radius: var(--radius-lg); padding: 16px;
+        }
+        .admin-console-section.is-danger {
+            border-color: var(--danger-border); background: rgba(239,68,68,0.055);
+        }
+        .admin-section-head {
+            display: flex; justify-content: space-between; gap: 12px; align-items: baseline;
+            border-bottom: 1px solid var(--border-light); padding-bottom: 10px; margin-bottom: 12px;
+        }
+        .admin-section-head h2 { font-size: 0.98rem; color: var(--text); }
+        .admin-section-head span { color: var(--text-faded); font-size: 0.78rem; }
+        .admin-danger-note {
+            color: var(--danger-text); font-size: 0.82rem; margin: 0 0 12px;
+        }
+        .btn-danger-soft {
+            border-color: var(--danger-border) !important; color: var(--danger-text) !important;
+            background: rgba(239,68,68,0.08) !important;
+        }
+        .btn-danger-soft:hover {
+            border-color: rgba(248,113,113,0.55) !important; background: rgba(239,68,68,0.13) !important;
+        }
+        .admin-action-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 16px;
+        }
+        .admin-action-card h3 {
+            font-size: 0.95rem; margin-bottom: 6px; color: var(--text);
+        }
+        .admin-action-card p {
+            color: var(--text-dim); font-size: 0.82rem; min-height: 36px; margin-bottom: 12px;
+        }
+        .admin-action-card .btn-row { margin-top: 0; }
+        .admin-action-card.is-disabled {
+            opacity: 0.62; background: rgba(255,255,255,0.02);
+        }
+        .admin-action-card.is-disabled .btn {
+            pointer-events: none; filter: grayscale(1);
+        }
+        .admin-log-list {
+            grid-column: 1 / -1;
+            display: grid; gap: 8px;
+        }
+        .admin-log-row {
+            display: grid; grid-template-columns: minmax(160px, 1.1fr) minmax(220px, 2fr) auto;
+            gap: 12px; align-items: center;
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); padding: 10px 12px;
+        }
+        .admin-log-main {
+            color: var(--text); font-weight: 700; font-size: 0.88rem;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .admin-log-meta {
+            color: var(--text-dim); font-size: 0.8rem;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .admin-log-badge {
+            color: var(--gold); border: 1px solid rgba(226,184,122,0.28);
+            border-radius: 999px; padding: 4px 8px; font-size: 0.72rem;
+            background: rgba(226,184,122,0.08); white-space: nowrap;
+        }
+        .main { flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100vh; overflow: hidden; }
         .topbar {
             display: flex; align-items: center; gap: 14px;
             padding: 12px 24px; border-bottom: 1px solid var(--border-light);
             background: rgba(15, 15, 23, 0.72); backdrop-filter: blur(12px);
-            position: sticky; top: 0; z-index: 50;
+            flex-shrink: 0; position: relative; z-index: 50;
         }
         .topbar-title { flex: 1; min-width: 0; }
         .topbar-title h2 {
@@ -162,9 +311,17 @@
             transition: transform 0.15s, box-shadow 0.15s;
         }
         .btn-primary-sm:hover { transform: translateY(-1px); box-shadow: 0 4px 14px var(--gold-glow); }
+        .style-switch {
+            padding: 8px 12px; border-radius: 999px;
+            border: 1px solid rgba(215, 180, 111, 0.22);
+            background: rgba(255, 255, 255, 0.035);
+            color: var(--gold); font-size: 0.82rem; font-weight: 700;
+            cursor: pointer; white-space: nowrap; transition: border-color 0.15s, background 0.15s;
+        }
+        .style-switch:hover { border-color: rgba(215, 180, 111, 0.42); background: rgba(215, 180, 111, 0.08); }
         .workflow-strip {
             display: flex; gap: 6px; padding: 10px 24px 0;
-            max-width: 1100px; margin: 0 auto; width: 100%; flex-wrap: wrap;
+            max-width: 1100px; margin: 0 auto; width: 100%; flex-wrap: wrap; flex-shrink: 0;
         }
         .workflow-step {
             flex: 1; min-width: 100px; padding: 8px 12px; border-radius: var(--radius-sm);
@@ -210,7 +367,9 @@
         }
         .toast-action:hover { background: rgba(255,255,255,0.08); }
         .page-toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; align-items: center; }
-        .content { padding: 20px 32px 32px; max-width: 1100px; margin: 0 auto; width: 100%; }
+        .content { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 20px 32px 32px; width: 100%; }
+        .content > .page,
+        .content > .app-footer { max-width: 1100px; margin-left: auto; margin-right: auto; width: 100%; }
         .page { display: none; }
         .page.active { display: block; animation: pageIn 0.2s ease-out; }
         @keyframes pageIn {
@@ -226,7 +385,9 @@
         .hero-compact {
             padding: 18px 22px; margin-bottom: 16px;
             border-radius: var(--radius-lg);
-            background: var(--card); border: 1px solid var(--border);
+            background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.018));
+            border: 1px solid var(--border-light);
+            border-top-color: rgba(215,180,111,0.18);
         }
         .hero-compact h1 { font-size: 1.35rem; font-weight: 700; color: var(--text); margin-bottom: 6px; }
         .hero-compact p { font-size: 0.88rem; color: var(--text-dim); max-width: 65ch; line-height: 1.55; }
@@ -244,7 +405,7 @@
             background: var(--card-alt); border: 1px solid var(--border-light);
             border-radius: var(--radius); padding: 12px 14px;
         }
-        .stat-cell.is-gold { border-color: rgba(226, 184, 122, 0.35); background: var(--gold-bg); }
+        .stat-cell.is-gold { border-color: rgba(215, 180, 111, 0.24); background: rgba(215, 180, 111, 0.045); }
         .stat-cell.is-muted { border-color: var(--border); }
         .stat-cell.is-watch { border-color: rgba(91, 155, 213, 0.35); }
         .stat-cell.is-ok { border-color: var(--success-border); }
@@ -272,22 +433,24 @@
         .pk-score-caption { font-size: 0.82rem; color: var(--text-dim); margin-top: 4px; }
         .pk-score-row { align-items: stretch; }
         .alert-tip { border-left: 2px solid var(--gold); margin-bottom: 8px; }
-        .pk-gap-pick { box-shadow: inset 2px 0 0 rgba(226, 184, 122, 0.35); }
+        .pk-gap-pick { box-shadow: inset 2px 0 0 rgba(215, 180, 111, 0.28); }
         .pk-gap-ops { box-shadow: inset 2px 0 0 var(--success-border); }
         #page-import .upload-zone { padding: 40px 32px; }
-        .btn:focus-visible, .btn-ghost:focus-visible, .btn-primary-sm:focus-visible,
+        .btn:focus-visible, .btn-ghost:focus-visible, .btn-primary-sm:focus-visible, .style-switch:focus-visible,
         .sidebar-nav a:focus-visible, .expander summary:focus-visible, .workflow-step:focus-visible {
             outline: 2px solid var(--gold); outline-offset: 2px;
         }
 
         /* ── Hero（其他页面保留）── */
         .hero {
-            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+            background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.018));
+            border: 1px solid var(--border-light);
+            border-top-color: rgba(215,180,111,0.18);
             border-radius: var(--radius-2xl); padding: 28px 32px; margin-bottom: 24px;
-            box-shadow: 0 4px 16px var(--gold-glow);
+            box-shadow: 0 18px 48px rgba(0,0,0,0.28);
         }
-        .hero h1 { font-size: 2rem; font-weight: 700; color: var(--bg); margin-bottom: 6px; }
-        .hero p  { font-size: 0.95rem; color: rgba(15,15,23,0.8); line-height: 1.5; }
+        .hero h1 { font-size: 2rem; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+        .hero p  { font-size: 0.95rem; color: var(--text-dim); line-height: 1.5; }
 
         /* ── Button ── */
         .btn {
@@ -677,42 +840,39 @@
 <div class="app">
     <aside class="sidebar">
         <div class="sidebar-brand">
-            <div class="title">🛒 Temu 数据看板</div>
-            <div class="sub">主界面 · V10</div>
+            <div class="title">🧭 跨境经营诊断</div>
+            <div class="sub">多平台协作 · V10.4</div>
+            <details class="system-entry-panel" open>
+                <summary>系统入口</summary>
+                <div class="system-entry-list">
+                    <a class="system-entry-card" href="index.html">
+                        <strong>Temu 系统</strong>
+                        <span>团队对齐、店铺运营、商品诊断主系统</span>
+                        <span class="system-entry-meta"><b>进入系统</b><em class="system-entry-status">在线</em></span>
+                    </a>
+                    <div class="system-entry-card is-disabled" aria-disabled="true">
+                        <strong>SHEIN 系统</strong>
+                        <span>分项目窗口待成立，后续独立搭建</span>
+                        <span class="system-entry-meta"><b>待配置</b><em class="system-entry-status">离线</em></span>
+                    </div>
+                </div>
+            </details>
         </div>
         <ul class="sidebar-nav">
-            <li><a class="active" onclick="switchPage('import')"><span class="nav-icon">📥</span> <span class="nav-text">数据导入</span></a></li>
-            <li><a onclick="switchPage('products')"><span class="nav-icon">📊</span> <span class="nav-text">商品画像</span></a></li>
-            <li><a onclick="switchPage('rules')"><span class="nav-icon">📋</span> <span class="nav-text">选品规则</span></a></li>
-            <li><a onclick="switchPage('predict')"><span class="nav-icon">🔮</span> <span class="nav-text">智能预测</span></a></li>
-            <li><a onclick="switchPage('blacklist')"><span class="nav-icon">🚨</span> <span class="nav-text">避坑清单</span></a></li>
+            <li><a class="active" onclick="switchPage('import')"><span class="nav-icon">📥</span> <span class="nav-text">团队工作台</span></a></li>
+            <li><a onclick="switchPage('pk')"><span class="nav-icon">🏆</span> <span class="nav-text">团队对齐分</span></a></li>
             <li><a onclick="switchPage('diagnosis')"><span class="nav-icon">📈</span> <span class="nav-text">个人诊断</span></a></li>
             <li><a onclick="switchPage('store')"><span class="nav-icon">🏪</span> <span class="nav-text">店铺运营</span></a></li>
-            <li><a onclick="switchPage('pk')"><span class="nav-icon">🏆</span> <span class="nav-text">个人PK</span></a></li>
+            <li><a onclick="switchPage('products')"><span class="nav-icon">📊</span> <span class="nav-text">商品画像</span></a></li>
+            <li><a onclick="switchPage('rules')"><span class="nav-icon">📋</span> <span class="nav-text">选品规则</span></a></li>
+            <li><a onclick="switchPage('blacklist')"><span class="nav-icon">🚨</span> <span class="nav-text">避坑清单</span></a></li>
+            <li><a onclick="switchPage('predict')"><span class="nav-icon">🔮</span> <span class="nav-text">智能预测</span></a></li>
         </ul>
-        <div class="sidebar-info">
-            <div class="stat-card">
-                💾 已保存 <b>0</b> 个文件<br>
-                <span class="time">—</span>
-            </div>
-            <div class="snapshot">📸 <b>0</b> 份历史快照</div>
-            <div class="snapshot cloud-status" id="cloudStatus">☁️ 云端未配置</div>
-            <div class="sidebar-actions">
-                <button onclick="uploadToCloud()">⬆ 同步</button>
-                <button onclick="loadFromCloud()">📥 团队</button>
-            </div>
-            <div class="sidebar-actions">
-                <button onclick="showOssConfigModal()">⚙ OSS</button>
-                <button onclick="doSave()">💾 本地</button>
-            </div>
-            <div class="sidebar-actions">
-                <button onclick="runTeamSyncDrill()" title="上传虚拟同事数据并验证团队拉取">🧪 联调</button>
-                <button onclick="doClear()">🗑️ 清除</button>
-            </div>
-            <div class="sidebar-actions">
-                <button onclick="showEventLogModal()" title="运行日志 (L)">📋 日志</button>
-                <button onclick="exportDiagnosisReport()" title="导出 Markdown 周报">📄 周报</button>
-            </div>
+        <div class="sidebar-footer">
+            <button type="button" class="sidebar-admin-entry" id="adminEntry" onclick="switchPage('admin')" title="团队后台 / 管理后台">
+                <span class="admin-icon">⚙</span>
+                <span class="admin-text"><strong>管理后台</strong><span>同步 · 团队 · 日志</span></span>
+            </button>
         </div>
     </aside>
 
@@ -720,28 +880,29 @@
         <header class="topbar">
             <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="菜单 (M)" aria-label="切换侧边栏">☰</button>
             <div class="topbar-title">
-                <h2 id="topbarTitle">数据导入</h2>
-                <p id="topbarSub">上传 Excel · 自动识别商品与店铺</p>
+                <h2 id="topbarTitle">团队工作台</h2>
+                <p id="topbarSub">接入我的数据 · 查看团队状态</p>
             </div>
             <div class="topbar-actions">
-                <button type="button" class="btn-ghost" onclick="showEventLogModal()" title="运行日志 (L)">📋</button>
-                <button type="button" class="btn-primary-sm" onclick="uploadToCloud()" title="同步到团队云端">⬆ 同步</button>
+                <button type="button" class="style-switch" id="styleSwitch" title="切换到浅色 Editorial 界面">浅色异位面</button>
+                <button type="button" class="btn-ghost" onclick="switchPage('admin')" title="管理后台">⚙</button>
+                <button type="button" class="btn-primary-sm" onclick="switchPage('admin')" title="打开团队后台">⚙ 管理后台</button>
                 <button type="button" class="btn-ghost" onclick="location.reload()" title="刷新页面">🔄</button>
             </div>
         </header>
         <div class="workflow-strip" id="workflowStrip" aria-label="工作流进度"></div>
         <div class="content">
 
-            <!-- ═══ 页面 1: 数据导入 ═══ -->
+            <!-- ═══ 页面 1: 团队工作台 / 数据导入 ═══ -->
             <div class="page active" id="page-import">
                 <div class="hero hero-compact">
-                    <h1>📥 数据导入</h1>
-                    <p>上传利润统计与店铺数据记录，系统自动分流解析并本地保存。双管线齐备后可进入个人 PK 与诊断。</p>
+                    <h1>📥 团队工作台</h1>
+                    <p>从这里接入我的利润统计与店铺数据，生成团队体系下的个人对齐分，并同步摘要进入团队基准。</p>
                 </div>
                 <div class="import-route-hint" id="importRouteHint" aria-label="试用路径">
                     <span>推荐</span>
-                    <strong>拖 Excel → 🏆 个人 PK</strong>
-                    <span class="dim">· 团队摘要 OSS 📥 · 团队 PK 未开放</span>
+                    <strong>我的数据 → 团队基准 → 🏆 对齐分</strong>
+                    <span class="dim">· 同步后进入小组协作 · 主管看板按部署节奏开放</span>
                 </div>
                 <div class="alert alert-info">
                     <span class="alert-icon">💾</span>
@@ -755,29 +916,29 @@
                     <summary>🚀 第一次使用？看这里</summary>
                     <div class="expander-content">
                         <div class="steps">
-                            <div class="step"><div class="emoji">📤</div><div class="title">1. 上传文件</div><div class="desc">利润统计 .xls + 数据记录 .xlsx 可混拖</div></div>
-                            <div class="step"><div class="emoji">🔍</div><div class="title">2. 自动分流</div><div class="desc">商品SPU→选品页 · 店铺名称→运营/PK</div></div>
-                            <div class="step"><div class="emoji">📊</div><div class="title">3. 查看分析</div><div class="desc">个人 PK / 诊断 · 可选 ⬆同步 OSS</div></div>
+                            <div class="step"><div class="emoji">📤</div><div class="title">1. 上传我的数据</div><div class="desc">利润统计 .xls + 数据记录 .xlsx 可混拖</div></div>
+                            <div class="step"><div class="emoji">🔍</div><div class="title">2. 生成对齐分</div><div class="desc">商品SPU→选品 · 店铺名称→运营/PK</div></div>
+                            <div class="step"><div class="emoji">👥</div><div class="title">3. 同步到团队</div><div class="desc">团队基准 / 小组复盘 · 后续主管看板</div></div>
                         </div>
-                        <div class="alert alert-info" style="margin-top:12px;" id="importOssHint"><span class="alert-icon">☁️</span><span id="importOssHintText"><strong>云端（可选）</strong>：侧边栏 ⚙ 配置一次 → ⬆ 同步 / 📥 团队。网页版打开链接即可，<strong>不必</strong>安装 Python。</span></div>
+                        <div class="alert alert-info" style="margin-top:12px;" id="importOssHint"><span class="alert-icon">☁️</span><span id="importOssHintText"><strong>团队同步</strong>：侧边栏 ⚙ 配置一次 → ⬆ 同步团队 / 📥 团队基准。网页版打开链接即可，<strong>不必</strong>安装 Python。</span></div>
                         <p style="font-size:0.8rem;color:var(--text-dim);margin-top:10px;">快捷键：<kbd style="padding:2px 6px;border-radius:4px;background:var(--card-alt);border:1px solid var(--border);">1</kbd>–<kbd style="padding:2px 6px;border-radius:4px;background:var(--card-alt);border:1px solid var(--border);">8</kbd> 切换页面 · <kbd style="padding:2px 6px;border-radius:4px;background:var(--card-alt);border:1px solid var(--border);">M</kbd> 菜单 · <kbd style="padding:2px 6px;border-radius:4px;background:var(--card-alt);border:1px solid var(--border);">L</kbd> 日志</p>
                     </div>
                 </details>
                 <hr>
                 <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
                     <div class="icon">📁</div>
-                    <div style="font-size:1.1rem; margin-bottom:8px;">拖拽文件到此处或点击选择</div>
+                    <div style="font-size:1.1rem; margin-bottom:8px;">上传我的两份 Excel</div>
                     <div class="hint">店铺利润统计 .xls（商品SPU）· 店铺数据记录 .xlsx（ROAS/花费）</div>
                     <button class="btn" style="margin-top:14px;" onclick="event.stopPropagation(); document.getElementById('fileInput').click();">⬆ 选择文件</button>
                 </div>
                 <input type="file" id="fileInput" accept=".xls,.xlsx" multiple style="display:none" onchange="handleFileUpload(this.files)">
                 <div class="alert alert-info"><span class="alert-icon">📂</span><span>支持两类文件混传：<strong>店铺利润统计</strong>（.xls，表头含「商品SPU ID」→ 商品画像/选品）和 <strong>店铺数据记录</strong>（.xlsx，表头含「店铺名称」→ 店铺运营/个人PK）</span></div>
-                <div class="alert alert-info"><span class="alert-icon">👥</span><span>团队基准上传区 — 仅导入同事的<strong>利润统计</strong> .xls，用于「个人 vs 团队」对比（不要传数据记录）</span></div>
+                <div class="alert alert-info"><span class="alert-icon">👥</span><span>团队基准区 — 拉取或导入同事的<strong>利润统计</strong> .xls，用于把个人对齐分放回团队基准里看（不要传数据记录）</span></div>
                 <div class="upload-zone" onclick="document.getElementById('teamFileInput').click()" style="border-color:rgba(91,155,213,0.28);margin-top:0;">
                     <div class="icon">👥</div>
-                    <div style="font-size:1rem; margin-bottom:6px;color:var(--text);">导入团队利润统计</div>
+                    <div style="font-size:1rem; margin-bottom:6px;color:var(--text);">导入团队基准数据</div>
                     <div class="hint">同事的利润统计 Excel 文件</div>
-                    <button class="btn" style="margin-top:10px;border-color:rgba(91,155,213,0.28);" onclick="event.stopPropagation(); document.getElementById('teamFileInput').click();">⬆ 上传团队数据</button>
+                    <button class="btn" style="margin-top:10px;border-color:rgba(91,155,213,0.28);" onclick="event.stopPropagation(); document.getElementById('teamFileInput').click();">⬆ 上传团队基准</button>
                 </div>
                 <input type="file" id="teamFileInput" accept=".xls,.xlsx" multiple style="display:none" onchange="handleTeamUpload(this.files)">
                 <details class="expander" id="parseReportsPanel" style="margin-top:20px;">
@@ -856,24 +1017,33 @@
                 </div>
                 <div class="alert alert-info"><span class="alert-icon">📂</span><span>请上传店铺数据记录 Excel（.xlsx），系统自动按日期和店铺分组展示。</span></div>
             </div>
-            <!-- ═══ 页面 8: 个人PK ═══ -->
+            <!-- ═══ 页面 8: 团队对齐分 ═══ -->
             <div class="page" id="page-pk">
                 <div class="hero hero-compact">
-                    <h1>🏆 个人选品 vs 店铺运营</h1>
-                    <p>对齐分衡量选品输入与运营输出是否匹配；数据均在本地，分享链接不含 Excel。</p>
+                    <h1>🏆 我的团队对齐分</h1>
+                    <p>个人分数不是终点，它用来对照团队基准，帮助每个人知道下一步该补选品、运营还是同步节奏。</p>
                 </div>
                 <div class="pk-expect-bar">
-                    <div class="pk-expect-label">这是你个人的选品×运营对齐分</div>
+                    <div class="pk-expect-label">团队协作下的个人成长分</div>
                     <div class="pk-expect-actions">
                         <button type="button" class="btn" onclick="copyPkShareLink()" title="复制 PK 页链接（对方需自行导入 Excel）">🔗 复制分享链接</button>
-                        <button type="button" class="btn btn-disabled" disabled title="协作版规划中，敬请期待">团队对比（协作版）</button>
+                        <button type="button" class="btn btn-disabled" id="pkTeamCompareBtn" disabled title="随服务端部署节奏开放主管/组长视图">主管团队看板</button>
                     </div>
                 </div>
             </div>
 
+            <!-- ═══ 管理后台 ═══ -->
+            <div class="page" id="page-admin">
+                <div class="hero hero-compact">
+                    <h1>⚙ 团队后台</h1>
+                    <p>集中管理团队摘要同步、团队基准、账号、配置与日志。业务页面保持专注，后台承接协作与系统动作。</p>
+                </div>
+                <div id="adminPanel"></div>
+            </div>
+
             <footer class="app-footer">
-                <strong>Temu 运营数据看板 V10.2.6</strong> · 跨境团队选品与运营一体化<br>
-                本地解析 · 团队 OSS · 运行日志 · 面向企业内训与能力沉淀（小程序 / 付费版规划中）
+                <strong>跨境经营诊断系统 V10.4.0</strong> · 多平台团队选品与运营一体化<br>
+                本地解析 · 团队摘要存阿里云 OSS · 运行日志 · 协作能力分阶段开放
                 <p class="style-compare" id="styleCompare" aria-live="polite"></p>
             </footer>
         </div>
@@ -1062,9 +1232,9 @@ function saveParseReport(report) {
     reports.push(report);
     if (reports.length > PARSE_REPORT_MAX) reports = reports.slice(-PARSE_REPORT_MAX);
     try {
-        localStorage.setItem(PARSE_REPORT_KEY, JSON.stringify(reports));
+        safeSetItem(PARSE_REPORT_KEY, JSON.stringify(reports));
     } catch(e) {
-        try { localStorage.setItem(PARSE_REPORT_KEY, JSON.stringify(reports.slice(-10))); } catch(e2) {}
+        try { safeSetItem(PARSE_REPORT_KEY, JSON.stringify(reports.slice(-10))); } catch(e2) {}
     }
     updateParseReportBadge();
     if (typeof renderParseReportsPanel === 'function') renderParseReportsPanel();
@@ -1185,10 +1355,10 @@ function clearParseReportsConfirm() {
 
 function persistEventLog(entries) {
     try {
-        localStorage.setItem(EVENT_LOG_KEY, JSON.stringify(entries));
+        safeSetItem(EVENT_LOG_KEY, JSON.stringify(entries));
     } catch(e) {
         try {
-            localStorage.setItem(EVENT_LOG_KEY, JSON.stringify(entries.slice(-Math.min(50, entries.length))));
+            safeSetItem(EVENT_LOG_KEY, JSON.stringify(entries.slice(-Math.min(50, entries.length))));
         } catch(e2) { /* 日志写入失败时静默，避免干扰主流程 */ }
     }
 }
@@ -1636,41 +1806,398 @@ function clearAllData() {
 }
 
 function updateSidebar() {
-    var card = document.querySelector('.stat-card');
-    if (!card) return;
-    var meta = JSON.parse(localStorage.getItem('temu_v6_meta') || '{}');
-    var storeCount = (ST.storeData && ST.storeData.length) ? ST.storeData.length : 0;
-    var teamCount = (ST.teamProducts && ST.teamProducts.length) ? ST.teamProducts.length : 0;
-    card.innerHTML = (teamCount > 0 ? '团队 <b>' + teamCount + '</b> 条 | ' : '') + '📦 商品 <b>'+ST.files.length+'</b> 个文件<br>🏪 店铺 <b>'+storeCount+'</b> 条记录'+(meta.saved_at?'<br><span class="time">'+meta.saved_at+'</span>':'');
-    var sd = document.querySelector('.snapshot');
-    if (sd) sd.innerHTML = '📸 <b>'+ST.snapshots.length+'</b> 份本地快照';
-    var cs = document.getElementById('cloudStatus');
-    if (cs) {
-        if (!isOssConfigured()) {
-            cs.innerHTML = '☁️ 云端未配置';
-        } else {
-            var up = JSON.parse(localStorage.getItem('temu_v6_cloud_last_upload') || 'null');
-            var ld = JSON.parse(localStorage.getItem('temu_v6_cloud_last_load') || 'null');
-            var parts = ['☁️ ' + (getOssConfig().bucket || '云端')];
-            if (isOssServerKeyMode()) parts.push('Key·服务端');
-            if (up && up.time) parts.push('↑' + up.time.slice(0, 16));
-            if (ld && ld.count) parts.push('↓' + ld.count + '条');
-            cs.innerHTML = parts.join(' · ');
-        }
-    }
     updateWorkflowStrip();
+    if (document.getElementById('page-admin') && document.getElementById('page-admin').classList.contains('active')) {
+        renderAdminPage();
+    }
 }
 
 var PAGE_META = {
-    import:    { title: '数据导入', sub: '上传 Excel · 自动识别商品与店铺' },
-    products:  { title: '商品画像', sub: 'K-Means 聚类 · 毛利率与日销分布' },
-    rules:     { title: '选品规则', sub: '铁律与避坑 · 可执行 SOP' },
-    predict:   { title: '智能预测', sub: '成本公式 · 新品预估' },
-    blacklist: { title: '避坑清单', sub: '高克重陷阱 · 低毛利 · 滞销' },
-    diagnosis: { title: '个人诊断', sub: '历史对比 · 个人 vs 团队' },
-    store:     { title: '店铺运营', sub: 'ROAS · 花费 · 转化趋势' },
-    pk:        { title: '个人 PK', sub: '选品输入 vs 运营输出' }
+    import:    { title: '团队工作台', sub: '接入我的数据 · 查看团队状态' },
+    pk:        { title: '团队对齐分', sub: '核心对齐 · 个人成长镜子' },
+    diagnosis: { title: '个人诊断', sub: '改进方向 · 历史复盘' },
+    store:     { title: '店铺运营', sub: 'ROAS · 花费 · 运营输出' },
+    products:  { title: '商品画像', sub: '选品输入 · 商品结构' },
+    rules:     { title: '选品规则', sub: '团队 SOP · 经验沉淀' },
+    blacklist: { title: '避坑清单', sub: '风险库 · 反复踩坑预警' },
+    predict:   { title: '智能预测', sub: '新品评估 · 低频工具' },
+    admin:     { title: '管理后台', sub: '团队同步 · 配置 · 日志' }
 };
+
+function openCollabAuthFromAdmin() {
+    if (typeof showCollabAuthModal === 'function') {
+        showCollabAuthModal();
+        return;
+    }
+    toast('团队登录随服务端部署节奏开放；当前先使用团队摘要同步。', 'info');
+}
+
+var _adminServerStatus = { checked: false, loading: false, ok: false, data: null, error: '' };
+var _adminRecentUploads = { checked: false, loading: false, ok: false, items: [], error: '', token: '' };
+var _adminRecentAudit = { checked: false, loading: false, ok: false, items: [], error: '', token: '' };
+var _adminPermissions = { checked: false, loading: false, ok: false, role: 'operator', permissions: null, token: '', error: '' };
+
+function refreshAdminServerStatus() {
+    if (!isLocalDevServer()) {
+        _adminServerStatus = { checked: true, loading: false, ok: false, data: null, error: '网页模式' };
+        return Promise.resolve(_adminServerStatus);
+    }
+    if (_adminServerStatus.checked) return Promise.resolve(_adminServerStatus);
+    if (_adminServerStatus.loading) return Promise.resolve(_adminServerStatus);
+    _adminServerStatus.loading = true;
+    return fetch('/api/status', { method: 'GET', cache: 'no-store' }).then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+    }).then(function(data) {
+        _adminServerStatus = { checked: true, loading: false, ok: !!data.ok, data: data, error: '' };
+        if (document.getElementById('page-admin') && document.getElementById('page-admin').classList.contains('active')) {
+            renderAdminPage();
+        }
+        return _adminServerStatus;
+    }).catch(function(e) {
+        _adminServerStatus = { checked: true, loading: false, ok: false, data: null, error: e.message || '后端不可用' };
+        if (document.getElementById('page-admin') && document.getElementById('page-admin').classList.contains('active')) {
+            renderAdminPage();
+        }
+        return _adminServerStatus;
+    });
+}
+
+function getAdminCollabToken() {
+    if (typeof getCollabToken === 'function') return getCollabToken();
+    return localStorage.getItem('temu_v6_collab_token') || '';
+}
+
+function getAdminCollabUser() {
+    if (typeof getCollabUser === 'function') return getCollabUser();
+    try { return JSON.parse(localStorage.getItem('temu_v6_collab_user') || 'null'); } catch(e) { return null; }
+}
+
+function defaultAdminPermissions(role) {
+    var isSupervisor = role === 'supervisor' || role === 'admin';
+    var isAdmin = role === 'admin';
+    return {
+        local_save: true,
+        view_logs: true,
+        export_weekly: true,
+        collab_sync: isSupervisor,
+        team_benchmark: isSupervisor,
+        team_pk_board: isSupervisor,
+        sync_config: isAdmin,
+        sync_test: isAdmin,
+        clear_local: isAdmin
+    };
+}
+
+function refreshAdminPermissions() {
+    var token = getAdminCollabToken();
+    var u = getAdminCollabUser();
+    if (!isLocalDevServer() || !token) {
+        _adminPermissions = {
+            checked: true, loading: false, ok: false,
+            role: u && u.role ? u.role : 'operator',
+            permissions: defaultAdminPermissions(u && u.role ? u.role : 'operator'),
+            token: token || '', error: token ? '网页模式暂不读取权限' : '未登录'
+        };
+        return Promise.resolve(_adminPermissions);
+    }
+    if (_adminPermissions.checked && _adminPermissions.token === token) return Promise.resolve(_adminPermissions);
+    if (_adminPermissions.loading) return Promise.resolve(_adminPermissions);
+    _adminPermissions.loading = true;
+    _adminPermissions.token = token;
+    return fetch('/api/collab/permissions', {
+        method: 'GET',
+        cache: 'no-store',
+        headers: { 'Authorization': 'Bearer ' + token }
+    }).then(function(r) {
+        return r.json().then(function(d) {
+            if (!r.ok || !d.ok) throw new Error((d && d.error) || ('HTTP ' + r.status));
+            return d;
+        });
+    }).then(function(data) {
+        _adminPermissions = {
+            checked: true, loading: false, ok: true,
+            role: data.role || (u && u.role) || 'operator',
+            permissions: data.permissions || defaultAdminPermissions((u && u.role) || 'operator'),
+            token: token, error: ''
+        };
+        if (document.getElementById('page-admin') && document.getElementById('page-admin').classList.contains('active')) {
+            renderAdminPage();
+        }
+        return _adminPermissions;
+    }).catch(function(e) {
+        _adminPermissions = {
+            checked: true, loading: false, ok: false,
+            role: u && u.role ? u.role : 'operator',
+            permissions: defaultAdminPermissions(u && u.role ? u.role : 'operator'),
+            token: token, error: e.message || '权限读取失败'
+        };
+        if (document.getElementById('page-admin') && document.getElementById('page-admin').classList.contains('active')) {
+            renderAdminPage();
+        }
+        return _adminPermissions;
+    });
+}
+
+function getAdminPermissionsState() {
+    var u = getAdminCollabUser();
+    var role = (_adminPermissions && _adminPermissions.role) || (u && u.role) || 'operator';
+    var permissions = (_adminPermissions && _adminPermissions.permissions) || defaultAdminPermissions(role);
+    return { role: role, permissions: permissions };
+}
+
+function refreshAdminRecentUploads() {
+    if (!isLocalDevServer()) {
+        _adminRecentUploads = { checked: true, loading: false, ok: false, items: [], error: '网页模式暂不读取协作日志', token: '' };
+        return Promise.resolve(_adminRecentUploads);
+    }
+    var token = getAdminCollabToken();
+    if (!token) {
+        _adminRecentUploads = { checked: true, loading: false, ok: false, items: [], error: '登录团队账号后可查看', token: '' };
+        return Promise.resolve(_adminRecentUploads);
+    }
+    if (_adminRecentUploads.checked && _adminRecentUploads.token === token) return Promise.resolve(_adminRecentUploads);
+    if (_adminRecentUploads.loading) return Promise.resolve(_adminRecentUploads);
+    _adminRecentUploads.loading = true;
+    _adminRecentUploads.token = token;
+    return fetch('/api/collab/uploads/recent?limit=6', {
+        method: 'GET',
+        cache: 'no-store',
+        headers: { 'Authorization': 'Bearer ' + token }
+    }).then(function(r) {
+        return r.json().then(function(d) {
+            if (!r.ok || !d.ok) throw new Error((d && d.error) || ('HTTP ' + r.status));
+            return d;
+        });
+    }).then(function(data) {
+        _adminRecentUploads = { checked: true, loading: false, ok: true, source: data.source || '', items: data.items || [], error: '', token: token };
+        if (document.getElementById('page-admin') && document.getElementById('page-admin').classList.contains('active')) {
+            renderAdminPage();
+        }
+        return _adminRecentUploads;
+    }).catch(function(e) {
+        _adminRecentUploads = { checked: true, loading: false, ok: false, items: [], error: e.message || '读取失败', token: token };
+        if (document.getElementById('page-admin') && document.getElementById('page-admin').classList.contains('active')) {
+            renderAdminPage();
+        }
+        return _adminRecentUploads;
+    });
+}
+
+function refreshAdminRecentAudit() {
+    if (!isLocalDevServer()) {
+        _adminRecentAudit = { checked: true, loading: false, ok: false, items: [], error: '网页模式暂不读取审计日志', token: '' };
+        return Promise.resolve(_adminRecentAudit);
+    }
+    var token = getAdminCollabToken();
+    if (!token) {
+        _adminRecentAudit = { checked: true, loading: false, ok: false, items: [], error: '登录团队账号后可查看', token: '' };
+        return Promise.resolve(_adminRecentAudit);
+    }
+    if (_adminRecentAudit.checked && _adminRecentAudit.token === token) return Promise.resolve(_adminRecentAudit);
+    if (_adminRecentAudit.loading) return Promise.resolve(_adminRecentAudit);
+    _adminRecentAudit.loading = true;
+    _adminRecentAudit.token = token;
+    return fetch('/api/collab/audit/recent?limit=6', {
+        method: 'GET',
+        cache: 'no-store',
+        headers: { 'Authorization': 'Bearer ' + token }
+    }).then(function(r) {
+        return r.json().then(function(d) {
+            if (!r.ok || !d.ok) throw new Error((d && d.error) || ('HTTP ' + r.status));
+            return d;
+        });
+    }).then(function(data) {
+        _adminRecentAudit = { checked: true, loading: false, ok: true, items: data.items || [], error: '', token: token };
+        if (document.getElementById('page-admin') && document.getElementById('page-admin').classList.contains('active')) {
+            renderAdminPage();
+        }
+        return _adminRecentAudit;
+    }).catch(function(e) {
+        _adminRecentAudit = { checked: true, loading: false, ok: false, items: [], error: e.message || '读取失败', token: token };
+        if (document.getElementById('page-admin') && document.getElementById('page-admin').classList.contains('active')) {
+            renderAdminPage();
+        }
+        return _adminRecentAudit;
+    });
+}
+
+function getAdminState() {
+    var lastUpload = null, lastLoad = null, meta = {};
+    try { lastUpload = JSON.parse(localStorage.getItem('temu_v6_cloud_last_upload') || 'null'); } catch(e) {}
+    try { lastLoad = JSON.parse(localStorage.getItem('temu_v6_cloud_last_load') || 'null'); } catch(e) {}
+    try { meta = JSON.parse(localStorage.getItem('temu_v6_meta') || '{}'); } catch(e) {}
+    var cfg = getOssConfig ? getOssConfig() : null;
+    var u = typeof getCollabUser === 'function' ? getCollabUser() : null;
+    var st = _adminServerStatus || {};
+    var serverData = st.data || {};
+    var serverOss = serverData.oss || {};
+    var serverDb = serverData.database || {};
+    var dbCount = (serverDb.upload_count || 0) + (serverDb.pk_count || 0) + (serverDb.audit_count || 0);
+    return {
+        serverLabel: isLocalDevServer()
+            ? (st.loading ? '检测中' : (st.ok ? '在线' : (st.checked ? '离线' : '待检测')))
+            : '网页模式',
+        serverHint: isLocalDevServer()
+            ? (st.ok ? ('端口 ' + ((serverData.server || {}).port || '8080') + ' · /api/status') : (st.error || '等待检测'))
+            : '未连接本地后端',
+        fileCount: ST.files.length,
+        productCount: ST.products.length,
+        storeCount: (ST.storeData || []).length,
+        snapshotCount: (ST.snapshots || []).length,
+        teamCount: (ST.teamProducts || []).length,
+        teamPeople: lastLoad && lastLoad.people ? lastLoad.people : 0,
+        ossLabel: serverOss.configured ? (serverOss.bucket || '已配置') : (isOssConfigured() ? ((cfg && cfg.bucket) || '已配置') : '未配置'),
+        keyLabel: serverOss.configured ? 'Key·服务端' : (isOssServerKeyMode() ? 'Key·服务端' : (isOssConfigured() ? '浏览器 Key' : '待配置')),
+        dbLabel: serverDb.engine ? (serverDb.engine + ' · ' + (serverDb.exists ? '已启用' : '待创建')) : '待检测',
+        dbHint: serverDb.engine ? ((serverDb.upload_count || 0) + ' 条上传索引 · ' + (serverDb.pk_count || 0) + ' 条PK索引 · ' + (serverDb.audit_count || 0) + ' 条审计') : '协作索引库',
+        dbTone: serverDb.engine && dbCount > 0 ? 'is-ok' : 'is-warn',
+        collabLabel: u && u.display_name ? (u.display_name + (u.group_name ? ' · ' + u.group_name : '')) : '未登录',
+        lastUpload: lastUpload && lastUpload.time ? lastUpload.time : '尚未同步',
+        lastLoad: lastLoad && lastLoad.time ? lastLoad.time : '尚未拉取',
+        savedAt: meta.saved_at || '尚未本地保存'
+    };
+}
+
+function renderAdminPage() {
+    var box = document.getElementById('adminPanel');
+    if (!box) return;
+    refreshAdminServerStatus();
+    refreshAdminPermissions();
+    var s = getAdminState();
+    var permState = getAdminPermissionsState();
+    var adminRole = permState.role;
+    var adminPerm = permState.permissions || {};
+    var isDeveloper = localStorage.getItem('temu_v6_admin_role') === 'developer';
+    var hasUpload = s.lastUpload !== '尚未同步';
+    var hasLoad = s.lastLoad !== '尚未拉取';
+    var healthTone = (!isOssConfigured() || !s.fileCount) ? '待配置' : ((s.teamCount && hasUpload) ? '运行正常' : '可继续完善');
+    function card(label, value, hint, tone) {
+        return '<div class="admin-status-card ' + (tone || '') + '"><div class="label">' + escHtml(label) + '</div><div class="value">' +
+            escHtml(value) + '</div><div class="hint">' + escHtml(hint || '') + '</div></div>';
+    }
+    function action(title, desc, buttons) {
+        return '<div class="admin-action-card"><h3>' + title + '</h3><p>' + desc + '</p><div class="btn-row">' + buttons + '</div></div>';
+    }
+    function blockedAction(title, desc, roleHint) {
+        return '<div class="admin-action-card is-disabled"><h3>' + escHtml(title) + '</h3><p>' + escHtml(desc) +
+            '</p><div class="btn-row"><button type="button" class="btn" disabled>' + escHtml(roleHint || '需要管理员权限') + '</button></div></div>';
+    }
+    function section(title, sub, body, cls, note) {
+        return '<section class="admin-console-section ' + (cls || '') + '">' +
+            '<div class="admin-section-head"><h2>' + escHtml(title) + '</h2><span>' + escHtml(sub || '') + '</span></div>' +
+            (note ? '<p class="admin-danger-note">' + escHtml(note) + '</p>' : '') +
+            '<div class="admin-action-grid">' + body + '</div></section>';
+    }
+    function uploadSourceLabel() {
+        if (_adminRecentUploads.loading) return '读取中';
+        if (!_adminRecentUploads.ok) return '等待登录';
+        if (_adminRecentUploads.source === 'sqlite') return 'SQLite 索引';
+        if (_adminRecentUploads.source === 'oss') return 'OSS 兜底';
+        return '来源待确认';
+    }
+    function recentUploadsHTML() {
+        refreshAdminRecentUploads();
+        if (_adminRecentUploads.loading) {
+            return '<div class="admin-action-card"><h3>同步记录</h3><p>正在读取最近同步记录...</p></div>';
+        }
+        if (!_adminRecentUploads.ok) {
+            return '<div class="admin-action-card"><h3>同步记录</h3><p>' + escHtml(_adminRecentUploads.error || '暂无记录') + '</p><div class="btn-row">' +
+                '<button type="button" class="btn" onclick="openCollabAuthFromAdmin()">🔐 团队登录</button></div></div>';
+        }
+        if (!_adminRecentUploads.items.length) {
+            return '<div class="admin-action-card"><h3>同步记录</h3><p>当前团队还没有同步记录。完成一次“同步团队”后会显示在这里。</p></div>';
+        }
+        var rows = _adminRecentUploads.items.map(function(item) {
+            var meta = [
+                item.group_name || '',
+                item.align_score != null ? ('对齐分 ' + item.align_score) : '',
+                item.spu_count != null ? (item.spu_count + ' SPU') : ''
+            ].filter(Boolean).join(' · ');
+            return '<div class="admin-log-row"><div class="admin-log-main">' + escHtml(item.display_name || '未知成员') +
+                '</div><div class="admin-log-meta">' + escHtml((item.at || '未知时间') + (meta ? ' · ' + meta : '')) +
+                '</div><div class="admin-log-badge">' + escHtml(uploadSourceLabel() + (item.oss_key ? ' · 已归档' : ' · 本地记录')) + '</div></div>';
+        }).join('');
+        return '<div class="admin-log-list">' + rows + '</div>';
+    }
+    function recentAuditHTML() {
+        refreshAdminRecentAudit();
+        if (_adminRecentAudit.loading) {
+            return '<div class="admin-action-card"><h3>后台动作</h3><p>正在读取数据库审计...</p></div>';
+        }
+        if (!_adminRecentAudit.ok) {
+            return '<div class="admin-action-card"><h3>后台动作</h3><p>' + escHtml(_adminRecentAudit.error || '暂无审计') + '</p><div class="btn-row">' +
+                '<button type="button" class="btn" onclick="openCollabAuthFromAdmin()">🔐 团队登录</button></div></div>';
+        }
+        if (!_adminRecentAudit.items.length) {
+            return '<div class="admin-action-card"><h3>后台动作</h3><p>数据库暂未记录后台动作。登录、注册、同步后会出现在这里。</p></div>';
+        }
+        var rows = _adminRecentAudit.items.map(function(item) {
+            return '<div class="admin-log-row"><div class="admin-log-main">' + escHtml(item.action || 'unknown') +
+                '</div><div class="admin-log-meta">' + escHtml((item.time || '') + (item.actor_name ? ' · ' + item.actor_name : '')) +
+                '</div><div class="admin-log-badge">' + escHtml(item.role || 'system') + '</div></div>';
+        }).join('');
+        return '<div class="admin-log-list">' + rows + '</div>';
+    }
+    function collabActionsHTML() {
+        if (!adminPerm.collab_sync && !adminPerm.team_benchmark && !isDeveloper) {
+            return blockedAction('团队协作操作', '普通运营后台只保留查看和本地动作；团队同步、拉取基准由主管或管理员执行。', '当前：普通运营');
+        }
+        return action('同步团队', '把我的选品与店铺摘要同步到团队基准，原始 Excel 仍保留在本地。',
+            '<button type="button" class="btn-primary-sm" onclick="uploadToCloud()">⬆ 同步团队</button>' +
+            '<button type="button" class="btn" onclick="loadFromCloudWithAdminConfirm()">📥 团队基准</button>') +
+            action('团队登录', '团队账号、分组和主管看板按服务端部署节奏开放；当前公开网页先跑摘要同步。',
+            '<button type="button" class="btn" onclick="openCollabAuthFromAdmin()">🔐 团队登录</button>');
+    }
+    function configActionsHTML() {
+        if (!adminPerm.sync_config && !adminPerm.sync_test && !isDeveloper) {
+            return blockedAction('同步配置', 'OSS、Key 托管和同步测试会影响全队数据入口，需管理员或开发者处理。', '需要管理员/开发者');
+        }
+        return action('同步配置', '配置归属人、OSS 与 Key 托管状态，决定团队摘要写入哪里。',
+            '<button type="button" class="btn" onclick="showOssConfigModal()">⚙ 同步配置</button>' +
+            '<button type="button" class="btn" onclick="runTeamSyncDrill()">🧪 同步测试</button>');
+    }
+    function dangerActionsHTML() {
+        if (!adminPerm.clear_local && !isDeveloper) {
+            return blockedAction('清除本地业务数据', '清除动作会影响本机分析状态，普通运营不在后台直接暴露入口。', '需要管理员');
+        }
+        return action('清除本地业务数据', '会清除本地商品、店铺、团队基准与快照数据；不会删除云端 OSS 摘要。',
+            '<button type="button" class="btn btn-danger-soft" onclick="doClearWithAdminConfirm()">🗑️ 清除本地业务数据</button>');
+    }
+    box.innerHTML =
+        '<div class="admin-console">' +
+        '<div class="admin-overview-head"><div><div class="admin-health-title">系统健康概览</div>' +
+        '<div class="admin-health-sub">本地数据 / 团队同步 / OSS Key / 协作登录状态的控制台总览。</div></div>' +
+        '<div class="admin-health-badge">' + escHtml(healthTone + ' · ' + (isDeveloper ? 'developer' : adminRole)) + '</div></div>' +
+        '<div class="admin-status-grid">' +
+        card('后端服务', s.serverLabel, s.serverHint, isLocalDevServer() ? (_adminServerStatus.ok ? 'is-ok' : 'is-warn') : 'is-warn') +
+        card('团队基准', s.teamCount + ' 条', s.teamPeople ? (s.teamPeople + ' 位同事摘要') : '暂无可用团队基准', s.teamCount ? 'is-ok' : 'is-warn') +
+        card('商品文件', s.fileCount + ' 个', s.productCount + ' 条商品数据', s.fileCount ? 'is-ok' : 'is-warn') +
+        card('店铺记录', s.storeCount + ' 条', '用于团队对齐分', s.storeCount ? 'is-ok' : 'is-warn') +
+        card('本地快照', s.snapshotCount + ' 份', '诊断与周报复盘', s.snapshotCount ? 'is-ok' : 'is-warn') +
+        card('OSS / Key', s.ossLabel, s.keyLabel, isOssConfigured() ? 'is-ok' : 'is-danger') +
+        card('协作数据库', s.dbLabel, s.dbHint, (_adminServerStatus.ok && s.dbLabel !== '待检测') ? s.dbTone : 'is-warn') +
+        card('团队账号', s.collabLabel, '协作能力分阶段开放', (typeof getCollabUser === 'function' && getCollabUser()) ? 'is-ok' : 'is-warn') +
+        card('最近同步', s.lastUpload, '上传 JSON 摘要', hasUpload ? 'is-ok' : 'is-warn') +
+        card('最近拉取', s.lastLoad, '刷新团队基准', hasLoad ? 'is-ok' : 'is-warn') +
+        '</div>' +
+        section('团队协作', '摘要同步与团队身份', collabActionsHTML(), '', '') +
+        section('最近同步记录', uploadSourceLabel() + ' · /api/collab/uploads/recent',
+            recentUploadsHTML(), '', '') +
+        section('最近后台动作', '来自 SQLite audit_logs',
+            recentAuditHTML(), '', '') +
+        section('系统配置', 'OSS、Key 与联调检查', configActionsHTML(), '', '') +
+        section('本地与报表', '保存、日志与复盘输出',
+        action('本地保存', '保存当前解析结果，保留本地工作状态与快照摘要。',
+            '<button type="button" class="btn" onclick="doSave()">💾 本地保存</button>') +
+        action('日志与周报', '查看运行日志、解析过程和团队体系下的个人复盘报告。',
+            '<button type="button" class="btn" onclick="showEventLogModal()">📋 日志</button>' +
+            '<button type="button" class="btn" onclick="exportDiagnosisReport()">📄 周报</button>'), '', '') +
+        section('高风险操作', '需要确认',
+        dangerActionsHTML(),
+            'is-danger', '会清除本地业务数据，不会删除云端 OSS 摘要；现有清除流程会再次弹出确认。') +
+        '</div>';
+}
 
 function updateTopbar(pageName) {
     var meta = PAGE_META[pageName] || PAGE_META.import;
@@ -1693,19 +2220,9 @@ function getWorkflowState() {
     return { hasProduct: hasProduct, hasStore: hasStore, ossOk: ossOk, synced: synced, step: step };
 }
 
-var WORKFLOW_PAGES = ['import', 'products', 'import', 'diagnosis'];
+var WORKFLOW_PAGES = ['import', 'pk', 'admin', 'diagnosis'];
 
 function workflowGo(stepId) {
-    if (stepId === 2) {
-        if (!isOssConfigured()) { showOssConfigModal(uploadToCloud); return; }
-        if (!getWorkflowState().synced) {
-            toast('请先完成 ⬆ 云端同步，再拉取团队数据', 'info');
-            uploadToCloud();
-            return;
-        }
-        loadFromCloud();
-        return;
-    }
     switchPage(WORKFLOW_PAGES[stepId] || 'import');
 }
 
@@ -1713,16 +2230,18 @@ function updateWorkflowStrip() {
     var el = document.getElementById('workflowStrip');
     if (!el) return;
     var w = getWorkflowState();
+    var activePage = document.querySelector('.page.active');
+    var activeName = activePage && activePage.id ? activePage.id.replace('page-', '') : '';
     var labels = [
-        { id: 0, text: '① 导入数据' },
-        { id: 1, text: '② 查看分析' },
-        { id: 2, text: '③ 团队同步' },
-        { id: 3, text: '④ 诊断复盘' }
+        { id: 0, page: 'import', text: '① 团队工作台' },
+        { id: 1, page: 'pk', text: '② 团队对齐分' },
+        { id: 2, page: 'admin', text: '③ 管理后台' },
+        { id: 3, page: 'diagnosis', text: '④ 诊断复盘' }
     ];
     el.innerHTML = labels.map(function(l) {
         var cls = 'workflow-step';
-        if (w.step > l.id) cls += ' done';
-        else if (w.step === l.id) cls += ' current';
+        if (activeName === l.page) cls += ' current';
+        else if (w.step > l.id) cls += ' done';
         return '<div class="' + cls + '" role="button" tabindex="0" title="点击跳转" onclick="workflowGo(' + l.id + ')">' + l.text + '</div>';
     }).join('');
 }
@@ -1976,7 +2495,7 @@ function toggleSidebar() {
         return;
     }
     sb.classList.toggle('collapsed');
-    localStorage.setItem('temu_v6_sidebar', sb.classList.contains('collapsed') ? 'collapsed' : 'expanded');
+    safeSetItem('temu_v6_sidebar', sb.classList.contains('collapsed') ? 'collapsed' : 'expanded');
     setTimeout(function(){
         if (typeof Plotly !== 'undefined') {
             var sp = document.getElementById('scatterPlot');
@@ -2017,13 +2536,13 @@ function initUploadZoneDragDrop() {
 function initKeyboardShortcuts() {
     document.addEventListener('keydown', function(e) {
         if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
-        var pages = ['import', 'products', 'rules', 'predict', 'blacklist', 'diagnosis', 'store', 'pk'];
+        var pages = ['import', 'pk', 'diagnosis', 'store', 'products', 'rules', 'blacklist', 'predict'];
         if (e.key >= '1' && e.key <= '8' && !e.ctrlKey && !e.metaKey && !e.altKey) {
             switchPage(pages[parseInt(e.key, 10) - 1]);
             return;
         }
         if (e.key === 'm' || e.key === 'M') { toggleSidebar(); return; }
-        if (e.key === 'l' || e.key === 'L') { showEventLogModal(); return; }
+        if (e.key === 'l' || e.key === 'L') { switchPage('admin'); return; }
     });
 }
 
@@ -2262,7 +2781,7 @@ function isLocalFilePage() {
 function isLocalDevServer() {
     if (isLocalFilePage()) return false;
     var h = location.hostname;
-    return (h === 'localhost' || h === '127.0.0.1') && (location.port === '8080' || location.port === '');
+    return h === 'localhost' || h === '127.0.0.1';
 }
 
 function isHostedWebApp() {
@@ -2284,10 +2803,10 @@ function updateHostedImportUX() {
                 '<button type="button" class="btn" style="padding:4px 10px;font-size:0.78rem;margin-left:4px;" onclick="window.open(HOSTED_PAGES_URL,\'_blank\')">打开链接</button>' +
                 '<span class="dim"> · ' + escHtml(HOSTED_PAGES_URL) + '</span>';
         } else if (isHostedWebApp()) {
-            hint.innerHTML = '<span>网页版</span> <strong>拖 Excel → 🏆 个人 PK</strong> ' +
+            hint.innerHTML = '<span>网页版</span> <strong>我的数据 → 团队基准 → 🏆 对齐分</strong> ' +
                 '<span class="dim">· 浏览器本地缓存 · 团队摘要 📥（⚙ OSS 一次）</span>';
         } else if (isLocalDevServer()) {
-            hint.innerHTML = '<span>本地模式</span> <strong>导入双 Excel → PK</strong> ' +
+            hint.innerHTML = '<span>本地模式</span> <strong>导入双 Excel → 团队对齐分</strong> ' +
                 '<span class="dim">· .env Key 托管（管理员）</span>';
         }
     }
@@ -2296,7 +2815,7 @@ function updateHostedImportUX() {
         if (isLocalDevServer()) {
             ossText.innerHTML = '<strong>OSS（管理员）</strong>：解析后 ⬆ 同步。Key 放 <code style="color:var(--gold);">.env</code>，用 <strong>启动本地看板.bat</strong> 打开 <code style="color:var(--gold);">localhost:8080</code>。';
         } else if (isHostedWebApp()) {
-            ossText.innerHTML = '<strong>云端（可选）</strong>：侧边栏 ⚙ 填<strong>归属人</strong> + 玉成私发的 Key → ⬆ 同步 / 📥 团队。数据在 OSS，<strong>不用 bat</strong>。';
+            ossText.innerHTML = '<strong>团队摘要同步</strong>：侧边栏 ⚙ 填<strong>归属人</strong> + 玉成私发的 Key → ⬆ 同步团队 / 📥 团队基准。当前同步 JSON 摘要，<strong>不用 bat</strong>。';
         } else if (isLocalFilePage()) {
             ossText.innerHTML = '<strong>请改用网页版</strong>：' + escHtml(HOSTED_PAGES_URL) + ' — 直接拖 Excel；云端走 OSS，无需 Python。';
         }
@@ -2369,7 +2888,7 @@ function migrateOssKeysToEnv(opts) {
             if (!opts.silent) {
                 toast('Key 已在本地 .env 托管，无需再迁移（OSS 诊断通过即表示正常）', 'success');
             }
-            localStorage.setItem('temu_v6_env_migrated', '1');
+            safeSetItem('temu_v6_env_migrated', '1');
             return true;
         }
         var overlay = opts.overlay || getActiveOssFormOverlay();
@@ -2414,7 +2933,7 @@ function migrateOssKeysToEnv(opts) {
             logEvent('info', 'oss', 'env_migrate', 'AccessKey 已迁移到本地 .env', { bucket: kept.bucket });
             return checkOssServerSync().then(function(ok) {
                 updateSidebar();
-                if (ok) localStorage.setItem('temu_v6_env_migrated', '1');
+                if (ok) safeSetItem('temu_v6_env_migrated', '1');
                 if (!opts.silent) toast('Key 已写入 .env，浏览器 Secret 已清除 · 请重启 bat 窗口后长期生效', 'success', { duration: 9000 });
                 return ok;
             });
@@ -2434,11 +2953,11 @@ function tryAutoMigrateOssKeysToEnv() {
     if (!c.accessKeyId || !c.accessKeySecret) return Promise.resolve(false);
     return checkOssServerSync().then(function(hasServer) {
         if (hasServer) {
-            localStorage.setItem('temu_v6_env_migrated', '1');
+            safeSetItem('temu_v6_env_migrated', '1');
             return false;
         }
         return migrateOssKeysToEnv({ silent: false }).then(function(ok) {
-            if (ok) localStorage.setItem('temu_v6_env_migrated', '1');
+            if (ok) safeSetItem('temu_v6_env_migrated', '1');
             return ok;
         });
     });
@@ -3019,6 +3538,10 @@ function applyTeamSummaries(summaries) {
 }
 
 function loadFromCloud() {
+    if (getCollabToken() && isLocalDevServer()) {
+        loadCollabBenchmark();
+        return;
+    }
     if (!isOssConfigured()) { showOssConfigModal(loadFromCloud); return; }
     var cfg = getOssConfig();
     var myOwner = getCloudOwner();
@@ -3051,6 +3574,25 @@ function loadFromCloud() {
         console.error('loadFromCloud:', e);
         logEvent('error', 'oss', 'team_load_fail', '团队拉取失败：' + (e.message || '未知'), { error: e.message || String(e) });
         toast('拉取失败：' + (e.message || '请确认 AccessKey 有 GetObject 权限'), 'error');
+    });
+}
+
+function loadFromCloudWithAdminConfirm() {
+    var body = '<p style="color:var(--text-dim);margin-bottom:10px;">这会刷新本机当前团队基准，用于后续对齐分、诊断和周报复盘。</p>' +
+        '<p style="color:var(--warning-text);margin-bottom:12px;">如果当前正在做个人复盘，建议先本地保存一次。</p>' +
+        '<label style="display:block;color:var(--text-dim);font-size:0.86rem;">输入 <b style="color:var(--gold);">拉取</b> 后继续<br>' +
+        '<input id="admin_confirm_pull" style="width:100%;padding:9px 10px;margin-top:6px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>';
+    showModal('确认拉取团队基准', body, '确认拉取', function(overlay) {
+        var val = ((overlay.querySelector('#admin_confirm_pull') || {}).value || '').trim();
+        if (val !== '拉取') {
+            toast('请输入“拉取”确认操作', 'warning');
+            return false;
+        }
+        loadFromCloud();
+        return true;
+    }, function(overlay) {
+        var input = overlay.querySelector('#admin_confirm_pull');
+        if (input) input.focus();
     });
 }
 
@@ -3165,6 +3707,334 @@ function runTeamSyncDrill() {
 }
 window.runTeamSyncDrill = runTeamSyncDrill;
 
+// ═══════════════════════════════════════════════
+// 协作版（用户/小组/PK → 阿里云 OSS collab/ 目录，经 api_server.py）
+// ═══════════════════════════════════════════════
+var COLLAB_TOKEN_KEY = 'temu_v6_collab_token';
+var COLLAB_USER_KEY = 'temu_v6_collab_user';
+var _collabGroupsCache = null;
+
+function getCollabToken() {
+    return localStorage.getItem(COLLAB_TOKEN_KEY) || '';
+}
+
+function getCollabUser() {
+    try { return JSON.parse(localStorage.getItem(COLLAB_USER_KEY) || 'null'); } catch (e) { return null; }
+}
+
+function saveCollabSession(token, user) {
+    safeSetItem(COLLAB_TOKEN_KEY, token);
+    safeSetItem(COLLAB_USER_KEY, JSON.stringify(user || {}));
+    updateCollabUI();
+}
+
+function clearCollabSession() {
+    localStorage.removeItem(COLLAB_TOKEN_KEY);
+    localStorage.removeItem(COLLAB_USER_KEY);
+    updateCollabUI();
+}
+
+function isCollabSupervisor() {
+    var u = getCollabUser();
+    return u && (u.role === 'supervisor' || u.role === 'admin');
+}
+
+function collabFetch(path, opts) {
+    opts = opts || {};
+    var headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+    var token = getCollabToken();
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    return fetch(path, {
+        method: opts.method || 'GET',
+        headers: headers,
+        body: opts.body
+    }).then(function(r) { return r.json(); });
+}
+
+function checkCollabAvailable() {
+    if (!isLocalDevServer()) return Promise.resolve(false);
+    return collabFetch('/api/collab/ping').then(function(d) {
+        return !!(d && d.ok && d.collab);
+    }).catch(function() { return false; });
+}
+
+function fetchCollabGroups() {
+    if (_collabGroupsCache) return Promise.resolve(_collabGroupsCache);
+    return collabFetch('/api/collab/groups').then(function(d) {
+        if (d && d.ok && d.groups) {
+            _collabGroupsCache = d.groups;
+            return d.groups;
+        }
+        return [];
+    });
+}
+
+function updateCollabUI() {
+    var el = document.getElementById('collabStatus');
+    var btn = document.getElementById('collabAuthBtn');
+    var pkBtn = document.getElementById('pkTeamCompareBtn');
+    var u = getCollabUser();
+    if (el) {
+        if (u && u.display_name) {
+            el.innerHTML = '🔐 ' + escHtml(u.display_name) + ' · ' + escHtml(u.group_name || '') +
+                (u.role === 'supervisor' || u.role === 'admin' ? ' <span style="color:var(--gold)">主管</span>' : '');
+        } else {
+            el.textContent = '🔐 团队账号未登录';
+        }
+    }
+    if (btn) btn.textContent = u ? '🔐 团队账号' : '🔐 团队登录';
+    if (pkBtn) {
+        if (isCollabSupervisor()) {
+            pkBtn.classList.remove('btn-disabled');
+            pkBtn.disabled = false;
+            pkBtn.title = '查看四个小组的对齐分排行';
+            pkBtn.onclick = function() { openTeamPkBoard(); };
+        } else {
+            pkBtn.classList.add('btn-disabled');
+            pkBtn.disabled = true;
+            pkBtn.title = u ? '仅主管/组长可查看团队看板' : '当前先跑通团队摘要同步，主管看板随服务端部署开放';
+            pkBtn.onclick = null;
+        }
+    }
+}
+
+function showCollabAuthModal() {
+    if (!isLocalDevServer()) {
+        showModal('团队协作 · 分阶段开放',
+            '<p style="color:var(--text-dim);font-size:0.9rem;margin-bottom:10px;">当前网页版先跑通<strong>个人对齐分 + 团队摘要同步</strong>：导入双 Excel 后可同步 JSON 摘要、拉取团队基准。</p>' +
+            '<p style="color:var(--text-dim);font-size:0.9rem;">团队账号、分组和主管团队看板会随服务端部署开放；现在不需要在公开网页注册账号。</p>',
+            '知道了',
+            function() { return true; }
+        );
+        return;
+    }
+    var u = getCollabUser();
+    if (u && u.display_name) {
+        showModal('团队账号', '<p style="color:var(--text-dim);">已登录：<strong>' + escHtml(u.display_name) + '</strong> · ' +
+            escHtml(u.group_name || '') + ' · ' + escHtml(u.role || 'operator') + '</p>' +
+            '<p style="color:var(--text-dim);font-size:0.85rem;">同步(⬆) 将写入阿里云协作目录；主管/组长视图按服务端部署节奏开放。</p>', '退出登录', function() {
+            clearCollabSession();
+            toast('已退出团队账号', 'info');
+        });
+        return;
+    }
+    var body = '<p style="color:var(--text-dim);font-size:0.85rem;margin-bottom:12px;">单部门 · 四个小组。数据摘要存阿里云 OSS（<code>collab/</code>）。原始 Excel 仍在本地。</p>' +
+        '<div style="display:grid;gap:10px;">' +
+        '<label>邀请码<br><input id="collab_invite" placeholder="TEMU-OPS-2026（组员）" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
+        '<label>姓名（显示名，全团队唯一）<br><input id="collab_name" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
+        '<label>密码（≥6 位）<br><input id="collab_pass" type="password" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
+        '<label>所属小组<br><select id="collab_group" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"><option value="">加载中…</option></select></label>' +
+        '</div>' +
+        '<p style="color:var(--text-dim);font-size:0.8rem;margin-top:12px;">已有账号？<button type="button" class="btn" id="collab_switch_login" style="margin-left:6px;">改为登录</button></p>';
+    showModal('🔐 团队注册', body, '注册', function(overlay) {
+        var invite = (overlay.querySelector('#collab_invite') || {}).value || '';
+        var name = (overlay.querySelector('#collab_name') || {}).value || '';
+        var pass = (overlay.querySelector('#collab_pass') || {}).value || '';
+        var gid = (overlay.querySelector('#collab_group') || {}).value || '';
+        if (!invite || !name.trim() || pass.length < 6 || !gid) {
+            toast('请填写邀请码、姓名、密码和小组', 'warning');
+            return false;
+        }
+        collabFetch('/api/collab/register', {
+            method: 'POST',
+            body: JSON.stringify({ invite_code: invite.trim(), display_name: name.trim(), password: pass, group_id: gid })
+        }).then(function(d) {
+            if (!d || !d.ok) throw new Error((d && d.error) || '注册失败');
+            saveCollabSession(d.token, d.user);
+            var cfg = getOssConfig();
+            if (cfg) { cfg.owner = d.user.display_name; saveOssConfig(cfg); }
+            logEvent('info', 'collab', 'register_ok', '协作注册 · ' + d.user.display_name, d.user);
+            toast('注册成功 · ' + d.user.group_name, 'success');
+        }).catch(function(e) {
+            toast('注册失败：' + (e.message || String(e)), 'error');
+        });
+        return true;
+    }, function(overlay) {
+        fetchCollabGroups().then(function(groups) {
+            var sel = overlay.querySelector('#collab_group');
+            if (!sel) return;
+            sel.innerHTML = groups.map(function(g) {
+                return '<option value="' + escHtml(g.id) + '">' + escHtml(g.name) + '</option>';
+            }).join('');
+        });
+        var sw = overlay.querySelector('#collab_switch_login');
+        if (sw) sw.onclick = function() {
+            var cancel = overlay.querySelector('.modal-cancel-btn');
+            if (cancel) cancel.click();
+            showCollabLoginModal();
+        };
+    });
+}
+
+function showCollabLoginModal() {
+    var body = '<p style="color:var(--text-dim);font-size:0.85rem;margin-bottom:12px;">登录后 ⬆ 同步写入团队协作云端；组长/主管视图随服务端部署节奏开放。</p>' +
+        '<div style="display:grid;gap:10px;">' +
+        '<label>姓名<br><input id="collab_login_name" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
+        '<label>密码<br><input id="collab_login_pass" type="password" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
+        '</div>';
+    showModal('🔐 团队登录', body, '登录', function(overlay) {
+        var name = (overlay.querySelector('#collab_login_name') || {}).value || '';
+        var pass = (overlay.querySelector('#collab_login_pass') || {}).value || '';
+        if (!name.trim() || !pass) {
+            toast('请填写姓名和密码', 'warning');
+            return false;
+        }
+        collabFetch('/api/collab/login', {
+            method: 'POST',
+            body: JSON.stringify({ display_name: name.trim(), password: pass })
+        }).then(function(d) {
+            if (!d || !d.ok) throw new Error((d && d.error) || '登录失败');
+            saveCollabSession(d.token, d.user);
+            var cfg = getOssConfig();
+            if (cfg) { cfg.owner = d.user.display_name; saveOssConfig(cfg); }
+            logEvent('info', 'collab', 'login_ok', '协作登录 · ' + d.user.display_name, d.user);
+            toast('登录成功 · ' + d.user.display_name, 'success');
+        }).catch(function(e) {
+            toast('登录失败：' + (e.message || String(e)), 'error');
+        });
+        return true;
+    });
+}
+
+function uploadToCloudCollab() {
+    if (!getCollabToken()) { showCollabAuthModal(); return; }
+    var summary = buildCloudSummary();
+    if (!summary) {
+        toast('请先上传 Excel 再同步', 'warning');
+        return;
+    }
+    toast('正在同步到团队协作云端（阿里云）…', 'info');
+    logEvent('info', 'collab', 'upload_start', '协作同步开始', { spu: summary.products.length });
+    collabFetch('/api/collab/upload', {
+        method: 'POST',
+        body: JSON.stringify({ summary: summary })
+    }).then(function(d) {
+        if (!d || !d.ok) throw new Error((d && d.error) || '上传失败');
+        safeSetItem('temu_v6_cloud_last_upload', JSON.stringify({
+            time: summary.uploaded_at, key: d.key, owner: summary.display_name || summary.owner
+        }));
+        updateSidebar();
+        var msg = '协作同步成功 · ' + (summary.display_name || summary.owner) + ' · PK ' + (summary.pk_snapshot && summary.pk_snapshot.align_score) + ' 分';
+        logEvent('info', 'collab', 'upload_ok', msg, d.entry || {});
+        toast(msg, 'success');
+    }).catch(function(e) {
+        logEvent('error', 'collab', 'upload_fail', e.message || String(e), {});
+        toast('协作同步失败：' + (e.message || String(e)), 'error');
+    });
+}
+
+function loadCollabBenchmark() {
+    if (!getCollabToken()) { showCollabAuthModal(); return; }
+    toast('正在拉取团队选品基准…', 'info');
+    collabFetch('/api/collab/team/benchmark').then(function(d) {
+        if (!d || !d.ok) throw new Error((d && d.error) || '拉取失败');
+        if (!d.count) {
+            toast('暂无其他同事的同步数据', 'warning');
+            return;
+        }
+        var r = applyTeamSummaries([{ products: d.products }]);
+        logEvent('info', 'collab', 'benchmark_ok', '协作团队基准 · ' + r.people + ' 人', { count: r.count });
+        toast('团队基准已加载：' + d.people + ' 人 · ' + r.count + ' 条 SPU', 'success');
+    }).catch(function(e) {
+        toast('拉取失败：' + (e.message || String(e)), 'error');
+    });
+}
+
+function openTeamPkBoard() {
+    if (!isCollabSupervisor()) {
+        toast('仅主管/组长可查看主管团队看板', 'warning');
+        return;
+    }
+    switchPage('pk');
+    collabFetch('/api/collab/team/pk-board').then(function(d) {
+        if (!d || !d.ok) throw new Error((d && d.error) || '加载失败');
+        renderTeamPkBoard(d);
+    }).catch(function(e) {
+        toast('团队 PK 加载失败：' + (e.message || String(e)), 'error');
+    });
+}
+
+function renderTeamPkBoard(data) {
+    var pg = document.getElementById('page-pk');
+    if (!pg) return;
+    var old = pg.querySelector('.pc-team-board');
+    if (old) old.remove();
+    var div = document.createElement('div');
+    div.className = 'pc pc-team-board';
+    var h = '<details class="expander" open><summary>👥 团队对齐分（' + escHtml(data.org_name || '运营部') + '）</summary><div class="expander-content">';
+    (data.by_group || []).forEach(function(g) {
+        if (!g.members || !g.members.length) return;
+        h += '<p style="color:var(--gold);font-weight:600;margin:12px 0 6px;">' + escHtml(g.group_name) + '</p>';
+        h += '<div class="scroll-box"><table><thead><tr><th>姓名</th><th>对齐分</th><th>评级</th><th>黄金品%</th><th>ROAS</th><th>同步时间</th></tr></thead><tbody>';
+        g.members.forEach(function(m) {
+            var sc = m.align_score >= 80 ? 'var(--success-text)' : m.align_score >= 50 ? 'var(--warning-text)' : 'var(--danger-text)';
+            h += '<tr><td><strong>' + escHtml(m.display_name) + '</strong></td>';
+            h += '<td style="color:' + sc + ';font-weight:700;">' + m.align_score + '</td>';
+            h += '<td>' + escHtml(m.score_label || '—') + '</td>';
+            h += '<td>' + sf(m.gold_pct, 0) + '%</td><td>' + sf(m.roas, 1) + '</td>';
+            h += '<td style="font-size:0.8rem;color:var(--text-dim);">' + escHtml((m.uploaded_at || '').slice(0, 16)) + '</td></tr>';
+        });
+        h += '</tbody></table></div>';
+    });
+    if (!data.members || !data.members.length) {
+        h += '<div class="alert alert-info"><span class="alert-icon">📂</span><span>暂无成员同步数据。请组员登录团队账号后点 ⬆ 同步。</span></div>';
+    }
+    h += '</div></details>';
+    div.innerHTML = h;
+    var pc = pg.querySelector('.pc');
+    if (pc) pg.insertBefore(div, pc);
+    else pg.appendChild(div);
+}
+
+function computePkSnapshot() {
+    if (!ST.products || !ST.products.length || !ST.storeData || !ST.storeData.length) return null;
+    if (!ST.clusters || !ST.clusters.length) ST.clusters = ST.products.slice();
+    var golds = ST.clusters.filter(function(p) { return p.cluster_label === '黄金品'; });
+    var goldPct = ST.clusters.length > 0 ? golds.length / ST.clusters.length * 100 : 0;
+    var avgMargin = avg(ST.products.map(function(p) { return p.gross_margin; }));
+    var avgSales = avg(ST.products.map(function(p) { return p.daily_sales; }));
+    var storeData = ST.storeData || [];
+    var days = {}, stores = {};
+    storeData.forEach(function(r) { days[r.date] = true; stores[r.store] = true; });
+    var dayCount = Object.keys(days).length;
+    var totalRev = storeData.reduce(function(s, r) { return s + (Number(r.revenue) || 0); }, 0);
+    var totalProfit = storeData.reduce(function(s, r) { return s + (Number(r.profit) || 0); }, 0);
+    var totalSpend = storeData.reduce(function(s, r) { return s + (Number(r.spend) || 0); }, 0);
+    var totalSales = storeData.reduce(function(s, r) { return s + (Number(r.sales) || 0); }, 0);
+    var avgDaySales = dayCount > 0 ? totalSales / dayCount : 0;
+    var roas = totalSpend > 0 ? totalRev / totalSpend : 0;
+    var ctrs = [], cvrs = [];
+    storeData.forEach(function(r) {
+        if (Number(r.ctr) > 0) ctrs.push(Number(r.ctr));
+        if (Number(r.cvr) > 0) cvrs.push(Number(r.cvr));
+    });
+    var avgCTR = ctrs.length > 0 ? avg(ctrs) * 100 : 0;
+    var avgCVR = cvrs.length > 0 ? avg(cvrs) * 100 : 0;
+    var score = 0, scoreTotal = 0;
+    var pts = function(cond, weight) { scoreTotal += weight; return cond ? weight : 0; };
+    score += pts(goldPct >= 30, 20);
+    score += pts(avgMargin >= 20, 15);
+    score += pts(avgSales >= 2, 15);
+    score += pts(roas >= 2, 20);
+    score += pts(avgDaySales >= 3, 15);
+    score += pts(avgCTR >= 1, 15);
+    var alignScore = scoreTotal > 0 ? Math.round(score / scoreTotal * 100) : 0;
+    var scoreLabel = alignScore >= 80 ? '对齐良好' : alignScore >= 50 ? '部分偏差' : '差距较大';
+    return {
+        align_score: alignScore,
+        score_label: scoreLabel,
+        gold_pct: Math.round(goldPct * 10) / 10,
+        avg_margin: Math.round(avgMargin * 10) / 10,
+        avg_sales: Math.round(avgSales * 10) / 10,
+        roas: Math.round(roas * 100) / 100,
+        avg_day_sales: Math.round(avgDaySales * 10) / 10,
+        avg_ctr: Math.round(avgCTR * 10) / 10,
+        avg_cvr: Math.round(avgCVR * 10) / 10,
+        day_count: dayCount,
+        store_count: Object.keys(stores).length
+    };
+}
+
 function createOssClient(cfg) {
     if (typeof OSS === 'undefined') throw new Error('OSS SDK 未加载，请检查网络');
     var region = normalizeOssRegion(cfg.region);
@@ -3183,6 +4053,7 @@ function buildCloudSummary() {
     var clusterMap = {};
     ST.clusters.forEach(function(p) { clusterMap[p.spu_id] = p.cluster_label; });
     var owner = getCloudOwner();
+    var collabUser = getCollabUser();
     var products = ST.products.map(function(p) {
         return {
             spu_id: p.spu_id,
@@ -3196,8 +4067,12 @@ function buildCloudSummary() {
         };
     });
     return {
-        version: 1,
+        version: 2,
         owner: owner,
+        display_name: collabUser ? collabUser.display_name : owner,
+        user_id: collabUser ? collabUser.id : null,
+        group_id: collabUser ? collabUser.group_id : null,
+        group_name: collabUser ? collabUser.group_name : null,
         date: new Date().toISOString().slice(0, 10),
         uploaded_at: new Date().toLocaleString('zh-CN'),
         product_stats: ST._stats || {},
@@ -3205,9 +4080,11 @@ function buildCloudSummary() {
         store_records: (ST.storeData || []).map(function(r) {
             return {
                 date: r.date, store: r.store, spend: r.spend, revenue: r.revenue,
-                profit: r.profit, sales: r.sales, roas: r.roas
+                profit: r.profit, sales: r.sales, roas: r.roas,
+                ctr: r.ctr, cvr: r.cvr
             };
-        })
+        }),
+        pk_snapshot: computePkSnapshot()
     };
 }
 
@@ -3240,6 +4117,10 @@ function updateCloudManifest(clientOrCfg, cfg, entry) {
 }
 
 function uploadToCloud() {
+    if (getCollabToken() && isLocalDevServer()) {
+        uploadToCloudCollab();
+        return;
+    }
     if (!isOssConfigured()) { showOssConfigModal(uploadToCloud); return; }
     var summary = buildCloudSummary();
     if (!summary) {
@@ -3483,10 +4364,15 @@ function switchPage(name) {
     closeMobileSidebar();
     document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
     var pg = document.getElementById('page-'+name); if(pg) pg.classList.add('active');
+    var content = document.querySelector('.content');
+    if (content) content.scrollTop = 0;
+    updateWorkflowStrip();
     document.querySelectorAll('.sidebar-nav a').forEach(function(a){a.classList.remove('active');});
     document.querySelectorAll('.sidebar-nav a').forEach(function(a){
         var oc = a.getAttribute('onclick')||''; if(oc.indexOf("'"+name+"'")!==-1) a.classList.add('active');
     });
+    var adminEntry = document.getElementById('adminEntry');
+    if (adminEntry) adminEntry.classList.toggle('active', name === 'admin');
     updateTopbar(name);
     if (typeof history !== 'undefined' && history.replaceState) {
         try { history.replaceState({ page: name }, '', '#' + name); } catch(e) {}
@@ -3499,6 +4385,7 @@ function switchPage(name) {
     if (name==='import') renderImportPage();
     if (name==='store') renderStorePage();
     if (name==='pk') renderPKPage();
+    if (name==='admin') renderAdminPage();
     recordPageVisit(name);
     if (name === 'import' && typeof renderStageGatePanel === 'function') renderStageGatePanel();
     var activePg = document.getElementById('page-' + name);
@@ -3529,6 +4416,28 @@ function doClear() {
     showModal('确认清除', '<p style="color:var(--text-dim);">将清除 <b style="color:var(--danger-text);">全部</b> 本地数据（商品 '+ST.files.length+' · 店铺 '+(ST.storeData?ST.storeData.length:0)+' · 团队 '+(ST.teamProducts?ST.teamProducts.length:0)+' · 快照 '+ST.snapshots.length+'）</p>', '确认清除', function(){
         clearAllData();
         renderImportPage();
+    });
+}
+
+function doClearWithAdminConfirm() {
+    var body = '<p style="color:var(--text-dim);margin-bottom:10px;">将进入清除流程：商品 ' + ST.files.length +
+        ' · 店铺 ' + (ST.storeData ? ST.storeData.length : 0) +
+        ' · 团队 ' + (ST.teamProducts ? ST.teamProducts.length : 0) +
+        ' · 快照 ' + ST.snapshots.length + '。</p>' +
+        '<p style="color:var(--danger-text);margin-bottom:12px;">此操作只清本机业务数据，不删除云端 OSS 摘要；下一步仍会出现系统原有确认框。</p>' +
+        '<label style="display:block;color:var(--text-dim);font-size:0.86rem;">输入 <b style="color:var(--danger-text);">清除</b> 后继续<br>' +
+        '<input id="admin_confirm_clear" style="width:100%;padding:9px 10px;margin-top:6px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>';
+    showModal('高风险确认', body, '继续清除', function(overlay) {
+        var val = ((overlay.querySelector('#admin_confirm_clear') || {}).value || '').trim();
+        if (val !== '清除') {
+            toast('请输入“清除”确认操作', 'warning');
+            return false;
+        }
+        doClear();
+        return true;
+    }, function(overlay) {
+        var input = overlay.querySelector('#admin_confirm_clear');
+        if (input) input.focus();
     });
 }
 
@@ -4020,10 +4929,11 @@ window.renderImportPage = (function() {
         ins.className = 'import-insights';
         ins.innerHTML = buildInsightsBarHTML() +
             '<div class="btn-row" style="margin-bottom:8px;">' +
-            '<button type="button" class="btn" onclick="switchPage(\'products\')">📊 商品画像</button>' +
+            (dualOk ? '<button type="button" class="btn" onclick="switchPage(\'pk\')" style="border-color:var(--gold);">🏆 团队对齐分</button>' : '') +
             '<button type="button" class="btn" onclick="switchPage(\'diagnosis\')">📈 个人诊断</button>' +
             (hasStoreData() ? '<button type="button" class="btn" onclick="switchPage(\'store\')">🏪 店铺运营</button>' : '') +
-            (dualOk ? '<button type="button" class="btn" onclick="switchPage(\'pk\')" style="border-color:var(--gold);">🏆 个人 PK</button>' : '') +
+            '<button type="button" class="btn" onclick="switchPage(\'products\')">📊 商品画像</button>' +
+            '<button type="button" class="btn" onclick="switchPage(\'admin\')">⚙ 管理后台</button>' +
             '</div>';
         pg.insertBefore(ins, pg.querySelector('#uploadZone'));
     }
@@ -4403,8 +5313,8 @@ function renderDiagnosis() {
     var toolbar = document.createElement('div');
     toolbar.className = 'page-toolbar';
     toolbar.innerHTML = '<button type="button" class="btn-primary-sm" onclick="exportDiagnosisReport()">📄 导出诊断周报</button>' +
-        '<button type="button" class="btn" onclick="loadFromCloud()">📥 刷新团队基准</button>' +
-        '<span style="color:var(--text-dim);font-size:0.82rem;">Markdown 可发给主管或 AI 复盘</span>';
+        '<button type="button" class="btn" onclick="switchPage(\'admin\')">⚙ 团队后台</button>' +
+        '<span style="color:var(--text-dim);font-size:0.82rem;">团队基准与同步操作集中在后台</span>';
     div.appendChild(toolbar);
     var cmp = compareSnapshots();
     if (!cmp) { pg.appendChild(div); return; }
@@ -4758,7 +5668,7 @@ function renderPKNoData(pg) {
     var viaPkLink = (location.hash || '').replace('#', '').trim() === 'pk';
     div.innerHTML = '<div class="warn-card"><div class="title">' + (viaPkLink ? '🔗 通过分享链接打开' : '📂') + '</div><div class="desc">' +
         (viaPkLink
-            ? '这是<strong>个人选品×运营对齐分</strong>页面。数据在本地解析，<strong>不会</strong>从链接里读取你的 Excel。<br><br>请先在「数据导入」上传：<strong>利润统计 .xls</strong> + <strong>店铺数据记录 .xlsx</strong>，再回来看 PK 分数。'
+            ? '这是<strong>团队体系下的个人选品×运营对齐分</strong>页面。数据在本地解析，<strong>不会</strong>从链接里读取你的 Excel。<br><br>请先在「数据导入」上传：<strong>利润统计 .xls</strong> + <strong>店铺数据记录 .xlsx</strong>，再回来看对齐分。'
             : '还没数据呢。导入利润统计（选品）和店铺运营（店铺数据）后，这里会显示两条管线的对比分析。') +
         '</div></div>' +
         '<div class="btn-row"><button type="button" class="btn-primary-sm" onclick="switchPage(\'import\')">📥 去导入 Excel</button>' +
@@ -4879,17 +5789,22 @@ function runStartupSelfCheck() {
         checkOssServerSync().then(function() { updateSidebar(); });
         if (!localStorage.getItem('temu_v6_hosted_welcome')) {
             toast('网页版：拖 Excel 即用 · 团队数据侧边栏 📥（⚙ 配置 OSS）', 'info', { duration: 9000 });
-            localStorage.setItem('temu_v6_hosted_welcome', '1');
+            safeSetItem('temu_v6_hosted_welcome', '1');
         }
     }
     if (isLocalDevServer()) {
         tryAutoMigrateOssKeysToEnv().finally(function() {
             checkOssServerSync().then(function() {
                 updateSidebar();
+                updateCollabUI();
                 if (typeof renderStageGatePanel === 'function') renderStageGatePanel();
+            });
+            checkCollabAvailable().then(function(ok) {
+                if (ok) updateCollabUI();
             });
         });
     }
+    updateCollabUI();
     renderStyleCompare();
     initAlterPageEnter();
 })();
@@ -4993,21 +5908,24 @@ function initAlterPageEnter() {
 
 function renderStyleCompare() {
     var el = document.getElementById('styleCompare');
-    if (!el) return;
+    var switchBtn = document.getElementById('styleSwitch');
     var isEditorial = /editorial/i.test(location.pathname) || document.body.classList.contains('alter-surface');
     var isPages = /github\.io\/temu-PUD/i.test(location.href);
     var other = isPages
         ? (isEditorial ? 'index.html' : 'editorial.html')
         : (isEditorial ? 'temu-dashboard.html' : 'temu-dashboard-editorial.html');
-    el.innerHTML = isEditorial
-        ? '界面对：<strong>异位面（浅色 Editorial）</strong> · 与主界面数据互通 · <a href="' + other + '" class="alter-dim-link">返回主界面（深色）</a>'
-        : '界面对：<strong>主界面（深色）</strong> · <a href="' + other + '" class="alter-dim-link">进入异位面（浅色 Editorial）</a>';
-    var link = el.querySelector('.alter-dim-link');
-    if (link) {
-        link.addEventListener('click', function(e) {
+    if (el) {
+        el.innerHTML = isEditorial
+            ? '界面对：<strong>异位面（浅色 Editorial）</strong> · 右上角可返回深色主界面'
+            : '界面对：<strong>主界面（深色）</strong> · 右上角可切换浅色 Editorial';
+    }
+    if (switchBtn) {
+        switchBtn.textContent = isEditorial ? '深色主界面' : '浅色异位面';
+        switchBtn.title = isEditorial ? '返回深色主界面' : '切换到浅色 Editorial 界面';
+        switchBtn.onclick = function(e) {
             e.preventDefault();
             playAlterVeil(!isEditorial, other);
-        });
+        };
     }
 }
 
