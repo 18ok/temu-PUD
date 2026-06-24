@@ -41,6 +41,65 @@ def ensure_column(conn: sqlite3.Connection, table: str, column: str, ddl: str) -
         conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}")
 
 
+def pk_latest_has_scoped_primary_key(conn: sqlite3.Connection) -> bool:
+    columns = conn.execute("PRAGMA table_info(pk_latest)").fetchall()
+    pk_cols = [row["name"] for row in sorted(columns, key=lambda row: row["pk"]) if row["pk"]]
+    return pk_cols == ["workspace_id", "company_id", "project_id", "user_id"]
+
+
+def migrate_pk_latest_scoped_primary_key(conn: sqlite3.Connection) -> None:
+    if pk_latest_has_scoped_primary_key(conn):
+        return
+    conn.execute("DROP TABLE IF EXISTS pk_latest_v3")
+    conn.execute(
+        """
+        CREATE TABLE pk_latest_v3 (
+            workspace_id TEXT NOT NULL DEFAULT 'default',
+            company_id TEXT NOT NULL DEFAULT 'personal',
+            project_id TEXT NOT NULL DEFAULT 'temu',
+            platform TEXT NOT NULL DEFAULT 'temu',
+            data_sensitivity TEXT NOT NULL DEFAULT 'company_internal',
+            user_id TEXT NOT NULL,
+            display_name TEXT NOT NULL,
+            group_id TEXT,
+            group_name TEXT,
+            summary_date TEXT,
+            oss_key TEXT NOT NULL,
+            align_score INTEGER,
+            score_label TEXT,
+            gold_pct REAL,
+            avg_margin REAL,
+            roas REAL,
+            avg_day_sales REAL,
+            spu_count INTEGER DEFAULT 0,
+            store_count INTEGER DEFAULT 0,
+            uploaded_at TEXT,
+            updated_at INTEGER NOT NULL,
+            PRIMARY KEY(workspace_id, company_id, project_id, user_id)
+        )
+        """
+    )
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO pk_latest_v3(
+            workspace_id, company_id, project_id, platform, data_sensitivity,
+            user_id, display_name, group_id, group_name, summary_date,
+            oss_key, align_score, score_label, gold_pct, avg_margin,
+            roas, avg_day_sales, spu_count, store_count, uploaded_at,
+            updated_at
+        )
+        SELECT workspace_id, company_id, project_id, platform, data_sensitivity,
+               user_id, display_name, group_id, group_name, summary_date,
+               oss_key, align_score, score_label, gold_pct, avg_margin,
+               roas, avg_day_sales, spu_count, store_count, uploaded_at,
+               updated_at
+        FROM pk_latest
+        """
+    )
+    conn.execute("DROP TABLE pk_latest")
+    conn.execute("ALTER TABLE pk_latest_v3 RENAME TO pk_latest")
+
+
 def db_path() -> Path:
     configured = os.environ.get("TEMU_DB_PATH", "").strip()
     if configured:
@@ -96,12 +155,12 @@ def init_db() -> None:
                 ON upload_index(workspace_id, company_id, project_id, created_at DESC);
 
             CREATE TABLE IF NOT EXISTS pk_latest (
-                user_id TEXT PRIMARY KEY,
                 workspace_id TEXT NOT NULL DEFAULT 'default',
                 company_id TEXT NOT NULL DEFAULT 'personal',
                 project_id TEXT NOT NULL DEFAULT 'temu',
                 platform TEXT NOT NULL DEFAULT 'temu',
                 data_sensitivity TEXT NOT NULL DEFAULT 'company_internal',
+                user_id TEXT NOT NULL,
                 display_name TEXT NOT NULL,
                 group_id TEXT,
                 group_name TEXT,
@@ -116,7 +175,8 @@ def init_db() -> None:
                 spu_count INTEGER DEFAULT 0,
                 store_count INTEGER DEFAULT 0,
                 uploaded_at TEXT,
-                updated_at INTEGER NOT NULL
+                updated_at INTEGER NOT NULL,
+                PRIMARY KEY(workspace_id, company_id, project_id, user_id)
             );
 
             CREATE INDEX IF NOT EXISTS idx_pk_latest_score
@@ -155,6 +215,7 @@ def init_db() -> None:
             ensure_column(conn, table, "project_id", "TEXT NOT NULL DEFAULT 'temu'")
             ensure_column(conn, table, "platform", "TEXT NOT NULL DEFAULT 'temu'")
             ensure_column(conn, table, "data_sensitivity", "TEXT NOT NULL DEFAULT 'company_internal'")
+        migrate_pk_latest_scoped_primary_key(conn)
         conn.execute(
             """
             CREATE INDEX IF NOT EXISTS idx_upload_index_scope_time
