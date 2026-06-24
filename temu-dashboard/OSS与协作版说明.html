@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Temu 选品助手 — 云端同步与协作版说明</title>
+    <title>Temu 选品助手 — 团队协作路线说明</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         :root {
@@ -94,12 +94,12 @@
 </head>
 <body>
 
-<h1>☁️ 云端同步 vs 协作版 — 组员必读</h1>
-<p class="ver">Temu 选品助手 V10.2.2 · 2026-06-05</p>
+<h1>☁️ 云端同步与团队协作路线 — 组员必读</h1>
+<p class="ver">Temu 选品助手 V10.3.1 · 2026-06-22</p>
 
 <p class="lead">
-    很多人问：<strong>「不是已经有 ⬆ 同步、📥 团队了吗，为什么还说协作版未开放？」</strong><br>
-    简短回答：<strong>OSS 解决的是「摘要能不能多人互相同步」；协作版要解决的是「多人 PK / 主管看全员」——后者大部分还没做。</strong>
+    很多人问：<strong>「个人 PK 和团队协作到底是什么关系？」</strong><br>
+    简短回答：<strong>团队协作是主线，个人 PK 是团队体系里的成长镜子。OSS 摘要同步是第一阶段，后续会继续扩展到注册、分组和主管团队看板。</strong>
 </p>
 
 <h2>一、试用版里已经有什么（✅ 能用）</h2>
@@ -119,18 +119,22 @@
     <p>原始 Excel <strong>不会</strong> 整表上传，只传处理后的 JSON 摘要。</p>
 </div>
 
-<h2>二、「协作版未开放」是什么意思（⏳ 还没有）</h2>
+<h2>二、为什么先做个人 PK，再进入团队看板</h2>
 
-<p>PK 页上灰色按钮 <strong>「团队对比（协作版）」</strong> 是故意点不了的。它指的是下面这类能力，<strong>当前版本没有</strong>：</p>
+<p>PK 页上的 <strong>「团队对比（协作版）」</strong> 指的是下一阶段团队协作能力。它不是独立于个人之外的“另一个产品”，而是把每个人的对齐分放回小组和主管视角里：</p>
 
 <ul>
     <li>主管在一个页面看 <strong>多个人各自</strong> 的对齐分（「谁该辅导」视图）</li>
     <li>PK 页里的 <strong>团队 PK 对比表</strong>（不是个人镜子，而是多人并排）</li>
-    <li>发一个链接，对方 <strong>不用导 Excel</strong> 就能看团队汇总（未来能力）</li>
+    <li>发一个链接，对方 <strong>不用导 Excel</strong> 就能看团队汇总（服务端部署后能力）</li>
 </ul>
 
 <div class="card wait">
-    <p><span class="tag tag-no">未开放</span>这些需要后续版本 + 更完整的数据约定 + 身份校验，试用包<strong>不要期待</strong>能当考核排名或全员仪表盘用。</p>
+    <p><span class="tag tag-no">分阶段开放</span>当前先让每个人跑通自己的双 Excel 和团队摘要同步；主管团队 PK 需要服务端和身份体系稳定后再扩大使用。</p>
+</div>
+
+<div class="info">
+    <strong>当前真实状态：</strong>仓库里已经有协作注册 / 登录、邀请码、主管团队 PK 等代码骨架。接下来不是把它藏起来，而是先把摘要同步和个人 PK 稳住，再按本地 / ECS 部署节奏把团队协作能力逐步放大。
 </div>
 
 <h2>三、为什么「有 OSS」还不够？</h2>
@@ -139,7 +143,7 @@
     <tr>
         <th>对比项</th>
         <th>现在的 📥 团队</th>
-        <th>协作版（规划）</th>
+        <th>团队协作路线</th>
     </tr>
     <tr>
         <td>拉下来是什么</td>
@@ -154,12 +158,12 @@
     <tr>
         <td>PK 页会变吗</td>
         <td><strong>不会</strong> — PK 仍只算<strong>你自己</strong>本机两份 Excel</td>
-        <td>会 — 多人分数 / 对比视图</td>
+        <td>会 — 个人分数进入小组 / 主管视图</td>
     </tr>
     <tr>
         <td>身份</td>
         <td>归属人自己填名字（试用够用）</td>
-        <td>需邀请码 / 团队 ID（防乱填、防蹭席位）</td>
+        <td>需邀请码 / 团队 ID / 受控部署（保证归属和权限准确）</td>
     </tr>
 </table>
 
@@ -182,10 +186,10 @@
         </td>
         <td>
             <ul>
-                <li>在 PK 页看<strong>全队排名 / 多人对比</strong></li>
-                <li>认为同步了就能看<strong>所有人的 PK 分</strong></li>
+                <li>把当前阶段当成完整主管看板</li>
+                <li>认为只要同步了就立刻能看<strong>所有人的 PK 分</strong></li>
                 <li>把 PK 当<strong>考核淘汰</strong>依据（定位是辅导镜子）</li>
-                <li>期待灰色「协作版」按钮能点</li>
+                <li>在服务端部署前强行用协作账号流程</li>
             </ul>
         </td>
     </tr>
@@ -196,7 +200,7 @@
 <p>压缩包里的 <a href="组员使用说明.html">组员使用说明.html</a> §七 写了完整使用限制。和本文相关的核心一句：</p>
 
 <div class="warn">
-    <strong>PK = 个人对齐分，不是团队排名。</strong> 协作版尚未开放；云端同步 ≠ 协作版已上线。
+    <strong>PK = 团队协作下的个人对齐分，不是考核淘汰排名。</strong> 云端同步是团队协作第一阶段，完整主管看板会按部署节奏开放。
 </div>
 
 <h2>六、有问题找谁</h2>
@@ -209,7 +213,7 @@
 
 <p style="margin-top:36px;color:var(--text-dim);font-size:0.8rem;text-align:center;">
     另见：<a href="组员使用说明.html">组员使用说明</a> · <a href="先看这里.txt">先看这里.txt</a><br>
-    Temu 选品助手 V10.2.2
+    Temu 选品助手 V10.3.1
 </p>
 
 </body>
