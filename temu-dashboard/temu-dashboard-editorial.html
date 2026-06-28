@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="temu-hosted-url" content="https://18ok.github.io/temu-PUD/">
-    <title>跨境经营诊断系统 — 异位面</title>
+    <title>跨境经营诊断系统 · Temu 子系统 — 异位面</title>
     <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
@@ -12,7 +12,7 @@
     <script src="https://gosspublic.alicdn.com/aliyun-oss-sdk-6.18.0.min.js"></script>
 
     <!-- ============================================================
-    Temu 运营数据分析面板 V10 · 异位面（浅色 Editorial，配合主界面深色版）
+    跨境经营诊断系统 · Temu 子系统 V10 · 异位面（浅色 Editorial，配合主界面深色版）
     来源: temu-dashboard.html 异位面分支 · 功能与主界面一致 · 视觉对齐 xuanpin-site
     设计: Source Serif / Source Sans · 浅底 · 金色点缀 · 6px 圆角
     存储: localStorage（本地缓存）+ 阿里云 OSS（团队 JSON 摘要）
@@ -901,18 +901,28 @@
         <div class="sidebar-brand">
             <span class="alter-badge" title="浅色异位面 · 与主界面数据互通">异位面</span>
             <div class="title">🧭 跨境经营诊断</div>
-            <div class="sub">多平台协作 · 浅色 Editorial</div>
+            <div class="sub">Temu 子系统 · 浅色试点版</div>
             <details class="system-entry-panel" open>
                 <summary>系统入口</summary>
                 <div class="system-entry-list">
                     <a class="system-entry-card" href="index.html" onclick="return openTemuSystemEntry(event)">
-                        <strong>Temu 系统</strong>
-                        <span>团队对齐、店铺运营、商品诊断主系统</span>
+                        <strong>Temu 子系统</strong>
+                        <span>当前试点：团队对齐、店铺运营、商品诊断</span>
                         <span class="system-entry-meta"><b>进入系统</b><em class="system-entry-status">在线</em></span>
                     </a>
                     <div class="system-entry-card is-disabled" aria-disabled="true">
+                        <strong>公司经营总览</strong>
+                        <span>跨平台汇总：组长成绩、平台表现、老板视图</span>
+                        <span class="system-entry-meta"><b>规划中</b><em class="system-entry-status">待建</em></span>
+                    </div>
+                    <div class="system-entry-card is-disabled" aria-disabled="true">
                         <strong>SHEIN 系统</strong>
-                        <span>分项目窗口待成立，后续独立搭建</span>
+                        <span>平台适配器待建，后续复用诊断模型</span>
+                        <span class="system-entry-meta"><b>待配置</b><em class="system-entry-status">离线</em></span>
+                    </div>
+                    <div class="system-entry-card is-disabled" aria-disabled="true">
+                        <strong>淘宝天猫系统</strong>
+                        <span>国内平台口径复杂，先作为独立适配层预留</span>
                         <span class="system-entry-meta"><b>待配置</b><em class="system-entry-status">离线</em></span>
                     </div>
                 </div>
@@ -1101,8 +1111,8 @@
             </div>
 
             <footer class="app-footer">
-                <strong>跨境经营诊断系统 · 异位面 V10.4.0</strong> · 配合主界面的浅色 Editorial（多平台经营诊断）<br>
-                本地解析 · 团队 OSS · 运行日志 · 与主界面功能一致，localStorage 互通
+                <strong>跨境经营诊断系统 · Temu 子系统 · 异位面 V10.4.0</strong> · 公司经营诊断体系的浅色试点界面<br>
+                本地解析 · 团队 OSS · 运行日志 · 后续横向复制到 SHEIN / 淘宝天猫
                 <p class="style-compare" id="styleCompare" aria-live="polite"></p>
             </footer>
         </div>
