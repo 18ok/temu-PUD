@@ -31,6 +31,7 @@ jobs:
       - name: Prepare Pages site
         run: |
           mkdir -p docs
+          # 优先 docs/（由 同步Pages.bat 从源文件复制）；缺失时回退根目录源文件
           if [ -f temu-dashboard/docs/index.html ]; then
             cp temu-dashboard/docs/index.html docs/index.html
           else
@@ -41,6 +42,13 @@ jobs:
           elif [ -f temu-dashboard/temu-dashboard-editorial.html ]; then
             cp temu-dashboard/temu-dashboard-editorial.html docs/editorial.html
           fi
+          for f in 组员使用说明.html OSS与协作版说明.html 先看这里.txt; do
+            if [ -f "temu-dashboard/docs/$f" ]; then
+              cp "temu-dashboard/docs/$f" "docs/$f"
+            elif [ -f "temu-dashboard/$f" ]; then
+              cp "temu-dashboard/$f" "docs/$f"
+            fi
+          done
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

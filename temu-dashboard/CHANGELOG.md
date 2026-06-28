@@ -1,5 +1,21 @@
 # Changelog — Temu 运营数据看板
 
+## V10.4.0 — 2026-06-26
+
+### 组员说明文档对齐 V10.4
+
+- **产品名**：跨境经营诊断系统（界面 V10.4.0）
+- **导航改名**：团队工作台 / 团队对齐分；同步入口迁入 **⚙ 管理后台**
+- **组员使用说明.html** / **OSS与协作版说明.html** / **先看这里.txt** 更新至 V10.4.0
+- 补充 8 业务页 + 管理后台速查；区分 GitHub Pages 与本地 `api_server.py` 协作能力
+- bat 说明改为 `api_server.py`（OSS 代理 + 协作 API）
+- **GitHub Pages**：`同步Pages.bat` 同步 `docs/`（含组员说明）；workflow 一并部署说明文档
+- **协作后台修复**：旧 SQLite 自动补 scope 字段；`/api/status` 不再因旧库断连；`/api/collab/ping` / `groups` 改为轻量探针，避免 OSS bootstrap 卡住后台检测
+- **角色权限收口**：普通运营可同步自己的摘要；团队基准 / 主管看板仅主管及以上；同步配置与清除动作仅管理员 / 开发者可见
+- **主管 PK 验收**：`/api/collab/team/pk-board` 优先走 SQLite，不再为了生成榜单强依赖 OSS meta/groups，避免主管看板超时
+
+---
+
 ## V10.3.1 — 2026-06-03
 
 ### 异位面 polish + 组员说明

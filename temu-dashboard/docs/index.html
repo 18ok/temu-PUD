@@ -845,7 +845,7 @@
             <details class="system-entry-panel" open>
                 <summary>系统入口</summary>
                 <div class="system-entry-list">
-                    <a class="system-entry-card" href="index.html">
+                    <a class="system-entry-card" href="index.html" onclick="return openTemuSystemEntry(event)">
                         <strong>Temu 系统</strong>
                         <span>团队对齐、店铺运营、商品诊断主系统</span>
                         <span class="system-entry-meta"><b>进入系统</b><em class="system-entry-status">在线</em></span>
@@ -1147,12 +1147,20 @@ var EVENT_LOG_KEY = 'temu_v6_event_log';
 var EVENT_LOG_MAX = 200;
 var PARSE_REPORT_KEY = 'temu_v6_parse_reports';
 var PARSE_REPORT_MAX = 30;
-var DASHBOARD_VERSION = 'V10.2.6';
+var DASHBOARD_VERSION = 'V10.4.0';
 /** 同事主入口：GitHub Pages（改 repo 后同步改 meta temu-hosted-url） */
 var HOSTED_PAGES_URL = (function() {
     var m = document.querySelector('meta[name="temu-hosted-url"]');
     return (m && m.getAttribute('content') || 'https://18ok.github.io/temu-PUD/').replace(/\/?$/, '/');
 })();
+
+function openTemuSystemEntry(event) {
+    if (event) event.preventDefault();
+    var inDocs = /[\\\/]docs[\\\/]/i.test(location.pathname);
+    var isPages = /github\.io\/temu-PUD/i.test(location.href);
+    location.href = (isPages || inDocs) ? 'index.html' : 'temu-dashboard.html';
+    return false;
+}
 var PRODUCT_REQUIRED_COLS = ['spu_id', 'gross_margin', 'daily_sales', 'cost', 'weight_g'];
 
 function productQualityStats(products) {
@@ -1938,7 +1946,7 @@ function defaultAdminPermissions(role) {
         local_save: true,
         view_logs: true,
         export_weekly: true,
-        collab_sync: isSupervisor,
+        collab_sync: true,
         team_benchmark: isSupervisor,
         team_pk_board: isSupervisor,
         sync_config: isAdmin,
@@ -2253,9 +2261,15 @@ function renderAdminPage() {
         if (!adminPerm.collab_sync && !adminPerm.team_benchmark && !isDeveloper) {
             return loginCard;
         }
+        var buttons = '';
+        if (adminPerm.collab_sync || isDeveloper) {
+            buttons += '<button type="button" class="btn-primary-sm" onclick="uploadToCloud()">⬆ 同步团队</button>';
+        }
+        if (adminPerm.team_benchmark || isDeveloper) {
+            buttons += '<button type="button" class="btn" onclick="loadFromCloudWithAdminConfirm()">📥 团队基准</button>';
+        }
         return action('同步团队', '把我的选品与店铺摘要同步到团队基准，原始 Excel 仍保留在本地。',
-            '<button type="button" class="btn-primary-sm" onclick="uploadToCloud()">⬆ 同步团队</button>' +
-            '<button type="button" class="btn" onclick="loadFromCloudWithAdminConfirm()">📥 团队基准</button>') +
+            buttons) +
             loginCard;
     }
     function configActionsHTML() {

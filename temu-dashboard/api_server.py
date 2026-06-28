@@ -3,7 +3,7 @@
 """
 Temu 看板统一后端（单文件）
 - 静态页面 + OSS 代理 /api/sync
-- 协作 API /api/collab/*（用户/小组/PK 索引 → 全部存阿里云 OSS）
+- 协作 API /api/collab/*（账号、上传、PK、审计索引走 SQLite；摘要 JSON 仍存 OSS）
 """
 from __future__ import annotations
 
@@ -400,6 +400,10 @@ def load_groups_map(cfg: dict) -> dict[str, str]:
     return {g["id"]: g["name"] for g in data.get("groups", DEFAULT_GROUPS)}
 
 
+def default_groups_map() -> dict[str, str]:
+    return {g["id"]: g["name"] for g in DEFAULT_GROUPS}
+
+
 def find_user_by_name(cfg: dict, display_name: str) -> dict | None:
     idx = oss_read_json(cfg, collab_key(cfg, "accounts_index.json"), {"users": []})
     name = (display_name or "").strip()
@@ -549,7 +553,7 @@ def collab_permissions(user: dict) -> dict:
             "local_save": True,
             "view_logs": True,
             "export_weekly": True,
-            "collab_sync": is_supervisor,
+            "collab_sync": True,
             "team_benchmark": is_supervisor,
             "team_pk_board": is_supervisor,
             "sync_config": is_admin,
@@ -726,7 +730,7 @@ def backfill_pk_latest_from_oss(cfg: dict) -> int:
 
 def collab_pk_board(cfg: dict, user: dict) -> dict:
     role = user.get("role", "operator")
-    groups = load_groups_map(cfg)
+    groups = default_groups_map()
     try:
         backfill_pk_latest_from_oss(cfg)
         pk_rows = collab_db.latest_pk_entries(
@@ -740,12 +744,11 @@ def collab_pk_board(cfg: dict, user: dict) -> dict:
         for e in entries:
             gid = e.get("group_id") or "_unknown"
             by_group.setdefault(gid, []).append(e)
-        meta = oss_read_json(cfg, collab_key(cfg, "meta.json"), {})
         return {
             "ok": True,
             "source": "sqlite",
-            "org_name": meta.get("org_name", ""),
-            "dept_name": meta.get("dept_name", ""),
+            "org_name": "Temu运营部",
+            "dept_name": "运营部（单部门）",
             "role": role,
             "updated_at": pk_rows.get("updated_at"),
             "members": entries,
@@ -757,6 +760,7 @@ def collab_pk_board(cfg: dict, user: dict) -> dict:
     except Exception as exc:
         print(f"[DB] pk board fallback to OSS: {exc}")
 
+    groups = load_groups_map(cfg)
     pk_data = oss_read_json(cfg, collab_key(cfg, "pk_latest.json"), {"entries": {}})
     entries = list((pk_data.get("entries") or {}).values())
     if role == "operator":
@@ -896,6 +900,20 @@ class TemuHandler(SimpleHTTPRequestHandler):
 
     def _handle_collab_get(self, path: str) -> None:
         cfg = get_server_oss_cfg()
+
+        if path == f"{COLLAB_PREFIX}/ping":
+            self._json_response(HTTPStatus.OK, {
+                "ok": True,
+                "collab": bool(cfg),
+                "org_name": "Temu运营部",
+                "database": collab_db.status(),
+            })
+            return
+
+        if path == f"{COLLAB_PREFIX}/groups":
+            self._json_response(HTTPStatus.OK, {"ok": True, "groups": DEFAULT_GROUPS})
+            return
+
         if not cfg:
             self._json_response(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "服务端未配置 OSS"})
             return
@@ -903,16 +921,6 @@ class TemuHandler(SimpleHTTPRequestHandler):
             ensure_collab_bootstrap(cfg)
         except Exception as e:
             self._json_response(HTTPStatus.BAD_GATEWAY, {"ok": False, "error": f"协作初始化失败: {e}"})
-            return
-
-        if path == f"{COLLAB_PREFIX}/ping":
-            meta = oss_read_json(cfg, collab_key(cfg, "meta.json"), {})
-            self._json_response(HTTPStatus.OK, {"ok": True, "collab": True, "org_name": meta.get("org_name")})
-            return
-
-        if path == f"{COLLAB_PREFIX}/groups":
-            data = oss_read_json(cfg, collab_key(cfg, "groups.json"), {"groups": DEFAULT_GROUPS})
-            self._json_response(HTTPStatus.OK, {"ok": True, "groups": data.get("groups", DEFAULT_GROUPS)})
             return
 
         user = auth_user_from_header(self)

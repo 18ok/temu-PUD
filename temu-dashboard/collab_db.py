@@ -151,8 +151,6 @@ def init_db() -> None:
                 ON upload_index(user_id, created_at DESC);
             CREATE INDEX IF NOT EXISTS idx_upload_index_group_time
                 ON upload_index(group_id, created_at DESC);
-            CREATE INDEX IF NOT EXISTS idx_upload_index_scope_time
-                ON upload_index(workspace_id, company_id, project_id, created_at DESC);
 
             CREATE TABLE IF NOT EXISTS pk_latest (
                 workspace_id TEXT NOT NULL DEFAULT 'default',
@@ -183,8 +181,6 @@ def init_db() -> None:
                 ON pk_latest(align_score DESC, display_name);
             CREATE INDEX IF NOT EXISTS idx_pk_latest_group_score
                 ON pk_latest(group_id, align_score DESC, display_name);
-            CREATE INDEX IF NOT EXISTS idx_pk_latest_scope_score
-                ON pk_latest(workspace_id, company_id, project_id, align_score DESC, display_name);
 
             CREATE TABLE IF NOT EXISTS audit_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -205,8 +201,6 @@ def init_db() -> None:
                 ON audit_logs(created_at DESC);
             CREATE INDEX IF NOT EXISTS idx_audit_logs_actor
                 ON audit_logs(actor_id, created_at DESC);
-            CREATE INDEX IF NOT EXISTS idx_audit_logs_scope_time
-                ON audit_logs(workspace_id, company_id, project_id, created_at DESC);
             """
         )
         for table in ("upload_index", "pk_latest", "audit_logs"):

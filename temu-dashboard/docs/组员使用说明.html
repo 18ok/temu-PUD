@@ -3,94 +3,141 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Temu 选品助手 V10.3.1 — 组员试用说明</title>
+    <title>跨境经营诊断系统 V10.4.0 — 组员试用说明</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;600&family=Source+Sans+3:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap');
         :root {
-            --bg: #0f0f17;
-            --card: #1a1a24;
-            --gold: #e2b87a;
-            --text: #f1f0ee;
-            --text-dim: #a1a09c;
-            --border: rgba(226,184,122,0.14);
+            --bg: #f4f2ee;
+            --card: #fffdf8;
+            --card-alt: #efede7;
+            --gold: #b99555;
+            --gold-dark: #806238;
+            --gold-bg: rgba(185, 149, 85, 0.09);
+            --text: #25292d;
+            --text-dim: #5f6468;
+            --border: rgba(37, 41, 45, 0.12);
+            --success-text: #15803d;
+            --warning-text: #a16207;
+            --danger-text: #b91c1c;
+            --info-bg: rgba(185, 149, 85, 0.07);
+            --info-border: rgba(185, 149, 85, 0.22);
+            --danger-bg: rgba(239, 68, 68, 0.08);
+            --danger-border: rgba(239, 68, 68, 0.28);
+            --font: 'Source Sans 3', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            --font-display: 'Source Serif 4', 'Noto Serif SC', 'Songti SC', serif;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            background: var(--bg);
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.52), rgba(255,255,255,0) 34%),
+                var(--bg);
             color: var(--text);
-            font-family: 'Inter', 'Microsoft YaHei', sans-serif;
-            line-height: 1.7;
-            padding: 40px 20px;
+            font-family: var(--font);
+            line-height: 1.65;
+            padding: 40px 20px 56px;
             max-width: 820px;
             margin: 0 auto;
+            -webkit-font-smoothing: antialiased;
         }
-        h1 { font-size: 1.8rem; color: var(--gold); margin-bottom: 8px; }
+        h1 {
+            font-family: var(--font-display);
+            font-size: 1.85rem;
+            font-weight: 600;
+            color: var(--text);
+            letter-spacing: 0.02em;
+            margin-bottom: 8px;
+        }
         .ver { color: var(--text-dim); font-size: 0.9rem; margin-bottom: 20px; }
-        h2 { font-size: 1.2rem; color: var(--gold); margin: 32px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
-        h3 { font-size: 1rem; color: var(--text); margin: 16px 0 8px; }
+        h2 {
+            font-family: var(--font-display);
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--gold-dark);
+            margin: 32px 0 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+        h3 { font-size: 1rem; color: var(--text); margin: 16px 0 8px; font-weight: 600; }
         p, li { font-size: 0.92rem; color: var(--text-dim); margin-bottom: 8px; }
+        strong { color: var(--text); font-weight: 600; }
         .card {
             background: var(--card);
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: 8px;
             padding: 20px 24px;
             margin: 16px 0;
+            box-shadow: 0 1px 2px rgba(46, 46, 46, 0.06);
         }
         .step {
             display: flex;
             gap: 12px;
             margin: 12px 0;
             padding: 12px 16px;
-            background: rgba(226,184,122,0.04);
+            background: var(--gold-bg);
             border-left: 3px solid var(--gold);
-            border-radius: 0 8px 8px 0;
+            border-radius: 0 6px 6px 0;
         }
         .step-num {
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: var(--gold);
+            font-family: var(--font-display);
+            font-size: 1.35rem;
+            font-weight: 600;
+            color: var(--gold-dark);
             min-width: 28px;
         }
         .code {
-            background: rgba(226,184,122,0.08);
-            color: var(--gold);
+            background: var(--gold-bg);
+            color: var(--gold-dark);
             padding: 2px 8px;
             border-radius: 4px;
-            font-family: 'Consolas', monospace;
+            font-family: Consolas, 'Courier New', monospace;
             font-size: 0.85rem;
+            border: 1px solid rgba(185, 149, 85, 0.2);
         }
         .warn {
-            background: rgba(239,68,68,0.1);
-            border: 1px solid rgba(239,68,68,0.3);
-            border-radius: 8px;
+            background: var(--danger-bg);
+            border: 1px solid var(--danger-border);
+            border-radius: 6px;
             padding: 12px 16px;
             margin: 12px 0;
-            color: #fca5a5;
+            color: var(--danger-text);
             font-size: 0.88rem;
         }
         .info {
-            background: rgba(59,130,246,0.1);
-            border: 1px solid rgba(59,130,246,0.25);
-            border-radius: 8px;
+            background: var(--info-bg);
+            border: 1px solid var(--info-border);
+            border-radius: 6px;
             padding: 12px 16px;
             margin: 12px 0;
-            color: #93c5fd;
+            color: var(--text-dim);
             font-size: 0.88rem;
         }
+        .info strong { color: var(--gold-dark); }
         ul { padding-left: 20px; }
         li { margin-bottom: 4px; }
-        table { width: 100%; border-collapse: collapse; margin: 12px 0; }
-        td, th { padding: 8px 12px; text-align: left; font-size: 0.88rem; border-bottom: 1px solid var(--border); }
-        th { color: var(--gold); font-weight: 600; }
+        table { width: 100%; border-collapse: collapse; margin: 12px 0; background: var(--card); border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
+        td, th { padding: 10px 12px; text-align: left; font-size: 0.88rem; border-bottom: 1px solid var(--border); }
+        tr:last-child td { border-bottom: none; }
+        th { color: var(--gold-dark); font-weight: 600; background: var(--card-alt); }
+        a { color: var(--gold-dark); }
+        .tagline {
+            text-align: center;
+            color: var(--gold-dark);
+            font-family: var(--font-display);
+            font-size: 1.05rem;
+            margin-bottom: 24px;
+            font-style: italic;
+            opacity: 0.9;
+        }
+        .footer-note { color: var(--text-dim); font-size: 0.8rem; text-align: center; }
     </style>
 </head>
 <body>
 
-<p style="text-align:center;color:var(--gold);font-size:1.05rem;margin-bottom:24px;font-style:italic;opacity:0.85;">「选品是输入，运营是输出。」</p>
+<p class="tagline">「选品是输入，运营是输出。」</p>
 
-<h1>📊 Temu 选品助手 — 组员试用说明</h1>
-<p class="ver">版本 V10.3.1 · 2026-06-03 · 有问题找玉成</p>
-<p>主入口：<strong>网页链接</strong>（见下文）· 个人 PK 对齐分 · 可选 OSS 团队摘要 · 页脚可切换「异位面」浅色版。</p>
+<h1>🧭 跨境经营诊断系统 — 组员试用说明</h1>
+<p class="ver">版本 V10.4.0 · 2026-06-26 · 有问题找玉成</p>
+<p>主入口：<strong>网页链接</strong>（见下文）· 团队协作下的<strong>团队对齐分</strong> · 可选 OSS 团队摘要同步 · 协作能力分阶段开放 · 页脚可切换「异位面」浅色版。</p>
 
 <div class="card">
     <h3>📂 本文件夹 / 压缩包里有什么</h3>
@@ -99,7 +146,7 @@
         <li><span class="code">组员使用说明.html</span> — 本文件</li>
         <li><span class="code">OSS与协作版说明.html</span> — 云端同步 vs 协作版区别</li>
         <li><span class="code">先看这里.txt</span> — 3 步速览</li>
-        <li><span class="code">启动本地看板.bat</span> + <span class="code">local_server.py</span> — <strong>备选</strong>（管理员 / 无网）</li>
+        <li><span class="code">启动本地看板.bat</span> + <span class="code">api_server.py</span> — <strong>备选</strong>（管理员 / 无网 / 协作 API 调试）</li>
         <li><span class="code">.env.example</span> — 云端 Key 模板（需玉成单独发 <span class="code">.env</span>）</li>
     </ul>
 </div>
@@ -107,7 +154,7 @@
 <div class="info">
     <strong>可选 · 异位面（浅色版）</strong>：<br>
     <span class="code">https://18ok.github.io/temu-PUD/editorial.html</span><br>
-    功能与主界面一致，数据互通；看板页脚也可一键切换。
+    功能与主界面一致，数据互通；看板页脚或顶栏也可一键切换。
 </div>
 
 <h2>一、怎么打开（推荐：网页版）</h2>
@@ -115,16 +162,20 @@
 <div class="info">
     <strong>主入口（发给同事）</strong>：<br>
     <span class="code">https://18ok.github.io/temu-PUD/</span><br>
-    微信/浏览器打开 → 拖 Excel → 🏆 个人 PK。<strong>不用装 Python，不用 bat。</strong>
+    微信/浏览器打开 → 拖 Excel → 🏆 团队对齐分。<strong>不用装 Python，不用 bat。</strong>
 </div>
 
 <div class="step">
     <span class="step-num">1</span>
-    <div>打开上面的链接（或玉成发的 PK 分享链接 <span class="code">…#pk</span>）</div>
+    <div>打开上面的链接（或玉成发的分享链接 <span class="code">…#pk</span>）</div>
 </div>
 <div class="step">
     <span class="step-num">2</span>
-    <div>左侧 <strong>数据导入</strong> → 拖入两份 Excel</div>
+    <div>左侧 <strong>📥 团队工作台</strong> → 拖入两份 Excel</div>
+</div>
+<div class="step">
+    <span class="step-num">3</span>
+    <div>上传完成后，右上角<strong>通知</strong>小窗可查看解析结果（多条可滚轮查看）</div>
 </div>
 
 <div class="warn">
@@ -135,17 +186,17 @@
 
 <div class="step">
     <span class="step-num">A</span>
-    <div>双击 <span class="code">启动本地看板.bat</span> → <span class="code">localhost:8080</span></div>
+    <div>双击 <span class="code">启动本地看板.bat</span> → <span class="code">localhost:8080</span>（启动 <span class="code">api_server.py</span>，含 OSS 代理与协作 API）</div>
 </div>
-<p style="font-size:0.85rem;color:var(--text-dim);">仅玉成维护 .env Key 时需要；普通同事用网页版即可。</p>
+<p style="font-size:0.85rem;color:var(--text-dim);">玉成维护 .env Key、或需要体验团队登录骨架时用；普通同事用网页版即可。</p>
 
-<h2>二、试用核心：个人 PK（不需要云端）</h2>
+<h2>二、试用核心：团队对齐分（不需要云端）</h2>
 
 <p>第一次试用建议只做下面几步，<strong>不必配置 OSS</strong>：</p>
 
 <div class="step">
     <span class="step-num">①</span>
-    <div>左侧点 <strong>数据导入</strong></div>
+    <div>左侧点 <strong>📥 团队工作台</strong></div>
 </div>
 <div class="step">
     <span class="step-num">②</span>
@@ -153,26 +204,31 @@
 </div>
 <div class="step">
     <span class="step-num">③</span>
-    <div>再拖入 <strong>店铺数据记录</strong> <span class="code">.xlsx</span>（两份都导入才能看 PK）</div>
+    <div>再拖入 <strong>店铺数据记录</strong> <span class="code">.xlsx</span>（两份都导入才能看对齐分）</div>
 </div>
 <div class="step">
     <span class="step-num">④</span>
-    <div>左侧点 <strong>🏆 个人 PK</strong> — 查看 0–100 对齐分与建议</div>
+    <div>左侧点 <strong>🏆 团队对齐分</strong> — 查看 0–100 对齐分与建议</div>
 </div>
 
 <div class="info">
-    页顶说明：<strong>「这是你个人的选品×运营对齐分」</strong> — 不是团队排名。<br>
-    灰色按钮「团队对比（协作版）」尚未开放，敬请期待。
+    页顶说明：<strong>「团队协作下的个人成长分」</strong> — 它是团队体系里的个人镜子，不是考核排名。<br>
+    现阶段先看对齐分与团队基准；注册、分组和主管看板按服务端部署节奏逐步开放。
 </div>
 
 <div class="step">
     <span class="step-num">⑤</span>
-    <div>（可选）PK 页点 <strong>复制分享链接</strong> — 对方打开后需<strong>自己导入 Excel</strong>，看不到你的数据</div>
+    <div>（可选）对齐分页点 <strong>复制分享链接</strong> — 对方打开后需<strong>自己导入 Excel</strong>，看不到你的数据</div>
 </div>
 
 <h2>三、可选：团队云端同步（OSS）</h2>
 
 <p>数据摘要存在阿里云 OSS。网页版与 bat 均可同步，<strong>Key 由玉成私聊</strong>，勿发群。</p>
+<div class="info">
+    V10.4 起，同步相关操作集中在侧栏底部或顶栏的 <strong>⚙ 管理后台</strong>（不再在侧栏单独放 OSS 按钮）。<br>
+    <strong>⬆ 同步团队 / 📥 团队基准</strong> 是团队协作第一阶段，主要用于个人诊断里的团队基准。<br>
+    完整协作会在此基础上继续扩展到团队登录、分组和主管团队看板。
+</div>
 
 <h3>网页版（同事常用）</h3>
 <div class="step">
@@ -181,11 +237,11 @@
 </div>
 <div class="step">
     <span class="step-num">2</span>
-    <div>侧边栏 <span class="code">⚙ OSS</span> → 填<strong>归属人</strong> + 玉成发的 AccessKey → 保存</div>
+    <div>进入 <strong>⚙ 管理后台</strong> → <strong>⚙ 同步配置</strong> → 填<strong>归属人</strong> + 玉成发的 AccessKey → 保存</div>
 </div>
 <div class="step">
     <span class="step-num">3</span>
-    <div>导入 Excel 后 <span class="code">⬆ 同步</span>；看别人 <span class="code">📥 团队</span></div>
+    <div>在团队工作台导入 Excel 后，管理后台点 <span class="code">⬆ 同步团队</span>；看别人 <span class="code">📥 团队基准</span></div>
 </div>
 
 <h3>本地 bat（管理员 · .env 托管）</h3>
@@ -200,28 +256,37 @@
 </div>
 <div class="step">
     <span class="step-num">3</span>
-    <div>左侧 <span class="code">⚙ OSS 配置</span> → 只填 <strong>归属人</strong>（你自己的名字，每人不同）→ 保存</div>
+    <div><strong>⚙ 管理后台</strong> → <strong>⚙ 同步配置</strong> → 只填 <strong>归属人</strong>（你自己的名字，每人不同）→ 保存</div>
 </div>
 <div class="step">
     <span class="step-num">4</span>
-    <div>导入 Excel 后点 <span class="code">⬆ 同步</span>；需要看别人时点 <span class="code">📥 团队</span></div>
+    <div>导入 Excel 后点 <span class="code">⬆ 同步团队</span>；需要看别人时点 <span class="code">📥 团队基准</span></div>
+</div>
+
+<div class="info">
+    本地 bat 模式下，管理后台还可看到后端服务状态、同步记录与<strong>团队登录</strong>入口（协作 API 骨架）。<br>
+    网页版 GitHub Pages 以 OSS 摘要同步为主；团队账号登录随 ECS 部署节奏开放。
 </div>
 
 <div class="warn">
     <strong>⚠ 不要把 .env、AccessKey 发到微信群。</strong> 原始 Excel 不会上传云端，只上传处理后的 JSON 摘要。
 </div>
 
-<p style="margin-top:12px;font-size:0.85rem;color:var(--text-dim);">若暂时没有 .env：可只用本地 PK / 诊断，不影响试用。</p>
+<p style="margin-top:12px;font-size:0.85rem;color:var(--text-dim);">若暂时没有 Key：可只用本地对齐分 / 诊断，不影响试用。</p>
 
 <h2>四、各页面速查</h2>
 
 <table>
     <tr><th>页面</th><th>用途</th></tr>
-    <tr><td>数据导入</td><td>上传 Excel；内部阶段验证默认隐藏，不作为组员操作流程</td></tr>
-    <tr><td>🏆 个人 PK</td><td><strong>试用重点</strong> — 对齐分 + 差距说明</td></tr>
-    <tr><td>商品画像</td><td>商品经营诊断；聚类只做初筛，最终要结合归因字段</td></tr>
-    <tr><td>个人诊断</td><td>趋势与快照；≥2 份快照可导出周报</td></tr>
-    <tr><td>店铺运营</td><td>店铺数据记录明细</td></tr>
+    <tr><td>📥 团队工作台</td><td>上传 Excel；运行日志；阶段验证进度（本地统计）</td></tr>
+    <tr><td>🏆 团队对齐分</td><td><strong>试用重点</strong> — 0–100 对齐分 + 差距说明</td></tr>
+    <tr><td>📈 个人诊断</td><td>趋势与快照；≥2 份快照可导出周报；个人 vs 团队 SPU 对比</td></tr>
+    <tr><td>🏪 店铺运营</td><td>店铺数据记录明细（ROAS · 花费 · 运营输出）</td></tr>
+    <tr><td>📊 商品画像</td><td>黄金/白银/观察品聚类</td></tr>
+    <tr><td>📋 选品规则</td><td>团队 SOP · 经验沉淀</td></tr>
+    <tr><td>🚨 避坑清单</td><td>风险库 · 反复踩坑预警</td></tr>
+    <tr><td>🔮 智能预测</td><td>新品评估 · 低频工具</td></tr>
+    <tr><td>⚙ 管理后台</td><td>同步团队 / 团队基准 / 同步配置 / 运行日志 / 团队登录（分阶段）</td></tr>
 </table>
 
 <h2>五、常见错误</h2>
@@ -231,32 +296,41 @@
     <tr>
         <td>CORS / 网络拦截</td>
         <td>用了本地 HTML 或错误打开方式</td>
-        <td>改用 <span class="code">https://18ok.github.io/temu-PUD/</span>；无网再找玉成要 bat</td>
+        <td>优先改用 <span class="code">https://18ok.github.io/temu-PUD/</span>；无网再找玉成要 bat</td>
     </tr>
     <tr>
-        <td>PK 页空白 / 提示去导入</td>
+        <td>找不到 ⚙ OSS 按钮</td>
+        <td>V10.4 已迁入管理后台</td>
+        <td>侧栏底部或顶栏点 <strong>⚙ 管理后台</strong> → 同步配置 / 同步团队</td>
+    </tr>
+    <tr>
+        <td>对齐分页空白 / 提示去导入</td>
         <td>缺 profit 或 store 一侧 Excel</td>
-        <td>数据导入页两份都拖入</td></tr>
+        <td>团队工作台两份都拖入</td></tr>
     <tr>
         <td>分享链接打开没分数</td>
         <td>链接不含 Excel，设计如此</td>
-        <td>对方在自己电脑导入两份表后再看 PK</td></tr>
+        <td>对方在自己电脑导入两份表后再看对齐分</td></tr>
     <tr>
         <td>同步失败</td>
-        <td>无 .env 或归属人未填</td>
-        <td>找玉成要 .env；或暂不同步，只用本地 PK</td></tr>
+        <td>Key 未填或归属人未填</td>
+        <td>管理后台 → 同步配置；或找玉成要 Key；暂不同步也可只用本地</td></tr>
     <tr>
         <td>云端只有你自己</td>
         <td>同事尚未同步</td>
         <td>等同事同步或先忽略团队功能</td></tr>
+    <tr>
+        <td>团队登录点不了</td>
+        <td>网页版协作 API 未部署</td>
+        <td>先用 OSS 摘要同步；完整登录需本地 bat 或后续 ECS 部署</td></tr>
 </table>
 
 <h2>六、试用反馈（帮玉成改进）</h2>
 <ul>
-    <li>30 秒内能不能理解 PK 分数在说什么？</li>
+    <li>30 秒内能不能理解对齐分在说什么？</li>
     <li>更常用电脑还是手机？</li>
     <li>愿意每周上传 Excel 看一次分吗？</li>
-    <li>有问题直接微信找玉成，或导入页复制「验证摘要」发给他</li>
+    <li>有问题直接微信找玉成，或团队工作台复制「验证摘要」发给他</li>
 </ul>
 
 <h2>七、使用限制（试用必读）</h2>
@@ -280,12 +354,12 @@
         <td>仅支持指定两份 Excel：<span class="code">利润统计 .xls</span> + <span class="code">数据记录 .xlsx</span>；表头需与团队现用模板一致</td>
     </tr>
     <tr>
-        <td>PK 分数</td>
-        <td><strong>仅本人</strong>两份表的对齐分；<strong>不是</strong>团队排名、<strong>不是</strong>考核淘汰依据</td>
+        <td>对齐分</td>
+        <td><strong>本人</strong>两份表的对齐分，放在团队基准里看改进方向；<strong>不是</strong>考核淘汰依据</td>
     </tr>
     <tr>
         <td>协作版</td>
-        <td>「团队对比（协作版）」<strong>尚未开放</strong>；主管不能通过本版一眼看全员 — 详见 <span class="code">OSS与协作版说明.html</span></td>
+        <td>团队协作是主线，当前先开放摘要同步和团队基准；团队登录 / 邀请码 / 主管团队看板按部署节奏逐步开放 — 详见 <span class="code">OSS与协作版说明.html</span></td>
     </tr>
     <tr>
         <td>分享链接</td>
@@ -293,11 +367,11 @@
     </tr>
     <tr>
         <td>云端同步</td>
-        <td>可选；无 .env 时<strong>仅本地使用</strong>。同步只传 JSON 摘要，<strong>不传原始 Excel</strong></td>
+        <td>可选；无 Key 时<strong>仅本地使用</strong>。同步只传 JSON 摘要，<strong>不传原始 Excel</strong></td>
     </tr>
     <tr>
         <td>数据与保密</td>
-        <td>公司利润/店铺/客户信息<strong>不得</strong>发群、发 AI、上传公开网盘；试用完毕可清除浏览器本地数据</td>
+        <td>公司利润/店铺/客户信息<strong>不得</strong>发群、发 AI、上传公开网盘；试用完毕可在管理后台清除本地业务数据</td>
     </tr>
     <tr>
         <td>稳定性</td>
@@ -314,8 +388,8 @@
     <li>不要把真实利润表发到群聊或 AI 对话</li>
 </ul>
 
-<p style="margin-top:40px;color:var(--text-dim);font-size:0.8rem;text-align:center;">
-    Temu 选品助手 V10.3.1 · 有问题找玉成
+<p style="margin-top:40px;" class="footer-note">
+    跨境经营诊断系统 V10.4.0 · 有问题找玉成
 </p>
 
 </body>
