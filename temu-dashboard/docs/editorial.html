@@ -2207,6 +2207,9 @@ function renderAdminPage() {
             return '<div class="admin-action-card"><h3>同步记录</h3><p>正在读取最近同步记录...</p></div>';
         }
         if (!_adminRecentUploads.ok) {
+            if (!isLocalDevServer()) {
+                return '<div class="admin-action-card"><h3>同步记录</h3><p>网页版不使用团队账号登录；完成“同步团队”后可通过团队基准拉取同事摘要。</p></div>';
+            }
             return '<div class="admin-action-card"><h3>同步记录</h3><p>' + escHtml(_adminRecentUploads.error || '暂无记录') + '</p><div class="btn-row">' +
                 '<button type="button" class="btn" onclick="openCollabAuthFromAdmin()">🔐 团队登录</button></div></div>';
         }
@@ -2231,6 +2234,9 @@ function renderAdminPage() {
             return '<div class="admin-action-card"><h3>后台动作</h3><p>正在读取数据库审计...</p></div>';
         }
         if (!_adminRecentAudit.ok) {
+            if (!isLocalDevServer()) {
+                return '<div class="admin-action-card"><h3>后台动作</h3><p>账号审计日志仅在本地 api_server.py 或服务端部署模式显示；网页版先使用摘要同步。</p></div>';
+            }
             return '<div class="admin-action-card"><h3>后台动作</h3><p>' + escHtml(_adminRecentAudit.error || '暂无审计') + '</p><div class="btn-row">' +
                 '<button type="button" class="btn" onclick="openCollabAuthFromAdmin()">🔐 团队登录</button></div></div>';
         }
@@ -2245,6 +2251,11 @@ function renderAdminPage() {
         return '<div class="admin-log-list">' + rows + '</div>';
     }
     function collabActionsHTML() {
+        if (!isLocalDevServer()) {
+            return action('团队摘要同步', '网页版不使用团队账号登录；按归属人和 OSS Key 同步 JSON 摘要，原始 Excel 仍保留在本地。',
+                '<button type="button" class="btn-primary-sm" onclick="uploadToCloud()">⬆ 同步团队</button>' +
+                '<button type="button" class="btn" onclick="loadFromCloudWithAdminConfirm()">📥 团队基准</button>');
+        }
         var loginCard = action('团队登录', '先完成团队账号验证；登录后系统只展示当前角色可用的后台动作。',
             '<button type="button" class="btn" onclick="openCollabAuthFromAdmin()">🔐 团队登录</button>');
         if (!adminPerm.collab_sync && !adminPerm.team_benchmark && !isDeveloper) {
