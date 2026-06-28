@@ -571,6 +571,15 @@
         }
         .warn-card .title { font-size: 1.8rem; font-weight: 700; color: var(--warning-text); }
         .warn-card .desc  { font-size: 0.95rem; color: var(--text); margin-top: 6px; }
+        .product-image-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; margin-top: 12px; }
+        .product-image-card { border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); overflow: hidden; min-height: 248px; }
+        .product-image-frame { aspect-ratio: 1 / 1; background: rgba(0,0,0,0.035); display: flex; align-items: center; justify-content: center; color: var(--text-faded); font-size: 0.82rem; }
+        .product-image-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .product-image-body { padding: 10px 12px; display: grid; gap: 6px; }
+        .product-image-title { font-weight: 700; color: var(--text); line-height: 1.35; }
+        .product-image-meta { color: var(--text-dim); font-size: 0.78rem; line-height: 1.45; }
+        .product-image-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+        .image-link-pill { border: 1px solid var(--border); border-radius: 999px; padding: 3px 8px; color: var(--gold); text-decoration: none; font-size: 0.72rem; }
 
         hr { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
 
@@ -4522,7 +4531,9 @@ function normalizeCols(headers) {
         daily_sales:'daily_sales',sales:'daily_sales','累计销量':'total_sales',
         '毛利率':'gross_margin','毛利润率':'gross_margin',gross_margin:'gross_margin','毛利':'gross_margin',
         '日利润':'daily_profit','每天利润':'daily_profit',daily_profit:'daily_profit','毛利润':'daily_profit',
-        '克重':'weight_g','重量':'weight_g',weight:'weight_g',weight_g:'weight_g','品类':'category'
+        '克重':'weight_g','重量':'weight_g',weight:'weight_g',weight_g:'weight_g','品类':'category',
+        '图片':'image_url','商品图片':'image_url','商品图':'image_url','主图':'image_url','主图链接':'image_url','图片链接':'image_url','商品图片链接':'image_url',image:'image_url',image_url:'image_url','img':'image_url',
+        '差评图':'review_image_url','差评图片':'review_image_url','差评图片链接':'review_image_url','评价图':'review_image_url','评价图片':'review_image_url','买家秀':'review_image_url','买家秀图片':'review_image_url',review_image:'review_image_url',review_image_url:'review_image_url'
     };
     return (headers||[]).map(function(h){
         var raw=String(h||'').trim();
@@ -4535,6 +4546,8 @@ function normalizeCols(headers) {
         if(/实际卖价|售价|卖价/.test(raw)) return 'price';
         if(/每天销量|日均销量|日销/.test(raw)&&!/累计/.test(raw)) return 'daily_sales';
         if(/^成本$|供货价|采购价/.test(raw)) return 'cost';
+        if(/差评|评价图|评价图片|买家秀/.test(raw)) return 'review_image_url';
+        if(/主图|商品图|图片链接|图片|image|img/i.test(raw)) return 'image_url';
         return k||raw;
     });
 }
@@ -4795,13 +4808,42 @@ function extractProducts(files) {
             if(isNaN(dp)) dp=(price>0&&ds>0)?ds*(price-cost):(ds*price*gm/100);
             var spu=String(r.spu_id||'').replace(/\.0$/,'');
             if(!spu||spu==='undefined') return;
+            var imageUrl = cleanImageUrl(r.image_url || r.product_image_url || r.image || r.img);
+            var reviewImageUrl = cleanImageUrl(r.review_image_url || r.review_image || r.bad_review_image || r.comment_image_url);
             pros.push({
                 spu_id:spu,name:r.name||spu||'?',cost:cost,
                 weight_g:parseNum(r.weight_g)||0,price:price,daily_sales:ds,
-                gross_margin:gm,daily_profit:isNaN(dp)?0:dp,category:r.category||''
+                gross_margin:gm,daily_profit:isNaN(dp)?0:dp,category:r.category||'',
+                image_url:imageUrl,review_image_url:reviewImageUrl
             });
         });
     }); return pros;
+}
+
+function cleanImageUrl(v) {
+    var s = String(v || '').trim();
+    if (!s || s === '-' || /^nan$/i.test(s)) return '';
+    if (/^https?:\/\//i.test(s) || /^data:image\//i.test(s)) return s;
+    return '';
+}
+
+function renderImageFrame(url, alt) {
+    if (!url) return '<div class="product-image-frame">暂无图片</div>';
+    return '<div class="product-image-frame"><img loading="lazy" referrerpolicy="no-referrer" src="' + escHtml(url) + '" alt="' + escHtml(alt || '商品图片') + '" onerror="this.parentNode.textContent=&quot;图片无法加载&quot;"></div>';
+}
+
+function renderProductImageCard(p, opts) {
+    opts = opts || {};
+    var mainUrl = opts.review ? (p.review_image_url || p.image_url || '') : (p.image_url || '');
+    var actions = '';
+    if (p.image_url) actions += '<a class="image-link-pill" href="' + escHtml(p.image_url) + '" target="_blank" rel="noopener">主图</a>';
+    if (p.review_image_url) actions += '<a class="image-link-pill" href="' + escHtml(p.review_image_url) + '" target="_blank" rel="noopener">评价图</a>';
+    return '<div class="product-image-card">' + renderImageFrame(mainUrl, p.name || p.spu_id) +
+        '<div class="product-image-body"><div class="product-image-title">' + escHtml(p.name || p.spu_id) + '</div>' +
+        '<div class="product-image-meta">SPU ' + escHtml(p.spu_id) + (p.cluster_label ? ' · ' + escHtml(p.cluster_label) : '') +
+        '<br>毛利率 ' + Number(p.gross_margin || 0).toFixed(1) + '% · 日销 ' + Number(p.daily_sales || 0).toFixed(1) + ' · ' + Math.round(p.weight_g || 0) + 'g</div>' +
+        (actions ? '<div class="product-image-actions">' + actions + '</div>' : '<div class="product-image-meta">Excel 未提供图片链接</div>') +
+        '</div></div>';
 }
 
 function normalizeTeamProducts(rawList) {
@@ -4839,10 +4881,17 @@ function extractRules(clusters) {
 
 function checkAvoidance(products) {
     var iss=[];
+    function issue(p, reason) {
+        iss.push({
+            spu_id:p.spu_id,name:p.name,reason:reason,gross_margin:p.gross_margin,
+            daily_sales:p.daily_sales,weight_g:p.weight_g,image_url:p.image_url || '',
+            review_image_url:p.review_image_url || '',cluster_label:p.cluster_label || ''
+        });
+    }
     products.forEach(function(p){
-        if(p.weight_g>500&&p.daily_sales<1) iss.push({spu_id:p.spu_id,name:p.name,reason:'高克重陷阱',gross_margin:p.gross_margin,daily_sales:p.daily_sales,weight_g:p.weight_g});
-        else if(p.gross_margin<10) iss.push({spu_id:p.spu_id,name:p.name,reason:'低毛利陷阱',gross_margin:p.gross_margin,daily_sales:p.daily_sales,weight_g:p.weight_g});
-        else if(p.daily_sales<0.5&&p.daily_profit<=0) iss.push({spu_id:p.spu_id,name:p.name,reason:'滞销品',gross_margin:p.gross_margin,daily_sales:p.daily_sales,weight_g:p.weight_g});
+        if(p.weight_g>500&&p.daily_sales<1) issue(p, '高克重陷阱');
+        else if(p.gross_margin<10) issue(p, '低毛利陷阱');
+        else if(p.daily_sales<0.5&&p.daily_profit<=0) issue(p, '滞销品');
     }); return iss;
 }
 
@@ -5052,6 +5101,10 @@ window.renderProducts = (function() {
     div.innerHTML='<div class="alert alert-info" style="margin-bottom:14px;"><span class="alert-icon">🧭</span><span>当前聚类只回答“数据表现像哪一类”，不能单独回答“为什么爆/为什么亏”。要形成可信诊断，需要在商品经营模板里补充卖点、流量、竞品、供应链、平台规则和动作复盘。</span></div><div class="btn-row"><div class="step"><div class="emoji">🟡</div><div class="title">黄金品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--gold);">'+(cnt['黄金品']||0)+'</div></div><div class="step"><div class="emoji">⚪</div><div class="title">白银品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:#a0a0a0;">'+(cnt['白银品']||0)+'</div></div><div class="step"><div class="emoji">🔵</div><div class="title">观察品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:#5b9bd5;">'+(cnt['观察品']||0)+'</div></div><div class="step"><div class="title">📦 总计</div><div class="desc" style="font-size:1.5rem;font-weight:700;">'+ST.clusters.length+'</div></div></div>';
     pg.appendChild(div);
     [{l:'黄金品',c:'var(--gold)',bc:'badge badge-gold'},{l:'白银品',c:'#a0a0a0',bc:'badge badge-silver'},{l:'观察品',c:'#5b9bd5',bc:'badge badge-watch'}].forEach(function(g){var s=ST.clusters.filter(function(p){return p.cluster_label===g.l;});if(s.length>0){var exp=document.createElement('details');exp.className='expander';exp.open=true;exp.innerHTML='<summary><span class="'+g.bc+'">'+g.l+'</span> 概况（'+s.length+' 个SPU）</summary><div class="expander-content"><div class="alert alert-info" style="border-left:3px solid '+g.c+'"><div><strong style="color:'+g.c+'">'+g.l+'</strong><br>毛利率: '+avg(s.map(function(p){return p.gross_margin;})).toFixed(1)+'% | 日销: '+avg(s.map(function(p){return p.daily_sales;})).toFixed(1)+' | 克重: '+Math.round(avg(s.map(function(p){return p.weight_g;})))+'g | 成本: $'+avg(s.map(function(p){return p.cost;})).toFixed(2)+'</div></div></div>';div.appendChild(exp);}});
+    var imageExp=document.createElement('details');imageExp.className='expander';imageExp.open=true;
+    var imageItems=ST.clusters.slice().sort(function(a,b){return (b.image_url?1:0)-(a.image_url?1:0)||b.gross_margin-a.gross_margin;}).slice(0,24);
+    imageExp.innerHTML='<summary>🖼️ 商品图片墙（'+ST.clusters.filter(function(p){return p.image_url;}).length+' / '+ST.clusters.length+' 有图）</summary><div class="expander-content"><div class="alert alert-info" style="margin-bottom:10px;"><span class="alert-icon">🖼️</span><span>Excel 增加“图片/主图/图片链接”列后，这里会直接显示缩略图；没有图片链接的商品会保留占位，方便定位数据缺口。</span></div><div class="product-image-grid">'+imageItems.map(function(p){return renderProductImageCard(p);}).join('')+'</div></div>';
+    div.appendChild(imageExp);
     var expPlot=document.createElement('details');expPlot.className='expander';expPlot.open=true;
     expPlot.innerHTML='<summary>📈 毛利率 vs 日销量 散点图</summary><div class="expander-content"><div id="scatterPlot" style="height:400px;"></div></div>';
     div.appendChild(expPlot);
@@ -5060,7 +5113,7 @@ window.renderProducts = (function() {
     div.appendChild(expTbl);
     var traces=['黄金品','白银品','观察品'].map(function(l){var s=ST.clusters.filter(function(p){return p.cluster_label===l;});return{x:s.map(function(p){return p.gross_margin;}),y:s.map(function(p){return p.daily_sales;}),mode:'markers',type:'scatter',name:l,text:s.map(function(p){return p.spu_id;}),marker:{size:10,color:l==='黄金品'?'#e2b87a':l==='白银品'?'#a0a0a0':'#5b9bd5'}};}).filter(function(t){return t.x.length>0;});
     Plotly.newPlot('scatterPlot',traces,Object.assign({},PLOTLY_THEME,{xaxis:Object.assign({},PLOTLY_THEME.xaxis,{title:'毛利率 %'}),yaxis:Object.assign({},PLOTLY_THEME.yaxis,{title:'日均销量'}),margin:{l:50,r:30,t:20,b:50}}),{displayModeBar:true,modeBarButtonsToAdd:['zoom2d','pan2d','downloadImage']});
-    setTimeout(function(){var t=document.getElementById('productsTable');if(!t)return;var h='<table><thead><tr><th>SPU ID</th><th>名称</th><th>分类</th><th>毛利率</th><th>日销</th><th>克重</th><th>成本</th><th>售价</th></tr></thead><tbody>';ST.clusters.sort(function(a,b){return a.cluster_label.localeCompare(b.cluster_label)||b.gross_margin-a.gross_margin;}).forEach(function(p){var bc=p.cluster_label==='黄金品'?'badge badge-gold':p.cluster_label==='白银品'?'badge badge-silver':'badge badge-watch';h+='<tr><td>'+p.spu_id+'</td><td>'+p.name+'</td><td><span class="'+bc+'">'+p.cluster_label+'</span></td><td>'+p.gross_margin.toFixed(1)+'%</td><td>'+p.daily_sales.toFixed(1)+'</td><td>'+Math.round(p.weight_g)+'g</td><td>$'+p.cost.toFixed(2)+'</td><td>$'+(p.price||0).toFixed(2)+'</td></tr>';});h+='</tbody></table>';t.innerHTML=h;},200);
+    setTimeout(function(){var t=document.getElementById('productsTable');if(!t)return;var h='<table><thead><tr><th>图片</th><th>SPU ID</th><th>名称</th><th>分类</th><th>毛利率</th><th>日销</th><th>克重</th><th>成本</th><th>售价</th></tr></thead><tbody>';ST.clusters.sort(function(a,b){return a.cluster_label.localeCompare(b.cluster_label)||b.gross_margin-a.gross_margin;}).forEach(function(p){var bc=p.cluster_label==='黄金品'?'badge badge-gold':p.cluster_label==='白银品'?'badge badge-silver':'badge badge-watch';var img=p.image_url?'<a class="image-link-pill" href="'+escHtml(p.image_url)+'" target="_blank" rel="noopener">主图</a>':'--';h+='<tr><td>'+img+'</td><td>'+p.spu_id+'</td><td>'+escHtml(p.name)+'</td><td><span class="'+bc+'">'+p.cluster_label+'</span></td><td>'+p.gross_margin.toFixed(1)+'%</td><td>'+p.daily_sales.toFixed(1)+'</td><td>'+Math.round(p.weight_g)+'g</td><td>$'+p.cost.toFixed(2)+'</td><td>$'+(p.price||0).toFixed(2)+'</td></tr>';});h+='</tbody></table>';t.innerHTML=h;},200);
 }
     return renderProducts;
 })();
@@ -5143,13 +5196,13 @@ window.renderBlacklist = (function() {
             exp.innerHTML='<summary>⚠️ <span class="badge badge-danger">'+r+'</span>（'+grp[r].length+' 个问题品）</summary><div class="expander-content"><div class="scroll-box">'+
                 grp[r].map(function(i){
                     var sev=(i.gross_margin<5||i.weight_g>1000)?'<span class="badge badge-danger">🔴 严重</span>':'<span class="badge badge-watch">🟡 注意</span>';
-                    return '<div class="warn-card" style="padding:14px 20px;margin:8px 0;text-align:left;border-width:1px;"><strong>'+sev+' — '+i.spu_id+'</strong><br><span style="color:var(--text-dim);">'+i.name+' | 毛利率:'+i.gross_margin.toFixed(1)+'% | 日销:'+i.daily_sales.toFixed(1)+' | 克重:'+Math.round(i.weight_g)+'g</span></div>';
+                    return '<div class="warn-card" style="padding:12px;margin:8px 0;text-align:left;border-width:1px;"><div style="display:grid;grid-template-columns:96px 1fr;gap:12px;align-items:start;">'+renderImageFrame(i.review_image_url||i.image_url, i.name)+'<div><strong>'+sev+' — '+escHtml(i.spu_id)+'</strong><br><span style="color:var(--text-dim);">'+escHtml(i.name)+' | 毛利率:'+i.gross_margin.toFixed(1)+'% | 日销:'+i.daily_sales.toFixed(1)+' | 克重:'+Math.round(i.weight_g)+'g</span><div class="product-image-actions" style="margin-top:8px;">'+(i.image_url?'<a class="image-link-pill" href="'+escHtml(i.image_url)+'" target="_blank" rel="noopener">主图</a>':'')+(i.review_image_url?'<a class="image-link-pill" href="'+escHtml(i.review_image_url)+'" target="_blank" rel="noopener">评价图</a>':'')+'</div></div></div></div>';
                 }).join('')+'</div></div>';
             div.appendChild(exp);
         });
         var allExp=document.createElement('details'); allExp.className='expander';
-        allExp.innerHTML='<summary>📋 全量问题品数据表（'+issues.length+' 条）</summary><div class="expander-content"><div class="scroll-box"><table><thead><tr><th>SPU ID</th><th>名称</th><th>问题类型</th><th>毛利率</th><th>日销</th><th>克重</th><th>严重度</th></tr></thead><tbody>'+
-            issues.map(function(i){var sev=(i.gross_margin<5||i.weight_g>1000)?'🔴 严重':'🟡 注意';return '<tr><td>'+i.spu_id+'</td><td>'+i.name+'</td><td>'+i.reason+'</td><td>'+i.gross_margin.toFixed(1)+'%</td><td>'+i.daily_sales.toFixed(1)+'</td><td>'+Math.round(i.weight_g)+'g</td><td>'+sev+'</td></tr>';}).join('')+
+        allExp.innerHTML='<summary>📋 全量问题品数据表（'+issues.length+' 条）</summary><div class="expander-content"><div class="scroll-box"><table><thead><tr><th>图片</th><th>评价图</th><th>SPU ID</th><th>名称</th><th>问题类型</th><th>毛利率</th><th>日销</th><th>克重</th><th>严重度</th></tr></thead><tbody>'+
+            issues.map(function(i){var sev=(i.gross_margin<5||i.weight_g>1000)?'🔴 严重':'🟡 注意';var img=i.image_url?'<a class="image-link-pill" href="'+escHtml(i.image_url)+'" target="_blank" rel="noopener">主图</a>':'--';var rev=i.review_image_url?'<a class="image-link-pill" href="'+escHtml(i.review_image_url)+'" target="_blank" rel="noopener">评价图</a>':'--';return '<tr><td>'+img+'</td><td>'+rev+'</td><td>'+escHtml(i.spu_id)+'</td><td>'+escHtml(i.name)+'</td><td>'+escHtml(i.reason)+'</td><td>'+i.gross_margin.toFixed(1)+'%</td><td>'+i.daily_sales.toFixed(1)+'</td><td>'+Math.round(i.weight_g)+'g</td><td>'+sev+'</td></tr>';}).join('')+
             '</tbody></table></div></div>';
         div.appendChild(allExp);
     }
