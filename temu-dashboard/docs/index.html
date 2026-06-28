@@ -150,7 +150,20 @@
             background: var(--info-bg); color: var(--gold);
             box-shadow: inset 3px 0 0 var(--gold);
         }
-        .nav-icon { font-size: 1.1rem; }
+        .nav-icon, .admin-icon {
+            width: 18px; height: 18px; flex: 0 0 18px;
+            display: inline-flex; align-items: center; justify-content: center;
+            color: var(--gold);
+        }
+        .nav-icon svg, .admin-icon svg {
+            width: 18px; height: 18px; display: block;
+            stroke: currentColor; fill: none; stroke-width: 1.8;
+            stroke-linecap: round; stroke-linejoin: round;
+        }
+        .sidebar-nav a.active .nav-icon,
+        .sidebar-nav a:hover .nav-icon,
+        .sidebar-admin-entry:hover .admin-icon,
+        .sidebar-admin-entry.active .admin-icon { color: var(--text); }
         .sidebar-footer { padding: 12px; border-top: 1px solid var(--border-light); font-size: 0.82rem; color: var(--text-dim); }
         .sidebar-admin-entry {
             width: 100%; display: flex; align-items: center; gap: 10px;
@@ -164,7 +177,6 @@
             color: var(--gold); background: rgba(226,184,122,0.08);
             border-color: rgba(226,184,122,0.34);
         }
-        .sidebar-admin-entry .admin-icon { font-size: 1.1rem; }
         .sidebar-admin-entry .admin-text { display: grid; gap: 2px; line-height: 1.2; }
         .sidebar-admin-entry strong { font-size: 0.88rem; color: inherit; }
         .sidebar-admin-entry span { font-size: 0.7rem; color: var(--text-faded); }
@@ -837,6 +849,18 @@
 </div>
 <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
 
+<svg aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0;overflow:hidden;">
+    <symbol id="icon-workbench" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M7 7V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2"/><rect x="4" y="7" width="16" height="13" rx="2"/><path d="M9 12h6"/><path d="M9 16h4"/></symbol>
+    <symbol id="icon-alignment" viewBox="0 0 24 24"><path d="M5 19V9"/><path d="M12 19V5"/><path d="M19 19v-7"/><path d="M3 19h18"/><circle cx="5" cy="7" r="2"/><circle cx="12" cy="3" r="2"/><circle cx="19" cy="10" r="2"/></symbol>
+    <symbol id="icon-diagnosis" viewBox="0 0 24 24"><path d="M4 19V5"/><path d="M4 19h16"/><path d="m7 15 3-4 3 2 4-6"/><path d="M17 7h3v3"/></symbol>
+    <symbol id="icon-store" viewBox="0 0 24 24"><path d="M4 10h16"/><path d="m5 10 1-5h12l1 5"/><path d="M6 10v9h12v-9"/><path d="M9 19v-5h6v5"/></symbol>
+    <symbol id="icon-product" viewBox="0 0 24 24"><path d="m12 3 8 4-8 4-8-4 8-4Z"/><path d="M4 7v10l8 4 8-4V7"/><path d="M12 11v10"/></symbol>
+    <symbol id="icon-rules" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6"/><path d="M9 12h6"/><path d="M9 16h4"/></symbol>
+    <symbol id="icon-risk" viewBox="0 0 24 24"><path d="M12 4 3 20h18L12 4Z"/><path d="M12 9v5"/><path d="M12 17h.01"/></symbol>
+    <symbol id="icon-predict" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M12 5v14"/><path d="M5 12h14"/><path d="m8 8 8 8"/><path d="m16 8-8 8"/></symbol>
+    <symbol id="icon-admin" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6l-7-3Z"/><path d="M9 12h6"/><path d="M12 9v6"/></symbol>
+</svg>
+
 <div class="app">
     <aside class="sidebar">
         <div class="sidebar-brand">
@@ -859,18 +883,18 @@
             </details>
         </div>
         <ul class="sidebar-nav">
-            <li><a class="active" onclick="switchPage('import')"><span class="nav-icon">📥</span> <span class="nav-text">团队工作台</span></a></li>
-            <li><a onclick="switchPage('pk')"><span class="nav-icon">🏆</span> <span class="nav-text">团队对齐分</span></a></li>
-            <li><a onclick="switchPage('diagnosis')"><span class="nav-icon">📈</span> <span class="nav-text">个人诊断</span></a></li>
-            <li><a onclick="switchPage('store')"><span class="nav-icon">🏪</span> <span class="nav-text">店铺运营</span></a></li>
-            <li><a onclick="switchPage('products')"><span class="nav-icon">📊</span> <span class="nav-text">商品画像</span></a></li>
-            <li><a onclick="switchPage('rules')"><span class="nav-icon">📋</span> <span class="nav-text">选品规则</span></a></li>
-            <li><a onclick="switchPage('blacklist')"><span class="nav-icon">🚨</span> <span class="nav-text">避坑清单</span></a></li>
-            <li><a onclick="switchPage('predict')"><span class="nav-icon">🔮</span> <span class="nav-text">智能预测</span></a></li>
+            <li><a class="active" onclick="switchPage('import')"><span class="nav-icon"><svg><use href="#icon-workbench"/></svg></span> <span class="nav-text">团队工作台</span></a></li>
+            <li><a onclick="switchPage('pk')"><span class="nav-icon"><svg><use href="#icon-alignment"/></svg></span> <span class="nav-text">团队对齐分</span></a></li>
+            <li><a onclick="switchPage('diagnosis')"><span class="nav-icon"><svg><use href="#icon-diagnosis"/></svg></span> <span class="nav-text">个人诊断</span></a></li>
+            <li><a onclick="switchPage('store')"><span class="nav-icon"><svg><use href="#icon-store"/></svg></span> <span class="nav-text">店铺运营</span></a></li>
+            <li><a onclick="switchPage('products')"><span class="nav-icon"><svg><use href="#icon-product"/></svg></span> <span class="nav-text">商品画像</span></a></li>
+            <li><a onclick="switchPage('rules')"><span class="nav-icon"><svg><use href="#icon-rules"/></svg></span> <span class="nav-text">选品规则</span></a></li>
+            <li><a onclick="switchPage('blacklist')"><span class="nav-icon"><svg><use href="#icon-risk"/></svg></span> <span class="nav-text">避坑清单</span></a></li>
+            <li><a onclick="switchPage('predict')"><span class="nav-icon"><svg><use href="#icon-predict"/></svg></span> <span class="nav-text">智能预测</span></a></li>
         </ul>
         <div class="sidebar-footer">
             <button type="button" class="sidebar-admin-entry" id="adminEntry" onclick="switchPage('admin')" title="团队后台 / 管理后台">
-                <span class="admin-icon">⚙</span>
+                <span class="admin-icon"><svg><use href="#icon-admin"/></svg></span>
                 <span class="admin-text"><strong>管理后台</strong><span>同步 · 团队 · 日志</span></span>
             </button>
         </div>
