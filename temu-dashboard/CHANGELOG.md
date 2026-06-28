@@ -13,7 +13,7 @@
 - **协作后台修复**：旧 SQLite 自动补 scope 字段；`/api/status` 不再因旧库断连；`/api/collab/ping` / `groups` 改为轻量探针，避免 OSS bootstrap 卡住后台检测
 - **角色权限收口**：普通运营可同步自己的摘要；团队基准 / 主管看板仅主管及以上；同步配置与清除动作仅管理员 / 开发者可见
 - **主管 PK 验收**：`/api/collab/team/pk-board` 优先走 SQLite，不再为了生成榜单强依赖 OSS meta/groups，避免主管看板超时
-- **网页版后台口径**：GitHub Pages 模式不再展示团队账号登录入口，改为直接引导“同步团队 / 团队基准”；团队登录仅在本地 `api_server.py` 或后续服务端部署模式开放
+- **网页登录收口**：GitHub Pages / 异位面可检测本机 `api_server.py`（8080）并启用团队登录；未连接时保留 OSS 摘要同步和“检测登录服务”入口
 
 ---
 

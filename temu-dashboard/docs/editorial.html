@@ -1929,38 +1929,66 @@ function openCollabAuthFromAdmin() {
         showCollabAuthModal();
         return;
     }
-    toast('团队登录随服务端部署节奏开放；当前先使用团队摘要同步。', 'info');
+    toast('请先启动本地登录服务，再检测团队登录。', 'info');
 }
 
 var _adminServerStatus = { checked: false, loading: false, ok: false, data: null, error: '' };
 var _adminRecentUploads = { checked: false, loading: false, ok: false, items: [], error: '', token: '' };
 var _adminRecentAudit = { checked: false, loading: false, ok: false, items: [], error: '', token: '' };
 var _adminPermissions = { checked: false, loading: false, ok: false, role: 'operator', permissions: null, token: '', error: '' };
+var COLLAB_API_BASE = '';
+
+function getCollabApiBases() {
+    if (isLocalDevServer()) return [''];
+    return ['http://127.0.0.1:8080', 'http://localhost:8080'];
+}
+
+function apiUrl(path) {
+    return (COLLAB_API_BASE || '') + path;
+}
+
+function isCollabServerAvailable() {
+    return !!(_adminServerStatus && _adminServerStatus.ok);
+}
+
+function detectCollabLoginService() {
+    COLLAB_API_BASE = '';
+    _adminServerStatus = { checked: false, loading: false, ok: false, data: null, error: '' };
+    _adminRecentUploads = { checked: false, loading: false, ok: false, items: [], error: '', token: '' };
+    _adminRecentAudit = { checked: false, loading: false, ok: false, items: [], error: '', token: '' };
+    _adminPermissions = { checked: false, loading: false, ok: false, role: 'operator', permissions: null, token: '', error: '' };
+    return refreshAdminServerStatus();
+}
 
 function refreshAdminServerStatus() {
-    if (!isLocalDevServer()) {
-        _adminServerStatus = { checked: true, loading: false, ok: false, data: null, error: '网页模式' };
-        return Promise.resolve(_adminServerStatus);
-    }
     if (_adminServerStatus.checked) return Promise.resolve(_adminServerStatus);
     if (_adminServerStatus.loading) return Promise.resolve(_adminServerStatus);
     _adminServerStatus.loading = true;
-    return fetch('/api/status', { method: 'GET', cache: 'no-store' }).then(function(r) {
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        return r.json();
-    }).then(function(data) {
-        _adminServerStatus = { checked: true, loading: false, ok: !!data.ok, data: data, error: '' };
+    var bases = getCollabApiBases();
+    function finish(status) {
+        _adminServerStatus = status;
         if (document.getElementById('page-admin') && document.getElementById('page-admin').classList.contains('active')) {
             renderAdminPage();
         }
         return _adminServerStatus;
-    }).catch(function(e) {
-        _adminServerStatus = { checked: true, loading: false, ok: false, data: null, error: e.message || '后端不可用' };
-        if (document.getElementById('page-admin') && document.getElementById('page-admin').classList.contains('active')) {
-            renderAdminPage();
+    }
+    function tryBase(index) {
+        if (index >= bases.length) {
+            return finish({ checked: true, loading: false, ok: false, data: null, error: isLocalDevServer() ? '后端不可用' : '本机登录服务未启动' });
         }
-        return _adminServerStatus;
-    });
+        var base = bases[index];
+        return fetch(base + '/api/status', { method: 'GET', cache: 'no-store' }).then(function(r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+        }).then(function(data) {
+            if (!data || !data.ok) throw new Error('状态异常');
+            COLLAB_API_BASE = base;
+            return finish({ checked: true, loading: false, ok: true, data: data, error: '' });
+        }).catch(function() {
+            return tryBase(index + 1);
+        });
+    }
+    return tryBase(0);
 }
 
 function getAdminCollabToken() {
@@ -1992,12 +2020,12 @@ function defaultAdminPermissions(role) {
 function refreshAdminPermissions() {
     var token = getAdminCollabToken();
     var u = getAdminCollabUser();
-    if (!isLocalDevServer() || !token) {
+    if (!isCollabServerAvailable() || !token) {
         _adminPermissions = {
             checked: true, loading: false, ok: false,
             role: u && u.role ? u.role : 'operator',
             permissions: defaultAdminPermissions(u && u.role ? u.role : 'operator'),
-            token: token || '', error: token ? '网页模式暂不读取权限' : '未登录'
+            token: token || '', error: token ? '登录服务未连接' : '未登录'
         };
         return Promise.resolve(_adminPermissions);
     }
@@ -2005,7 +2033,7 @@ function refreshAdminPermissions() {
     if (_adminPermissions.loading) return Promise.resolve(_adminPermissions);
     _adminPermissions.loading = true;
     _adminPermissions.token = token;
-    return fetch('/api/collab/permissions', {
+    return fetch(apiUrl('/api/collab/permissions'), {
         method: 'GET',
         cache: 'no-store',
         headers: { 'Authorization': 'Bearer ' + token }
@@ -2056,8 +2084,8 @@ function canSeeInternalStageGate() {
 }
 
 function refreshAdminRecentUploads() {
-    if (!isLocalDevServer()) {
-        _adminRecentUploads = { checked: true, loading: false, ok: false, items: [], error: '网页模式暂不读取协作日志', token: '' };
+    if (!isCollabServerAvailable()) {
+        _adminRecentUploads = { checked: true, loading: false, ok: false, items: [], error: '本机登录服务未连接', token: '' };
         return Promise.resolve(_adminRecentUploads);
     }
     var token = getAdminCollabToken();
@@ -2069,7 +2097,7 @@ function refreshAdminRecentUploads() {
     if (_adminRecentUploads.loading) return Promise.resolve(_adminRecentUploads);
     _adminRecentUploads.loading = true;
     _adminRecentUploads.token = token;
-    return fetch('/api/collab/uploads/recent?limit=6', {
+    return fetch(apiUrl('/api/collab/uploads/recent?limit=6'), {
         method: 'GET',
         cache: 'no-store',
         headers: { 'Authorization': 'Bearer ' + token }
@@ -2094,8 +2122,8 @@ function refreshAdminRecentUploads() {
 }
 
 function refreshAdminRecentAudit() {
-    if (!isLocalDevServer()) {
-        _adminRecentAudit = { checked: true, loading: false, ok: false, items: [], error: '网页模式暂不读取审计日志', token: '' };
+    if (!isCollabServerAvailable()) {
+        _adminRecentAudit = { checked: true, loading: false, ok: false, items: [], error: '本机登录服务未连接', token: '' };
         return Promise.resolve(_adminRecentAudit);
     }
     var token = getAdminCollabToken();
@@ -2107,7 +2135,7 @@ function refreshAdminRecentAudit() {
     if (_adminRecentAudit.loading) return Promise.resolve(_adminRecentAudit);
     _adminRecentAudit.loading = true;
     _adminRecentAudit.token = token;
-    return fetch('/api/collab/audit/recent?limit=6', {
+    return fetch(apiUrl('/api/collab/audit/recent?limit=6'), {
         method: 'GET',
         cache: 'no-store',
         headers: { 'Authorization': 'Bearer ' + token }
@@ -2143,12 +2171,8 @@ function getAdminState() {
     var serverDb = serverData.database || {};
     var dbCount = (serverDb.upload_count || 0) + (serverDb.pk_count || 0) + (serverDb.audit_count || 0);
     return {
-        serverLabel: isLocalDevServer()
-            ? (st.loading ? '检测中' : (st.ok ? '在线' : (st.checked ? '离线' : '待检测')))
-            : '网页模式',
-        serverHint: isLocalDevServer()
-            ? (st.ok ? ('端口 ' + ((serverData.server || {}).port || '8080') + ' · /api/status') : (st.error || '等待检测'))
-            : '未连接本地后端',
+        serverLabel: st.loading ? '检测中' : (st.ok ? '在线' : (st.checked ? '离线' : '待检测')),
+        serverHint: st.ok ? ((COLLAB_API_BASE || '本机') + ' · /api/status') : (st.error || '等待检测'),
         fileCount: ST.files.length,
         productCount: ST.products.length,
         storeCount: (ST.storeData || []).length,
@@ -2207,8 +2231,9 @@ function renderAdminPage() {
             return '<div class="admin-action-card"><h3>同步记录</h3><p>正在读取最近同步记录...</p></div>';
         }
         if (!_adminRecentUploads.ok) {
-            if (!isLocalDevServer()) {
-                return '<div class="admin-action-card"><h3>同步记录</h3><p>网页版不使用团队账号登录；完成“同步团队”后可通过团队基准拉取同事摘要。</p></div>';
+            if (!isCollabServerAvailable()) {
+                return '<div class="admin-action-card"><h3>同步记录</h3><p>启动本地登录服务后可查看团队同步记录。</p><div class="btn-row">' +
+                    '<button type="button" class="btn" onclick="detectCollabLoginService()">检测登录服务</button></div></div>';
             }
             return '<div class="admin-action-card"><h3>同步记录</h3><p>' + escHtml(_adminRecentUploads.error || '暂无记录') + '</p><div class="btn-row">' +
                 '<button type="button" class="btn" onclick="openCollabAuthFromAdmin()">🔐 团队登录</button></div></div>';
@@ -2234,8 +2259,9 @@ function renderAdminPage() {
             return '<div class="admin-action-card"><h3>后台动作</h3><p>正在读取数据库审计...</p></div>';
         }
         if (!_adminRecentAudit.ok) {
-            if (!isLocalDevServer()) {
-                return '<div class="admin-action-card"><h3>后台动作</h3><p>账号审计日志仅在本地 api_server.py 或服务端部署模式显示；网页版先使用摘要同步。</p></div>';
+            if (!isCollabServerAvailable()) {
+                return '<div class="admin-action-card"><h3>后台动作</h3><p>账号审计日志需要先连接本地 api_server.py。</p><div class="btn-row">' +
+                    '<button type="button" class="btn" onclick="detectCollabLoginService()">检测登录服务</button></div></div>';
             }
             return '<div class="admin-action-card"><h3>后台动作</h3><p>' + escHtml(_adminRecentAudit.error || '暂无审计') + '</p><div class="btn-row">' +
                 '<button type="button" class="btn" onclick="openCollabAuthFromAdmin()">🔐 团队登录</button></div></div>';
@@ -2251,8 +2277,11 @@ function renderAdminPage() {
         return '<div class="admin-log-list">' + rows + '</div>';
     }
     function collabActionsHTML() {
-        if (!isLocalDevServer()) {
-            return action('团队摘要同步', '网页版不使用团队账号登录；按归属人和 OSS Key 同步 JSON 摘要，原始 Excel 仍保留在本地。',
+        if (!isCollabServerAvailable()) {
+            return action('团队登录服务', '要登录团队账号，请先双击“启动本地看板.bat”或运行 python api_server.py；检测到本机服务后会开放团队登录。',
+                '<button type="button" class="btn" onclick="detectCollabLoginService()">检测登录服务</button>' +
+                '<button type="button" class="btn" onclick="openCollabAuthFromAdmin()">🔐 团队登录</button>') +
+                action('团队摘要同步', '未连接登录服务时仍可按归属人和 OSS Key 同步 JSON 摘要，原始 Excel 保留在本地。',
                 '<button type="button" class="btn-primary-sm" onclick="uploadToCloud()">⬆ 同步团队</button>' +
                 '<button type="button" class="btn" onclick="loadFromCloudWithAdminConfirm()">📥 团队基准</button>');
         }
@@ -2293,7 +2322,7 @@ function renderAdminPage() {
         '<div class="admin-health-sub">本地数据 / 团队同步 / OSS Key / 协作登录状态的控制台总览。</div></div>' +
         '<div class="admin-health-badge">' + escHtml(healthTone + ' · ' + (isDeveloper ? 'developer' : adminRole)) + '</div></div>' +
         '<div class="admin-status-grid">' +
-        card('后端服务', s.serverLabel, s.serverHint, isLocalDevServer() ? (_adminServerStatus.ok ? 'is-ok' : 'is-warn') : 'is-warn') +
+        card('后端服务', s.serverLabel, s.serverHint, _adminServerStatus.ok ? 'is-ok' : 'is-warn') +
         card('团队基准', s.teamCount + ' 条', s.teamPeople ? (s.teamPeople + ' 位同事摘要') : '暂无可用团队基准', s.teamCount ? 'is-ok' : 'is-warn') +
         card('商品文件', s.fileCount + ' 个', s.productCount + ' 条商品数据', s.fileCount ? 'is-ok' : 'is-warn') +
         card('店铺记录', s.storeCount + ' 条', '用于团队对齐分', s.storeCount ? 'is-ok' : 'is-warn') +
@@ -2932,6 +2961,153 @@ function isHostedWebApp() {
     var h = location.hostname;
     if (h === 'localhost' || h === '127.0.0.1') return false;
     return location.protocol === 'https:' || location.protocol === 'http:';
+}
+
+function getCollabToken() {
+    return localStorage.getItem('temu_v6_collab_token') || '';
+}
+
+function getCollabUser() {
+    try { return JSON.parse(localStorage.getItem('temu_v6_collab_user') || 'null'); } catch(e) { return null; }
+}
+
+function saveCollabSession(token, user) {
+    if (token) safeSetItem('temu_v6_collab_token', token);
+    if (user) safeSetItem('temu_v6_collab_user', JSON.stringify(user));
+    _adminPermissions = { checked: false, loading: false, ok: false, role: user && user.role ? user.role : 'operator', permissions: null, token: '', error: '' };
+    _adminRecentUploads = { checked: false, loading: false, ok: false, items: [], error: '', token: '' };
+    _adminRecentAudit = { checked: false, loading: false, ok: false, items: [], error: '', token: '' };
+    renderAdminPage();
+}
+
+function clearCollabSession() {
+    localStorage.removeItem('temu_v6_collab_token');
+    localStorage.removeItem('temu_v6_collab_user');
+    _adminPermissions = { checked: false, loading: false, ok: false, role: 'operator', permissions: null, token: '', error: '' };
+    _adminRecentUploads = { checked: false, loading: false, ok: false, items: [], error: '', token: '' };
+    _adminRecentAudit = { checked: false, loading: false, ok: false, items: [], error: '', token: '' };
+    renderAdminPage();
+}
+
+function collabFetch(path, opts) {
+    opts = opts || {};
+    var headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+    var token = getCollabToken();
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    return fetch(apiUrl(path), {
+        method: opts.method || 'GET',
+        headers: headers,
+        body: opts.body
+    }).then(function(r) { return r.json(); });
+}
+
+function fetchCollabGroups() {
+    return collabFetch('/api/collab/groups').then(function(d) {
+        return d && d.ok && d.groups ? d.groups : [];
+    }).catch(function() { return []; });
+}
+
+function showCollabAuthModal() {
+    if (!isCollabServerAvailable()) {
+        showModal('团队登录服务未连接',
+            '<p style="color:var(--text-dim);font-size:0.9rem;margin-bottom:10px;">团队账号登录需要本机协作服务。请先双击 <code>启动本地看板.bat</code>，或在项目目录运行 <code>python api_server.py</code>。</p>' +
+            '<p style="color:var(--text-dim);font-size:0.9rem;">如果服务已经启动，点击下方按钮重新检测；检测成功后会自动打开团队登录。</p>',
+            '检测登录服务',
+            function() {
+                detectCollabLoginService().then(function(status) {
+                    if (status && status.ok) {
+                        toast('已连接登录服务', 'success');
+                        showCollabAuthModal();
+                    } else {
+                        toast('还没连上本地登录服务，请确认 8080 端口已启动', 'warning');
+                    }
+                });
+                return true;
+            }
+        );
+        return;
+    }
+    var u = getCollabUser();
+    if (u && u.display_name) {
+        showModal('团队账号', '<p style="color:var(--text-dim);">已登录：<strong>' + escHtml(u.display_name) + '</strong> · ' +
+            escHtml(u.group_name || '') + ' · ' + escHtml(u.role || 'operator') + '</p>', '退出登录', function() {
+            clearCollabSession();
+            toast('已退出团队账号', 'info');
+        });
+        return;
+    }
+    var body = '<p style="color:var(--text-dim);font-size:0.86rem;margin-bottom:12px;">先登录团队账号。首次使用请展开“创建团队账号”；创建者用管理员邀请码 <code>TEMU-ADMIN-2026</code>，组员用 <code>TEMU-OPS-2026</code>。</p>' +
+        '<div style="display:grid;gap:10px;">' +
+        '<label>姓名<br><input id="collab_login_name" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
+        '<label>密码<br><input id="collab_login_pass" type="password" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
+        '</div>' +
+        '<details class="expander" style="margin-top:14px;"><summary>首次使用：创建团队账号</summary><div class="expander-content" style="display:grid;gap:10px;">' +
+        '<label>邀请码<br><input id="collab_invite" placeholder="创建者 TEMU-ADMIN-2026 / 组员 TEMU-OPS-2026" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
+        '<label>姓名（显示名，全团队唯一）<br><input id="collab_name" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
+        '<label>密码（≥6 位）<br><input id="collab_pass" type="password" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"></label>' +
+        '<label>所属小组<br><select id="collab_group" style="width:100%;padding:8px;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;"><option value="">加载中...</option></select></label>' +
+        '<button type="button" class="btn" id="collab_register_btn">创建团队账号</button>' +
+        '</div></details>';
+    showModal('🔐 团队登录', body, '登录', function(overlay) {
+        var name = (overlay.querySelector('#collab_login_name') || {}).value || '';
+        var pass = (overlay.querySelector('#collab_login_pass') || {}).value || '';
+        if (!name.trim() || !pass) {
+            toast('请填写姓名和密码；还没有账号请先创建团队账号', 'warning');
+            return false;
+        }
+        collabFetch('/api/collab/login', {
+            method: 'POST',
+            body: JSON.stringify({ display_name: name.trim(), password: pass })
+        }).then(function(d) {
+            if (!d || !d.ok) throw new Error((d && d.error) || '登录失败');
+            saveCollabSession(d.token, d.user);
+            var cfg = getOssConfig();
+            if (cfg) { cfg.owner = d.user.display_name; saveOssConfig(cfg); }
+            logEvent('info', 'collab', 'login_ok', '协作登录 · ' + d.user.display_name, d.user);
+            toast('登录成功 · ' + d.user.display_name, 'success');
+        }).catch(function(e) {
+            toast('登录失败：' + (e.message || String(e)), 'error');
+        });
+        return true;
+    }, function(overlay) {
+        fetchCollabGroups().then(function(groups) {
+            var sel = overlay.querySelector('#collab_group');
+            if (!sel) return;
+            sel.innerHTML = groups.map(function(g) {
+                return '<option value="' + escHtml(g.id) + '">' + escHtml(g.name) + '</option>';
+            }).join('');
+        });
+        var reg = overlay.querySelector('#collab_register_btn');
+        if (reg) reg.onclick = function() {
+            var invite = (overlay.querySelector('#collab_invite') || {}).value || '';
+            var name = (overlay.querySelector('#collab_name') || {}).value || '';
+            var pass = (overlay.querySelector('#collab_pass') || {}).value || '';
+            var gid = (overlay.querySelector('#collab_group') || {}).value || '';
+            if (!invite || !name.trim() || pass.length < 6 || !gid) {
+                toast('请填写邀请码、姓名、密码和小组', 'warning');
+                return;
+            }
+            reg.disabled = true;
+            reg.textContent = '创建中...';
+            collabFetch('/api/collab/register', {
+                method: 'POST',
+                body: JSON.stringify({ invite_code: invite.trim(), display_name: name.trim(), password: pass, group_id: gid })
+            }).then(function(d) {
+                if (!d || !d.ok) throw new Error((d && d.error) || '创建失败');
+                saveCollabSession(d.token, d.user);
+                var cfg = getOssConfig();
+                if (cfg) { cfg.owner = d.user.display_name; saveOssConfig(cfg); }
+                logEvent('info', 'collab', 'register_ok', '协作注册 · ' + d.user.display_name, d.user);
+                toast('团队账号已创建 · ' + d.user.group_name + ' · ' + d.user.role, 'success');
+                var cancel = overlay.querySelector('.modal-cancel-btn');
+                if (cancel) cancel.click();
+            }).catch(function(e) {
+                reg.disabled = false;
+                reg.textContent = '创建团队账号';
+                toast('创建失败：' + (e.message || String(e)), 'error');
+            });
+        };
+    });
 }
 
 function isGitHubPagesHost() {
