@@ -93,6 +93,8 @@
         .sidebar.collapsed .system-entry-panel,
         .sidebar.collapsed .nav-text,
         .sidebar.collapsed .sidebar-footer { display: none; }
+        .sidebar.collapsed .subsystem-nav-panel { margin-top: 0; border-top: 0; padding-top: 0; }
+        .sidebar.collapsed .subsystem-nav-panel summary { display: none; }
         .sidebar.collapsed .sidebar-nav { padding: 4px 6px; }
         .sidebar.collapsed .sidebar-nav a { justify-content: center; padding: 10px 6px; }
         .sidebar.collapsed .nav-icon { font-size: 1.3rem; }
@@ -107,20 +109,31 @@
             letter-spacing: 0.02em;
         }
         .sidebar-brand .sub   { font-size: 0.75rem; color: var(--text-dim); margin-top: 4px; }
-        .system-entry-panel {
+        .company-overview-card {
+            margin-top: 12px; border-color: rgba(184,132,58,0.34);
+            background: rgba(184,132,58,0.08);
+        }
+        .system-entry-panel,
+        .subsystem-nav-panel {
             margin-top: 12px; border-top: 1px solid var(--border-light); padding-top: 10px;
         }
-        .system-entry-panel summary {
+        .system-entry-panel summary,
+        .subsystem-nav-panel summary {
             list-style: none; cursor: pointer; color: var(--text-dim);
             display: flex; justify-content: space-between; align-items: center;
             font-size: 0.78rem; font-weight: 700;
         }
-        .system-entry-panel summary::-webkit-details-marker { display: none; }
-        .system-entry-panel summary::after {
+        .system-entry-panel summary::-webkit-details-marker,
+        .subsystem-nav-panel summary::-webkit-details-marker { display: none; }
+        .system-entry-panel summary::after,
+        .subsystem-nav-panel summary::after {
             content: '⌄'; color: var(--text-faded); transition: transform 0.16s;
         }
-        .system-entry-panel[open] summary::after { transform: rotate(180deg); }
+        .system-entry-panel[open] summary::after,
+        .subsystem-nav-panel[open] summary::after { transform: rotate(180deg); }
         .system-entry-list { display: grid; gap: 8px; margin-top: 10px; }
+        .subsystem-nav-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; padding-left: 12px; padding-right: 12px; }
+        .subsystem-nav-panel .sidebar-nav { padding-left: 0; padding-right: 0; margin-top: 8px; }
         .system-entry-card {
             display: grid; gap: 2px; text-decoration: none; color: var(--text);
             padding: 9px 10px; border-radius: var(--radius-sm);
@@ -902,19 +915,19 @@
             <span class="alter-badge" title="浅色异位面 · 与主界面数据互通">异位面</span>
             <div class="title">🧭 跨境经营诊断</div>
             <div class="sub">Temu 子系统 · 浅色试点版</div>
+            <div class="system-entry-card company-overview-card is-disabled" aria-disabled="true">
+                <strong>公司经营总览</strong>
+                <span>首位入口：组长成绩、平台表现、老板视图</span>
+                <span class="system-entry-meta"><b>规划中</b><em class="system-entry-status">待建</em></span>
+            </div>
             <details class="system-entry-panel" open>
-                <summary>系统入口</summary>
+                <summary>平台子系统</summary>
                 <div class="system-entry-list">
                     <a class="system-entry-card" href="index.html" onclick="return openTemuSystemEntry(event)">
                         <strong>Temu 子系统</strong>
                         <span>当前试点：团队对齐、店铺运营、商品诊断</span>
                         <span class="system-entry-meta"><b>进入系统</b><em class="system-entry-status">在线</em></span>
                     </a>
-                    <div class="system-entry-card is-disabled" aria-disabled="true">
-                        <strong>公司经营总览</strong>
-                        <span>跨平台汇总：组长成绩、平台表现、老板视图</span>
-                        <span class="system-entry-meta"><b>规划中</b><em class="system-entry-status">待建</em></span>
-                    </div>
                     <div class="system-entry-card is-disabled" aria-disabled="true">
                         <strong>SHEIN 系统</strong>
                         <span>平台适配器待建，后续复用诊断模型</span>
@@ -928,16 +941,19 @@
                 </div>
             </details>
         </div>
-        <ul class="sidebar-nav">
-            <li><a class="active" onclick="switchPage('import')"><span class="nav-icon"><svg><use href="#icon-workbench"/></svg></span> <span class="nav-text">团队工作台</span></a></li>
-            <li><a onclick="switchPage('pk')"><span class="nav-icon"><svg><use href="#icon-alignment"/></svg></span> <span class="nav-text">团队对齐分</span></a></li>
-            <li><a onclick="switchPage('diagnosis')"><span class="nav-icon"><svg><use href="#icon-diagnosis"/></svg></span> <span class="nav-text">个人诊断</span></a></li>
-            <li><a onclick="switchPage('store')"><span class="nav-icon"><svg><use href="#icon-store"/></svg></span> <span class="nav-text">店铺运营</span></a></li>
-            <li><a onclick="switchPage('products')"><span class="nav-icon"><svg><use href="#icon-product"/></svg></span> <span class="nav-text">商品画像</span></a></li>
-            <li><a onclick="switchPage('rules')"><span class="nav-icon"><svg><use href="#icon-rules"/></svg></span> <span class="nav-text">选品规则</span></a></li>
-            <li><a onclick="switchPage('blacklist')"><span class="nav-icon"><svg><use href="#icon-risk"/></svg></span> <span class="nav-text">避坑清单</span></a></li>
-            <li><a onclick="switchPage('predict')"><span class="nav-icon"><svg><use href="#icon-predict"/></svg></span> <span class="nav-text">智能预测</span></a></li>
-        </ul>
+        <details class="subsystem-nav-panel" open>
+            <summary>Temu 子系统功能</summary>
+            <ul class="sidebar-nav">
+                <li><a class="active" onclick="switchPage('import')"><span class="nav-icon"><svg><use href="#icon-workbench"/></svg></span> <span class="nav-text">团队工作台</span></a></li>
+                <li><a onclick="switchPage('pk')"><span class="nav-icon"><svg><use href="#icon-alignment"/></svg></span> <span class="nav-text">团队对齐分</span></a></li>
+                <li><a onclick="switchPage('diagnosis')"><span class="nav-icon"><svg><use href="#icon-diagnosis"/></svg></span> <span class="nav-text">个人诊断</span></a></li>
+                <li><a onclick="switchPage('store')"><span class="nav-icon"><svg><use href="#icon-store"/></svg></span> <span class="nav-text">店铺运营</span></a></li>
+                <li><a onclick="switchPage('products')"><span class="nav-icon"><svg><use href="#icon-product"/></svg></span> <span class="nav-text">商品画像</span></a></li>
+                <li><a onclick="switchPage('rules')"><span class="nav-icon"><svg><use href="#icon-rules"/></svg></span> <span class="nav-text">选品规则</span></a></li>
+                <li><a onclick="switchPage('blacklist')"><span class="nav-icon"><svg><use href="#icon-risk"/></svg></span> <span class="nav-text">避坑清单</span></a></li>
+                <li><a onclick="switchPage('predict')"><span class="nav-icon"><svg><use href="#icon-predict"/></svg></span> <span class="nav-text">智能预测</span></a></li>
+            </ul>
+        </details>
         <div class="sidebar-footer">
             <button type="button" class="sidebar-admin-entry" id="adminEntry" onclick="switchPage('admin')" title="团队后台 / 管理后台">
                 <span class="admin-icon"><svg><use href="#icon-admin"/></svg></span>
