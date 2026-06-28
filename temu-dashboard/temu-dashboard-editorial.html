@@ -76,7 +76,7 @@
         }
 
         /* ── 布局 ── */
-        .app { display: flex; height: 100vh; min-height: 100vh; overflow: hidden; }
+        .app { position: fixed; inset: 0; display: flex; height: 100vh; min-height: 100vh; overflow: hidden; }
         .sidebar {
             width: var(--sidebar-w); min-width: var(--sidebar-w); flex-shrink: 0;
             height: 100vh;
@@ -84,9 +84,9 @@
             border-right: 1px solid var(--border);
             display: flex; flex-direction: column;
             transition: width 0.25s var(--ease-out), min-width 0.25s var(--ease-out);
-            overflow: hidden;
+            overflow: hidden; position: relative; box-sizing: border-box; padding-bottom: 92px;
         }
-        .sidebar.collapsed { width: 64px; min-width: 64px; }
+        .sidebar.collapsed { width: 64px; min-width: 64px; padding-bottom: 0; }
         .sidebar.collapsed .sidebar-brand { padding: 12px 6px; margin: 6px; border-radius: var(--radius); }
         .sidebar.collapsed .sidebar-brand .title { font-size: 0.9rem; }
         .sidebar.collapsed .sidebar-brand .sub,
@@ -101,7 +101,8 @@
             padding: 16px 14px 12px; margin: 8px 12px 4px;
             text-align: left; border-bottom: 1px solid var(--border);
             background: transparent; border-radius: 0;
-            flex: 1; min-height: 0; display: flex; flex-direction: column;
+            flex: 1 1 0; min-height: 0; overflow: hidden;
+            display: flex; flex-direction: column;
         }
         .sidebar-brand .title {
             font-family: var(--font-display);
@@ -115,7 +116,8 @@
         }
         .system-entry-panel {
             margin-top: 12px; border-top: 1px solid var(--border-light); padding-top: 10px;
-            flex: 1; min-height: 0; display: flex; flex-direction: column;
+            flex: 1 1 auto; min-height: 0; max-height: calc(100vh - 320px);
+            display: flex; flex-direction: column;
         }
         .system-entry-panel summary,
         .platform-feature-panel summary {
@@ -133,7 +135,8 @@
         .platform-feature-panel[open] summary::after { transform: rotate(180deg); }
         .system-entry-list {
             display: grid; gap: 8px; margin-top: 10px;
-            flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: 3px;
+            flex: 1 1 auto; min-height: 0; max-height: clamp(240px, calc(100vh - 430px), 620px);
+            overflow-y: auto; overscroll-behavior: contain; padding-right: 3px;
         }
         .system-entry-list::-webkit-scrollbar { width: 6px; }
         .system-entry-list::-webkit-scrollbar-thumb { background: rgba(184,132,58,0.22); border-radius: 99px; }
@@ -205,7 +208,12 @@
         .sidebar-nav a:hover .nav-icon,
         .sidebar-admin-entry:hover .admin-icon,
         .sidebar-admin-entry.active .admin-icon { color: var(--text); }
-        .sidebar-footer { padding: 12px; border-top: 1px solid var(--border-light); font-size: 0.82rem; color: var(--text-dim); }
+        .sidebar-footer {
+            position: absolute; z-index: 2; left: 0; right: 0; bottom: 0;
+            padding: 12px; border-top: 1px solid var(--border-light);
+            background: rgba(255, 253, 248, 0.96); font-size: 0.82rem; color: var(--text-dim);
+            box-shadow: 0 -10px 18px rgba(42, 36, 26, 0.06);
+        }
         .sidebar-admin-entry {
             width: 100%; display: flex; align-items: center; gap: 10px;
             padding: 10px 12px; border-radius: var(--radius);
@@ -420,9 +428,16 @@
         }
         .toast-action:hover { background: rgba(46, 46, 46, 0.06); }
         .page-toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; align-items: center; }
-        .content { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 20px 32px 32px; width: 100%; }
+        .content {
+            flex: 1; min-height: 0; min-width: 0;
+            overflow: auto; overscroll-behavior: contain;
+            padding: 20px 32px 32px; width: 100%;
+        }
+        .content::-webkit-scrollbar { width: 8px; height: 8px; }
+        .content::-webkit-scrollbar-track { background: transparent; }
+        .content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
         .content > .page,
-        .content > .app-footer { max-width: 1100px; margin-left: auto; margin-right: auto; width: 100%; }
+        .content > .app-footer { box-sizing: border-box; max-width: 1100px; margin-left: auto; margin-right: auto; width: 100%; }
         .page { display: none; }
         .page.active { display: block; animation: pageIn 0.2s ease-out; }
         @keyframes pageIn {
@@ -455,6 +470,7 @@
             flex: 1; min-width: 130px;
             background: var(--card-alt); border: 1px solid var(--border-light);
             border-radius: var(--radius); padding: 12px 14px;
+            box-shadow: 0 1px 0 rgba(255,255,255,0.58) inset;
         }
         .stat-cell.is-gold { border-color: rgba(226, 184, 122, 0.35); background: var(--gold-bg); }
         .stat-cell.is-muted { border-color: var(--border); }
@@ -497,10 +513,15 @@
             background: var(--card);
             border: 1px solid var(--border);
             border-radius: var(--radius-lg); padding: 28px 32px; margin-bottom: 24px;
-            box-shadow: none;
+            box-shadow: var(--shadow-sm);
+            position: relative; overflow: hidden;
         }
-        .hero h1 { font-family: var(--font-display); font-size: 2rem; font-weight: 600; color: var(--text); margin-bottom: 6px; }
-        .hero p  { font-size: 0.95rem; color: var(--text-dim); line-height: 1.5; }
+        .hero::before {
+            content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+            background: linear-gradient(180deg, rgba(184,132,58,0.72), rgba(91,155,213,0.48));
+        }
+        .hero h1 { position: relative; font-family: var(--font-display); font-size: 2rem; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+        .hero p  { position: relative; font-size: 0.95rem; color: var(--text-dim); line-height: 1.5; }
 
         /* ── Button ── */
         .btn {
@@ -533,7 +554,7 @@
             display: flex; align-items: flex-start; gap: 12px; margin-bottom: 18px;
             line-height: 1.55;
         }
-        .alert-info    { background: var(--info-bg); border: 1px solid var(--info-border); }
+        .alert-info    { background: var(--info-bg); border: 1px solid var(--info-border); box-shadow: var(--shadow-sm); }
         .alert-success { background: var(--success); border: 1px solid var(--success-border); color: var(--success-text); }
         .alert-warning { background: var(--warning-bg); border: 1px solid var(--warning-border); color: var(--warning-text); }
         .alert-icon { font-size: 1.2rem; flex-shrink: 0; }
@@ -560,6 +581,7 @@
             border: 1px solid var(--border); background: var(--card);
             margin-bottom: 18px; overflow: hidden;
         }
+        .expander[open] { border-color: rgba(184,132,58,0.24); }
         .expander summary {
             padding: 16px 20px; cursor: pointer; font-weight: 600; font-size: 0.93rem;
             list-style: none; display: flex; align-items: center; gap: 10px;
@@ -571,12 +593,12 @@
 
         /* ── 滚轮盒子（对标 st.expander scroll-box）── */
         .scroll-box {
-            max-height: 380px; overflow-y: auto;
+            max-height: 380px; overflow: auto;
             padding-right: 4px;
             scrollbar-width: thin;
             scrollbar-color: var(--border) transparent;
         }
-        .scroll-box::-webkit-scrollbar { width: 6px; }
+        .scroll-box::-webkit-scrollbar { width: 6px; height: 6px; }
         .scroll-box::-webkit-scrollbar-track { background: transparent; }
         .scroll-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
         .scroll-box::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
@@ -602,8 +624,8 @@
         .warn-card .title { font-size: 1.8rem; font-weight: 700; color: var(--warning-text); }
         .warn-card .desc  { font-size: 0.95rem; color: var(--text); margin-top: 6px; }
         .product-image-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; margin-top: 12px; }
-        .product-image-card { border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); overflow: hidden; min-height: 248px; }
-        .product-image-frame { aspect-ratio: 1 / 1; background: rgba(0,0,0,0.035); display: flex; align-items: center; justify-content: center; color: var(--text-faded); font-size: 0.82rem; }
+        .product-image-card { border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); overflow: hidden; min-height: 248px; box-shadow: var(--shadow-sm); }
+        .product-image-frame { aspect-ratio: 1 / 1; background: rgba(42,36,26,0.055); display: flex; align-items: center; justify-content: center; color: var(--text-faded); font-size: 0.82rem; }
         .product-image-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .product-image-body { padding: 10px 12px; display: grid; gap: 6px; }
         .product-image-title { font-weight: 700; color: var(--text); line-height: 1.35; }
@@ -885,7 +907,20 @@
             .sidebar.mobile-open { transform: translateX(0); }
             .sidebar-backdrop.show { display: block; }
             .content { padding: 16px 18px 28px; }
-            .topbar { padding: 10px 16px; }
+            .topbar {
+                display: grid; grid-template-columns: auto minmax(0, 1fr);
+                align-items: center; gap: 8px 10px; padding: 10px 16px;
+            }
+            .topbar-title { min-width: 0; }
+            .topbar-title h2 { font-size: 1rem; }
+            .topbar-title p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .topbar-actions {
+                grid-column: 1 / -1; width: 100%; min-width: 0;
+                overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin;
+            }
+            .topbar-actions .btn-primary-sm { display: none; }
+            .topbar-actions .btn-ghost,
+            .topbar-actions .style-switch { flex: 0 0 auto; }
             .workflow-strip { padding: 8px 16px 0; }
             .hero { padding: 22px 20px; }
             .hero h1 { font-size: 1.5rem; }
@@ -914,7 +949,7 @@
 </div>
 <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
 
-<svg aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0;overflow:hidden;">
+<svg aria-hidden="true" focusable="false" style="position:absolute;display:block;width:0;height:0;overflow:hidden;line-height:0;">
     <symbol id="icon-workbench" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M7 7V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2"/><rect x="4" y="7" width="16" height="13" rx="2"/><path d="M9 12h6"/><path d="M9 16h4"/></symbol>
     <symbol id="icon-alignment" viewBox="0 0 24 24"><path d="M5 19V9"/><path d="M12 19V5"/><path d="M19 19v-7"/><path d="M3 19h18"/><circle cx="5" cy="7" r="2"/><circle cx="12" cy="3" r="2"/><circle cx="19" cy="10" r="2"/></symbol>
     <symbol id="icon-diagnosis" viewBox="0 0 24 24"><path d="M4 19V5"/><path d="M4 19h16"/><path d="m7 15 3-4 3 2 4-6"/><path d="M17 7h3v3"/></symbol>

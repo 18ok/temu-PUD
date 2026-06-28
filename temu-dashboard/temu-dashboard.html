@@ -71,7 +71,7 @@
         }
 
         /* ── 布局 ── */
-        .app { display: flex; height: 100vh; min-height: 100vh; overflow: hidden; }
+        .app { position: fixed; inset: 0; display: flex; height: 100vh; min-height: 100vh; overflow: hidden; }
         .sidebar {
             width: var(--sidebar-w); min-width: var(--sidebar-w); flex-shrink: 0;
             height: 100vh;
@@ -79,9 +79,9 @@
             border-right: 1px solid var(--border-light);
             display: flex; flex-direction: column;
             transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            overflow: hidden;
+            overflow: hidden; position: relative; box-sizing: border-box; padding-bottom: 92px;
         }
-        .sidebar.collapsed { width: 64px; min-width: 64px; }
+        .sidebar.collapsed { width: 64px; min-width: 64px; padding-bottom: 0; }
         .sidebar.collapsed .sidebar-brand { padding: 12px 6px; margin: 6px; border-radius: var(--radius); }
         .sidebar.collapsed .sidebar-brand .title { font-size: 0.9rem; }
         .sidebar.collapsed .sidebar-brand .sub,
@@ -96,7 +96,8 @@
             background: transparent;
             border: 1px solid var(--border-light);
             border-radius: var(--radius); padding: 16px 14px; margin: 12px;
-            text-align: left; flex: 1; min-height: 0; display: flex; flex-direction: column;
+            text-align: left; flex: 1 1 0; min-height: 0; overflow: hidden;
+            display: flex; flex-direction: column;
         }
         .sidebar-brand .title { font-size: 1.08rem; font-weight: 800; color: var(--text); }
         .sidebar-brand .sub   { font-size: 0.7rem; color: var(--text-faded); margin-top: 2px; }
@@ -106,7 +107,8 @@
         }
         .system-entry-panel {
             margin-top: 12px; border-top: 1px solid var(--border-light); padding-top: 10px;
-            flex: 1; min-height: 0; display: flex; flex-direction: column;
+            flex: 1 1 auto; min-height: 0; max-height: calc(100vh - 320px);
+            display: flex; flex-direction: column;
         }
         .system-entry-panel summary,
         .platform-feature-panel summary {
@@ -124,7 +126,8 @@
         .platform-feature-panel[open] summary::after { transform: rotate(180deg); }
         .system-entry-list {
             display: grid; gap: 8px; margin-top: 10px;
-            flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: 3px;
+            flex: 1 1 auto; min-height: 0; max-height: clamp(240px, calc(100vh - 430px), 620px);
+            overflow-y: auto; overscroll-behavior: contain; padding-right: 3px;
         }
         .system-entry-list::-webkit-scrollbar { width: 6px; }
         .system-entry-list::-webkit-scrollbar-thumb { background: rgba(226,184,122,0.24); border-radius: 99px; }
@@ -193,7 +196,11 @@
         .sidebar-nav a:hover .nav-icon,
         .sidebar-admin-entry:hover .admin-icon,
         .sidebar-admin-entry.active .admin-icon { color: var(--text); }
-        .sidebar-footer { padding: 12px; border-top: 1px solid var(--border-light); font-size: 0.82rem; color: var(--text-dim); }
+        .sidebar-footer {
+            position: absolute; z-index: 2; left: 0; right: 0; bottom: 0;
+            padding: 12px; border-top: 1px solid var(--border-light);
+            background: #101319; font-size: 0.82rem; color: var(--text-dim);
+        }
         .sidebar-admin-entry {
             width: 100%; display: flex; align-items: center; gap: 10px;
             padding: 10px 12px; border-radius: var(--radius);
@@ -408,9 +415,16 @@
         }
         .toast-action:hover { background: rgba(255,255,255,0.08); }
         .page-toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; align-items: center; }
-        .content { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 20px 32px 32px; width: 100%; }
+        .content {
+            flex: 1; min-height: 0; min-width: 0;
+            overflow: auto; overscroll-behavior: contain;
+            padding: 20px 32px 32px; width: 100%;
+        }
+        .content::-webkit-scrollbar { width: 8px; height: 8px; }
+        .content::-webkit-scrollbar-track { background: transparent; }
+        .content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
         .content > .page,
-        .content > .app-footer { max-width: 1100px; margin-left: auto; margin-right: auto; width: 100%; }
+        .content > .app-footer { box-sizing: border-box; max-width: 1100px; margin-left: auto; margin-right: auto; width: 100%; }
         .page { display: none; }
         .page.active { display: block; animation: pageIn 0.2s ease-out; }
         @keyframes pageIn {
@@ -857,7 +871,20 @@
             .sidebar.mobile-open { transform: translateX(0); }
             .sidebar-backdrop.show { display: block; }
             .content { padding: 16px 18px 28px; }
-            .topbar { padding: 10px 16px; }
+            .topbar {
+                display: grid; grid-template-columns: auto minmax(0, 1fr);
+                align-items: center; gap: 8px 10px; padding: 10px 16px;
+            }
+            .topbar-title { min-width: 0; }
+            .topbar-title h2 { font-size: 1rem; }
+            .topbar-title p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .topbar-actions {
+                grid-column: 1 / -1; width: 100%; min-width: 0;
+                overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin;
+            }
+            .topbar-actions .btn-primary-sm { display: none; }
+            .topbar-actions .btn-ghost,
+            .topbar-actions .style-switch { flex: 0 0 auto; }
             .workflow-strip { padding: 8px 16px 0; }
             .hero { padding: 22px 20px; }
             .hero h1 { font-size: 1.5rem; }
@@ -887,7 +914,7 @@
 </div>
 <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
 
-<svg aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0;overflow:hidden;">
+<svg aria-hidden="true" focusable="false" style="position:absolute;display:block;width:0;height:0;overflow:hidden;line-height:0;">
     <symbol id="icon-workbench" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M7 7V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2"/><rect x="4" y="7" width="16" height="13" rx="2"/><path d="M9 12h6"/><path d="M9 16h4"/></symbol>
     <symbol id="icon-alignment" viewBox="0 0 24 24"><path d="M5 19V9"/><path d="M12 19V5"/><path d="M19 19v-7"/><path d="M3 19h18"/><circle cx="5" cy="7" r="2"/><circle cx="12" cy="3" r="2"/><circle cx="19" cy="10" r="2"/></symbol>
     <symbol id="icon-diagnosis" viewBox="0 0 24 24"><path d="M4 19V5"/><path d="M4 19h16"/><path d="m7 15 3-4 3 2 4-6"/><path d="M17 7h3v3"/></symbol>
