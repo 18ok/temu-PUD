@@ -888,6 +888,37 @@
             .workflow-strip { padding: 8px 16px 0; }
             .hero { padding: 22px 20px; }
             .hero h1 { font-size: 1.5rem; }
+            .admin-console,
+            .admin-console-section,
+            .admin-status-grid,
+            .admin-action-grid,
+            .admin-overview-head {
+                min-width: 0;
+                max-width: 100%;
+            }
+            .admin-status-grid,
+            .admin-action-grid {
+                grid-template-columns: minmax(0, 1fr);
+            }
+            .admin-overview-head {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .admin-health-badge {
+                white-space: normal;
+            }
+            .admin-log-row {
+                grid-template-columns: minmax(0, 1fr);
+                align-items: flex-start;
+            }
+            .admin-log-main,
+            .admin-log-meta {
+                white-space: normal;
+                min-width: 0;
+            }
+            .admin-log-badge {
+                justify-self: flex-start;
+            }
         }
     </style>
 </head>
@@ -931,10 +962,10 @@
         <div class="sidebar-brand">
             <div class="title">🧭 跨境经营诊断</div>
             <div class="sub">Temu 子系统 · 试点版 V10.4</div>
-            <div class="system-entry-card company-overview-card is-disabled" aria-disabled="true">
+            <div class="system-entry-card company-overview-card" role="button" tabindex="0" onclick="switchPage('company')" title="查看公司经营总览">
                 <strong>公司经营总览</strong>
-                <span>首位入口：组长成绩、平台表现、老板视图</span>
-                <span class="system-entry-meta"><b>规划中</b><em class="system-entry-status">待建</em></span>
+                <span>老板视图：组长成绩、平台表现、数据质量</span>
+                <span class="system-entry-meta"><b>进入总览</b><em class="system-entry-status">试点</em></span>
             </div>
             <details class="system-entry-panel" open>
                 <summary>平台子系统</summary>
@@ -994,6 +1025,15 @@
         </header>
         <div class="workflow-strip" id="workflowStrip" aria-label="工作流进度"></div>
         <div class="content">
+
+            <!-- ═══ 公司经营总览 ═══ -->
+            <div class="page" id="page-company">
+                <div class="hero hero-compact">
+                    <h1>🏢 公司经营总览</h1>
+                    <p>老板视图先不看个人明细，先看小组成绩、平台状态、数据质量和部署阶段。Temu 当前是第一个试点子系统。</p>
+                </div>
+                <div id="companyOverviewPanel"></div>
+            </div>
 
             <!-- ═══ 页面 1: 团队工作台 / 数据导入 ═══ -->
             <div class="page active" id="page-import">
@@ -1981,6 +2021,7 @@ function updateSidebar() {
 }
 
 var PAGE_META = {
+    company:   { title: '公司经营总览', sub: '老板视图 · 小组成绩 · 平台状态' },
     import:    { title: '团队工作台', sub: '接入我的数据 · 查看团队状态' },
     pk:        { title: '团队对齐分', sub: '核心对齐 · 个人成长镜子' },
     diagnosis: { title: '个人诊断', sub: '改进方向 · 历史复盘' },
@@ -1991,6 +2032,61 @@ var PAGE_META = {
     predict:   { title: '智能预测', sub: '新品评估 · 低频工具' },
     admin:     { title: '管理后台', sub: '团队同步 · 配置 · 日志' }
 };
+
+function computeImageQuality(products) {
+    products = products || [];
+    var total = products.length;
+    var withMain = products.filter(function(p) { return !!(p.image_url || p.product_image_url || p.image || p.img); }).length;
+    var withReview = products.filter(function(p) { return !!(p.review_image_url || p.review_image || p.bad_review_image || p.comment_image_url); }).length;
+    var missingMain = Math.max(0, total - withMain);
+    var mainPct = total ? Math.round(withMain / total * 100) : 0;
+    var reviewPct = total ? Math.round(withReview / total * 100) : 0;
+    var grade = mainPct >= 80 ? '可用' : (mainPct >= 50 ? '待补齐' : '短板');
+    return { total: total, withMain: withMain, withReview: withReview, missingMain: missingMain, mainPct: mainPct, reviewPct: reviewPct, grade: grade };
+}
+
+function buildPermissionMatrixHTML() {
+    var roles = [
+        { id: 'operator', name: '普通运营' },
+        { id: 'supervisor', name: '组长/主管' },
+        { id: 'admin', name: '管理员' },
+        { id: 'developer', name: '开发者' }
+    ];
+    var caps = [
+        { key: 'local_save', label: '本地保存' },
+        { key: 'collab_sync', label: '同步本人摘要' },
+        { key: 'team_benchmark', label: '团队基准' },
+        { key: 'team_pk_board', label: '主管看板' },
+        { key: 'sync_config', label: '同步配置' },
+        { key: 'clear_local', label: '清除本机数据' }
+    ];
+    var h = '<div class="scroll-box"><table><thead><tr><th>能力</th>' + roles.map(function(r) { return '<th>' + escHtml(r.name) + '</th>'; }).join('') + '</tr></thead><tbody>';
+    caps.forEach(function(cap) {
+        h += '<tr><td>' + escHtml(cap.label) + '</td>' + roles.map(function(role) {
+            if (role.id === 'developer') return '<td><span class="badge badge-gold">本机调试</span></td>';
+            var p = defaultAdminPermissions(role.id);
+            return '<td>' + (p[cap.key] ? '<span class="badge badge-gold">允许</span>' : '<span class="badge badge-silver">隐藏</span>') + '</td>';
+        }).join('') + '</tr>';
+    });
+    h += '</tbody></table></div>';
+    return h;
+}
+
+function buildAliyunDeployChecklistHTML() {
+    var cfg = typeof getOssConfig === 'function' ? getOssConfig() : {};
+    var serverOk = isCollabServerAvailable();
+    var ossOk = typeof isOssConfigured === 'function' && isOssConfigured();
+    var dbOk = !!(_adminServerStatus && _adminServerStatus.data && _adminServerStatus.data.database && _adminServerStatus.data.database.engine);
+    var steps = [
+        { title: '1. OSS 数据桶', ok: ossOk, desc: ossOk ? ((cfg.bucket || 'OSS') + ' · ' + (cfg.region || '')) : '先完成 OSS Bucket、CORS 与服务端 Key 托管' },
+        { title: '2. ECS / 轻量服务器', ok: serverOk, desc: serverOk ? '本机 api_server.py 已连通，后续迁移同一服务到云端' : '准备云服务器运行 api_server.py，前端通过 HTTPS 调用 /api/collab' },
+        { title: '3. 协作数据库', ok: dbOk, desc: dbOk ? 'SQLite 索引可用；云端可先 SQLite，后续再迁 PostgreSQL' : '当前未检测到协作索引库，先跑通 SQLite' },
+        { title: '4. 域名与 HTTPS', ok: false, desc: '部署到云端后绑定域名，前端 API 地址从 localhost 切到 HTTPS' }
+    ];
+    return steps.map(function(s) {
+        return '<div class="admin-action-card"><h3>' + escHtml(s.title) + '</h3><p>' + escHtml(s.desc) + '</p><div class="admin-log-badge">' + (s.ok ? '已具备' : '下一步') + '</div></div>';
+    }).join('');
+}
 
 function openCollabAuthFromAdmin() {
     if (typeof showCollabAuthModal === 'function') {
@@ -2429,6 +2525,11 @@ function renderAdminPage() {
         return action('清除本地业务数据', '会清除本地商品、店铺、团队基准与快照数据；不会删除云端 OSS 摘要。',
             '<button type="button" class="btn btn-danger-soft" onclick="doClearWithAdminConfirm()">🗑️ 清除本地业务数据</button>');
     }
+    function deployActionsHTML() {
+        return buildAliyunDeployChecklistHTML() +
+            action('部署路线文档', '把本地试点迁到阿里云时，先照这个清单准备 ECS、OSS、HTTPS、环境变量和回滚方式。',
+            '<button type="button" class="btn" onclick="window.open(\'docs/阿里云部署路线V1.md\', \'_blank\')">📄 查看部署路线</button>');
+    }
     box.innerHTML =
         '<div class="admin-console">' +
         '<div class="admin-overview-head"><div><div class="admin-health-title">系统健康概览</div>' +
@@ -2453,6 +2554,10 @@ function renderAdminPage() {
             recentUploadsHTML(), '', '') +
         section('最近后台动作', '来自 SQLite audit_logs',
             recentAuditHTML(), '', '') +
+        section('权限矩阵', '商业化协作边界',
+            '<div class="admin-log-list">' + buildPermissionMatrixHTML() + '</div>', '', '') +
+        section('阿里云部署链路', '本机试点 -> 云端协作服务',
+            deployActionsHTML(), '', '') +
         section('系统配置', 'OSS、Key 与联调检查', configActionsHTML(), '', '') +
         section('本地与报表', '保存、日志与复盘输出',
         action('本地保存', '保存当前解析结果，保留本地工作状态与快照摘要。',
@@ -2463,6 +2568,53 @@ function renderAdminPage() {
         (dangerActionsHTML() ? section('高风险操作', '需要确认',
         dangerActionsHTML(),
             'is-danger', '会清除本地业务数据，不会删除云端 OSS 摘要；现有清除流程会再次弹出确认。') : '') +
+        '</div>';
+}
+
+function renderCompanyOverviewPage() {
+    var box = document.getElementById('companyOverviewPanel');
+    if (!box) return;
+    refreshAdminServerStatus();
+    var q = computeImageQuality(ST.products || []);
+    var products = ST.products || [];
+    var stores = ST.storeData || [];
+    var team = ST.teamProducts || [];
+    var uploadItems = (_adminRecentUploads && _adminRecentUploads.items) || [];
+    var groupMap = {};
+    uploadItems.forEach(function(item) {
+        var gid = item.group_name || item.group_id || '未分组';
+        groupMap[gid] = groupMap[gid] || { name: gid, people: 0, scoreSum: 0, scoreCount: 0, spu: 0, store: 0 };
+        groupMap[gid].people += 1;
+        if (item.align_score != null) { groupMap[gid].scoreSum += Number(item.align_score) || 0; groupMap[gid].scoreCount += 1; }
+        groupMap[gid].spu += Number(item.spu_count || 0);
+        groupMap[gid].store += Number(item.store_count || 0);
+    });
+    var groups = Object.keys(groupMap).map(function(k) { return groupMap[k]; });
+    function card(label, value, hint, tone) {
+        return '<div class="admin-status-card ' + (tone || '') + '"><div class="label">' + escHtml(label) + '</div><div class="value">' + escHtml(String(value)) + '</div><div class="hint">' + escHtml(hint || '') + '</div></div>';
+    }
+    var groupRows = groups.length ? groups.map(function(g) {
+        var avgScore = g.scoreCount ? Math.round(g.scoreSum / g.scoreCount) : '—';
+        return '<div class="admin-log-row"><div class="admin-log-main">' + escHtml(g.name) + '</div><div class="admin-log-meta">成员 ' + g.people + ' · 均分 ' + avgScore + ' · SPU ' + g.spu + ' · 店铺 ' + g.store + '</div><div class="admin-log-badge">组长视图</div></div>';
+    }).join('') : '<div class="admin-action-card"><h3>暂无小组成绩</h3><p>登录团队账号并同步摘要后，这里会按小组展示组长成绩。当前先展示本机与团队基准概览。</p></div>';
+    box.innerHTML =
+        '<div class="admin-console">' +
+        '<div class="admin-overview-head"><div><div class="admin-health-title">老板报告面板</div><div class="admin-health-sub">只汇总团队与小组结果，不暴露个人原始 Excel 明细。</div></div><div class="admin-health-badge">Temu 子系统 · 试点</div></div>' +
+        '<div class="admin-status-grid">' +
+        card('本机 SPU', products.length, '当前个人/样本商品数', products.length ? 'is-ok' : 'is-warn') +
+        card('店铺记录', stores.length, '运营侧输入规模', stores.length ? 'is-ok' : 'is-warn') +
+        card('团队基准', team.length, '已拉取或导入的团队样本', team.length ? 'is-ok' : 'is-warn') +
+        card('主图覆盖率', q.mainPct + '%', q.withMain + '/' + q.total + ' 有主图', q.mainPct >= 80 ? 'is-ok' : 'is-warn') +
+        card('评价图覆盖率', q.reviewPct + '%', q.withReview + '/' + q.total + ' 有评价图', q.reviewPct >= 30 ? 'is-ok' : 'is-warn') +
+        card('协作服务', isCollabServerAvailable() ? '在线' : '待部署', isCollabServerAvailable() ? '可读取团队账号与审计' : '本地/云端 api_server.py 未连接', isCollabServerAvailable() ? 'is-ok' : 'is-warn') +
+        '</div>' +
+        '<section class="admin-console-section"><div class="admin-section-head"><h2>小组成绩</h2><span>给组长/老板看汇总，不看个人原表</span></div><div class="admin-log-list">' + groupRows + '</div></section>' +
+        '<section class="admin-console-section"><div class="admin-section-head"><h2>平台状态</h2><span>Temu 先行，SHEIN / 淘宝天猫待适配</span></div><div class="admin-action-grid">' +
+        '<div class="admin-action-card"><h3>Temu 子系统</h3><p>当前已承载团队对齐、商品画像、店铺运营和同步后台。</p><div class="admin-log-badge">在线</div></div>' +
+        '<div class="admin-action-card is-disabled"><h3>SHEIN 系统</h3><p>平台适配器和字段口径待建，后续复用统一经营模型。</p><div class="admin-log-badge">待配置</div></div>' +
+        '<div class="admin-action-card is-disabled"><h3>淘宝天猫系统</h3><p>国内平台口径复杂，作为独立适配层预留。</p><div class="admin-log-badge">待配置</div></div>' +
+        '</div></section>' +
+        '<section class="admin-console-section"><div class="admin-section-head"><h2>下一阶段闭环</h2><span>商业化前必须收口</span></div><div class="admin-action-grid">' + buildAliyunDeployChecklistHTML() + '</div></section>' +
         '</div>';
 }
 
@@ -4400,9 +4552,12 @@ function buildCloudSummary() {
             weight_g: Math.round(p.weight_g),
             cost: Math.round(p.cost * 100) / 100,
             price: p.price || 0,
+            image_url: p.image_url || '',
+            review_image_url: p.review_image_url || '',
             cluster_label: clusterMap[p.spu_id] || ''
         };
     });
+    var imageQuality = computeImageQuality(ST.products || []);
     return {
         version: 2,
         scope: scope,
@@ -4419,6 +4574,7 @@ function buildCloudSummary() {
         date: new Date().toISOString().slice(0, 10),
         uploaded_at: new Date().toLocaleString('zh-CN'),
         product_stats: ST._stats || {},
+        data_quality: { images: imageQuality },
         products: products,
         store_records: (ST.storeData || []).map(function(r) {
             return {
@@ -4730,6 +4886,8 @@ function switchPage(name) {
     document.querySelectorAll('.sidebar-nav a').forEach(function(a){
         var oc = a.getAttribute('onclick')||''; if(oc.indexOf("'"+name+"'")!==-1) a.classList.add('active');
     });
+    var companyEntry = document.querySelector('.company-overview-card');
+    if (companyEntry) companyEntry.classList.toggle('is-active', name === 'company');
     var adminEntry = document.getElementById('adminEntry');
     if (adminEntry) adminEntry.classList.toggle('active', name === 'admin');
     updateTopbar(name);
@@ -4745,6 +4903,7 @@ function switchPage(name) {
     if (name==='store') renderStorePage();
     if (name==='pk') renderPKPage();
     if (name==='admin') renderAdminPage();
+    if (name==='company') renderCompanyOverviewPage();
     recordPageVisit(name);
     if (name === 'import' && typeof renderStageGatePanel === 'function') renderStageGatePanel();
     var activePg = document.getElementById('page-' + name);
@@ -5389,8 +5548,16 @@ window.renderProducts = (function() {
     var ib = buildInsightsBarHTML();
     if (ib) { var ibEl = document.createElement('div'); ibEl.innerHTML = ib; div.appendChild(ibEl); }
     var cnt={}; ST.clusters.forEach(function(p){cnt[p.cluster_label]=(cnt[p.cluster_label]||0)+1;});
+    var imgQ = computeImageQuality(ST.clusters || ST.products || []);
     div.innerHTML='<div class="alert alert-info" style="margin-bottom:14px;"><span class="alert-icon">🧭</span><span>当前聚类只回答“数据表现像哪一类”，不能单独回答“为什么爆/为什么亏”。要形成可信诊断，需要在商品经营模板里补充卖点、流量、竞品、供应链、平台规则和动作复盘。</span></div><div class="btn-row"><div class="step"><div class="emoji">🟡</div><div class="title">黄金品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:var(--gold);">'+(cnt['黄金品']||0)+'</div></div><div class="step"><div class="emoji">⚪</div><div class="title">白银品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:#a0a0a0;">'+(cnt['白银品']||0)+'</div></div><div class="step"><div class="emoji">🔵</div><div class="title">观察品</div><div class="desc" style="font-size:1.5rem;font-weight:700;color:#5b9bd5;">'+(cnt['观察品']||0)+'</div></div><div class="step"><div class="title">📦 总计</div><div class="desc" style="font-size:1.5rem;font-weight:700;">'+ST.clusters.length+'</div></div></div>';
     pg.appendChild(div);
+    var qualityExp=document.createElement('details');qualityExp.className='expander';qualityExp.open=true;
+    qualityExp.innerHTML='<summary>🧪 图片数据质量（'+imgQ.grade+'）</summary><div class="expander-content"><div class="admin-status-grid">' +
+        '<div class="admin-status-card '+(imgQ.mainPct>=80?'is-ok':'is-warn')+'"><div class="label">主图覆盖率</div><div class="value">'+imgQ.mainPct+'%</div><div class="hint">'+imgQ.withMain+' / '+imgQ.total+' 有主图</div></div>' +
+        '<div class="admin-status-card '+(imgQ.reviewPct>=30?'is-ok':'is-warn')+'"><div class="label">评价图覆盖率</div><div class="value">'+imgQ.reviewPct+'%</div><div class="hint">'+imgQ.withReview+' / '+imgQ.total+' 有评价图</div></div>' +
+        '<div class="admin-status-card '+(imgQ.missingMain===0?'is-ok':'is-warn')+'"><div class="label">待补主图</div><div class="value">'+imgQ.missingMain+'</div><div class="hint">补齐后商品画像更接近真实经营诊断</div></div>' +
+        '</div><div class="alert alert-info" style="margin-top:10px;"><span class="alert-icon">🖼️</span><span>下一步建议：利润统计增加“主图链接 / 评价图链接”列；后续阿里云部署后再把外链缓存到 OSS，避免原图散落在 Excel 或聊天记录里。</span></div></div>';
+    div.appendChild(qualityExp);
     [{l:'黄金品',c:'var(--gold)',bc:'badge badge-gold'},{l:'白银品',c:'#a0a0a0',bc:'badge badge-silver'},{l:'观察品',c:'#5b9bd5',bc:'badge badge-watch'}].forEach(function(g){var s=ST.clusters.filter(function(p){return p.cluster_label===g.l;});if(s.length>0){var exp=document.createElement('details');exp.className='expander';exp.open=true;exp.innerHTML='<summary><span class="'+g.bc+'">'+g.l+'</span> 概况（'+s.length+' 个SPU）</summary><div class="expander-content"><div class="alert alert-info" style="border-left:3px solid '+g.c+'"><div><strong style="color:'+g.c+'">'+g.l+'</strong><br>毛利率: '+avg(s.map(function(p){return p.gross_margin;})).toFixed(1)+'% | 日销: '+avg(s.map(function(p){return p.daily_sales;})).toFixed(1)+' | 克重: '+Math.round(avg(s.map(function(p){return p.weight_g;})))+'g | 成本: $'+avg(s.map(function(p){return p.cost;})).toFixed(2)+'</div></div></div>';div.appendChild(exp);}});
     var imageExp=document.createElement('details');imageExp.className='expander';imageExp.open=true;
     var imageItems=ST.clusters.slice().sort(function(a,b){return (b.image_url?1:0)-(a.image_url?1:0)||b.gross_margin-a.gross_margin;}).slice(0,24);
