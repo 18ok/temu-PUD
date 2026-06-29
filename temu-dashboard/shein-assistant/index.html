@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>希音商品属性库 V1</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <h1>希音商品属性库 V1</h1>
+        <p id="statusLine">等待导入希音商品列表模板</p>
+      </div>
+      <div class="topbar-actions">
+        <button id="copyPendingBtn" class="ghost-btn" type="button">复制待补清单</button>
+        <button id="clearDbBtn" class="danger-btn" type="button">清空本地库</button>
+      </div>
+    </header>
+
+    <section class="import-panel" id="dropZone">
+      <div>
+        <label class="file-btn" for="fileInput">选择 xlsx</label>
+        <input id="fileInput" type="file" accept=".xlsx,.xls" hidden>
+      </div>
+      <div class="import-copy">
+        <strong>导入希音表格模板</strong>
+        <span>读取「商品信息」和「商品属性」，生成 SPU / SKC / SKU 档案。</span>
+      </div>
+      <div class="import-meta" id="importMeta">未导入</div>
+    </section>
+
+    <section class="stats-grid" id="statsGrid" aria-label="缺失统计"></section>
+
+    <section class="workspace">
+      <aside class="search-pane">
+        <div class="search-box">
+          <input id="searchInput" type="search" placeholder="搜索：咖啡帘 / 桌布 / 苍兰音 / CL-0626-30-200" autocomplete="off">
+          <button id="resetSearchBtn" class="ghost-btn" type="button">重置</button>
+        </div>
+        <div class="result-head">
+          <span id="resultCount">0 个商品</span>
+          <span id="matchHint">本地库为空</span>
+        </div>
+        <div class="results-list" id="resultsList"></div>
+      </aside>
+
+      <section class="detail-pane" id="detailPane">
+        <div class="empty-state">导入后选择一个商品查看档案</div>
+      </section>
+    </section>
+
+    <section class="pending-panel">
+      <div class="section-head">
+        <h2>待补清单</h2>
+        <span id="pendingSummary">0 项</span>
+      </div>
+      <div class="pending-list" id="pendingList"></div>
+    </section>
+  </main>
+
+  <script src="./lib/dexie.min.js"></script>
+  <script src="./lib/fuse.min.js"></script>
+  <script src="./lib/xlsx.full.min.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
